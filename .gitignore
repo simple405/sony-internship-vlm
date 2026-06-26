@@ -1,6 +1,9 @@
 .venv/
 vlm/data/
 vlm/tmp/
+vlm/reference/
+vlm/docs/source_pdfs/
+vlm/docs/assets/
 
 __pycache__/
 *.pyc
