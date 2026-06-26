@@ -1,0 +1,79 @@
+IMAGE 1 HAS HIGHEST PRIORITY FOR ALL CHARACTER IDENTITY DETAILS.
+
+Use the provided 2D anime character image as the ONLY primary visual identity reference.
+Use the atomic_rules only as mandatory reinforcement constraints.
+
+CORE TASK:
+Create an anime PVC collectible figurine toy design sheet based on the same character.
+
+OUTPUT FORMAT:
+- Generate exactly one clean 3D figurine design sheet.
+- Show the same character in EXACTLY THREE orthographic full-body views:
+  1. front view
+  2. side view
+  3. back view
+- Arrange the three views horizontally.
+- All three figures must be aligned, same scale, same proportions, and same outfit.
+- Use a clean white seamless studio background.
+- Do not include the original 2D image inside the output.
+- Do not include text, labels, captions, logos, UI elements, or watermarks.
+
+STYLE:
+- Anime PVC figure toy.
+- High-quality 3D collectible figurine render.
+- Matte painted PVC surface.
+- Sharp sculpted details.
+- Soft studio lighting.
+- Neutral standing pose.
+- Natural facial expression.
+- Full body visible from head to feet in every view.
+
+IDENTITY PRESERVATION:
+- Preserve the character identity from the 2D reference image as closely as possible.
+- Preserve hair color, hair length, hairstyle, bangs, eye color, facial features, skin tone, outfit type, outfit colors, outfit patterns, accessories, back accessories, handheld items, legwear, footwear, and asymmetric left/right details.
+- Preserve all distinctive structural design elements from the reference image.
+- Do not simplify, remove, or omit important accessories, outfit patterns, trims, fur, bows, detached sleeves, gloves, legwear gradients, back ornaments, or handheld items.
+- If a detail is visible in the 2D image but not listed in atomic_rules, still preserve it when it is clearly part of the character design.
+- If text conflicts with the image, follow the image.
+- If atomic_rules conflict with unclear image details, use atomic_rules as mandatory constraints.
+- Atomic_rules are coarse identity constraints, not a replacement for visible reference-image details.
+- Do not invent new major character features that are not present in the reference or atomic_rules.
+
+COLOR AND PATTERN PRESERVATION:
+- Preserve the exact visible color distribution from the 2D reference image, not only the nearest simple color name.
+- For every visually important area, keep local color zones, split colors, gradients, ombre effects, transparent or translucent color changes, metallic tint shifts, highlights, trims, symbols, and surface patterns.
+- Pay special attention to small identity-defining objects such as handheld items, head accessories, hair ornaments, bows, ribbons, back accessories, legwear, footwear, and decorative panels.
+- If an object is multicolor, gradient, patterned, translucent, shiny, starry, or has colored decorative markings in the 2D reference, the 3D version must preserve those visual properties.
+- Do not collapse a multicolor or gradient object into one flat solid color.
+- Do not replace visible color placement with a generic dominant color.
+- If an atomic_rules color value is broad, such as a color family or a combined label like blue/cyan, treat it as a minimum color-family constraint and use the 2D reference image for the detailed hue distribution, gradients, decorations, and color placement.
+- Preserve left/right color asymmetry and repeated color motifs consistently across front, side, and back views.
+
+MANDATORY ATOMIC_RULES:
+{{ATOMIC_RULES}}
+
+VIEW CONSISTENCY:
+- The front, side, and back views must describe the same 3D figurine.
+- Keep hairstyle volume consistent across all views.
+- Keep outfit structure consistent across all views.
+- Back view must show the actual back-side hair, outfit, and back accessories.
+- Side view must be a true side view, not a 3/4 view.
+- Do not generate extra views, duplicate front views, perspective views, angled views, or character variations.
+
+HAND AND BODY QUALITY:
+- Hands must be well formed.
+- Avoid malformed hands, extra fingers, missing fingers, fused fingers, distorted arms, broken anatomy, cropped body, hidden feet, blurry details, and inconsistent proportions.
+
+NEGATIVE PROMPT:
+text, letters, logo, watermark, caption, label,
+original reference image pasted into output,
+extra characters, extra views, duplicate characters beyond the required three views,
+3/4 view, perspective view, angled view,
+dynamic action pose, sitting pose, cropped body,
+missing back view, missing side view,
+inconsistent outfit between views,
+wrong colors, missing accessories, simplified design,
+flat single-color replacement of multicolor or gradient objects,
+lost color zones, lost gradients, lost patterns, lost decorative markings,
+deformed face, malformed hands, extra fingers, missing fingers,
+blurry, low detail, busy background, scene background
