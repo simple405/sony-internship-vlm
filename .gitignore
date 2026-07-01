@@ -1,11 +1,14 @@
 .venv/
 vlm/data/
 vlm/tmp/
+vlm/archive/
 vlm/reference/
+vlm/experiments/runs/
 vlm/docs/source_pdfs/
 vlm/docs/assets/
 
 __pycache__/
+*.egg-info/
 *.pyc
 *.pyo
 

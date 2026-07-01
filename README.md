@@ -1,32 +1,27 @@
 # Sony Internship VLM Workspace
 
-This workspace is organized as a VLM development workspace for Anime IP supervision.
+This repository is organized as a VLM development workspace for Anime IP merchandise supervision.
 
-## Active VLM Workspace
+## Active Workspace
 
-- `vlm/` - active VLM development assets.
-  - `vlm/scripts/` - active Python scripts for crawling Safebooru data, extracting Qwen atomic rules, comparing trials, monitoring workers, and running QA.
-  - `vlm/config/` - run contracts and batch defaults.
-  - `vlm/prompts/` - active prompt templates and prompt notes.
-  - `vlm/data/` - current datasets, generated atomic rules, reports, logs, and raw trial data.
-  - `vlm/docs/` - workflow notes, context summaries, source PDFs, and diagrams.
-  - `vlm/reference/` - archived prototype projects and their historical assets.
-- `vlm/requirements.txt` - dependencies for the active scripts.
+- `vlm/scripts/` - runnable pipeline code, grouped by role:
+  - `data/` - dataset assignment and dataset maintenance helpers.
+  - `generate/` - RunningHub image generation runners.
+  - `orchestrate/` - batch runners that call lower-level scripts.
+- `vlm/prompts/` - RunningHub prompt assets.
+- `vlm/data/` - local datasets, generated rules, reports, logs, and model outputs.
+- `vlm/experiments/` - lightweight experiment notes, frozen manifests, and small eval specs.
+- `vlm/docs/` - workflow notes, source PDFs, and diagrams.
+- `vlm/archive/` - local-only historical artifacts; ignored by git.
+- `vlm/reference/` - older prototype projects retained for reference.
 
-The main active workflow is documented in:
+## Current Workflow
 
-- `vlm/docs/workflows/atomic_rules_vlm_workflow.md`
-- `vlm/docs/workflows/atomic_rules_vlm_context_summary_2026-06-24.md`
-
-## Legacy Prototype
-
-- `vlm/reference/ip_review_project/` - earlier prototype project for character-profile extraction, prompt generation, and annotation dataset construction.
-
-Keep this project as a reference unless you are specifically working on the old GPT Vision / merchandise-prompt pipeline. Useful prompt ideas from that project should be adapted into `vlm/prompts/` before being used in the active workflow.
+Use `vlm/docs/workflows/process.md` as the current RunningHub merchandise process. Qwen/Wan scripts and obsolete atomic-rules workflows have been removed from the active tracked workspace.
 
 ## Working Convention
 
 - Run active commands from this workspace root so relative paths such as `vlm/data/safebooru_2d/...` resolve correctly.
-- Do not move `vlm/` without updating script defaults and workflow docs.
-- Put historical or experimental whole-project snapshots under `vlm/reference/`.
-- Put temporary scratch outputs under `vlm/tmp/`.
+- Keep durable datasets under `vlm/data/`; keep scratch or rerun logs under `vlm/tmp/`.
+- Put experiment designs and small reproducible manifests in `vlm/experiments/`; keep large generated artifacts in ignored data/tmp paths.
+- Put retired code or whole workflow snapshots under `vlm/archive/`.
