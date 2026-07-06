@@ -1,0 +1,28 @@
+{
+  "schema_version": "supervision_severity_policy.v1",
+  "base_score": 100,
+  "severity_penalties": {
+    "critical": 45,
+    "high": 25,
+    "medium": 12,
+    "low": 4,
+    "info": 0
+  },
+  "score_floors": {
+    "product_type_error": 40,
+    "identity_hallucination": 65,
+    "identity_missing": 70,
+    "view_inconsistency": 60,
+    "safety_or_generation_block": 0,
+    "missing_generated_image": 0,
+    "image_open_failed": 0
+  },
+  "decisions": {
+    "approved": "score >= 85, no high/critical findings, product type correct",
+    "needs_revision": "60 <= score < 85 or medium findings, no critical findings",
+    "human_review_required": "high finding with low confidence, visual uncertainty, or rule conflict",
+    "rejected": "score < 60, critical finding, wrong product type, severe identity loss or hallucination",
+    "not_reviewed": "dry-run placeholder or unreviewed sample",
+    "blocked": "generation blocked, missing output, or unusable file"
+  }
+}
