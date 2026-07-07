@@ -124,17 +124,72 @@ GENERIC_SIGNATURE_TAGS = {
     *SHEET_TAGS,
     *REQUIRED_TAGS,
     *SUBJECT_TAGS,
+    "full_body",
     "official_art",
     "profile",
     "from_side",
     "from_behind",
+    "from_above",
+    "from_below",
     "simple_background",
     "white_background",
     "highres",
     "absurdres",
     "standing",
+    "sitting",
+    "kneeling",
+    "crouching",
     "looking_at_viewer",
+    "facing_viewer",
     "smile",
+}
+
+GENERIC_IDENTITY_TAGS = {
+    "ahoge",
+    "bangs",
+    "bare_shoulders",
+    "blush",
+    "boots",
+    "bow",
+    "breasts",
+    "cape",
+    "closed_eyes",
+    "closed_mouth",
+    "collarbone",
+    "dress",
+    "earrings",
+    "eyebrows_visible_through_hair",
+    "female",
+    "flower",
+    "frills",
+    "glasses",
+    "gloves",
+    "hair_between_eyes",
+    "hair_ornament",
+    "hat",
+    "high_heels",
+    "holding",
+    "jacket",
+    "jewelry",
+    "long_hair",
+    "long_sleeves",
+    "medium_breasts",
+    "medium_hair",
+    "open_mouth",
+    "pants",
+    "ribbon",
+    "shirt",
+    "shoes",
+    "short_hair",
+    "short_sleeves",
+    "skirt",
+    "socks",
+    "solo",
+    "standing_on_one_leg",
+    "swept_bangs",
+    "thigh-highs",
+    "translation_request",
+    "very_long_hair",
 }
 
 VISUAL_SUFFIXES = (
@@ -443,7 +498,30 @@ def normalized_source_key(source: Any) -> str:
 
 
 def character_signature(post: dict[str, Any], crawl_label: str) -> str:
-    return f"{crawl_label}:{post.get('id')}"
+    tags = tag_set(post)
+    ignored = (
+        GENERIC_SIGNATURE_TAGS
+        | GENERIC_IDENTITY_TAGS
+        | NEGATIVE_TAGS
+        | STRICT_NON_HUMAN_TAGS
+        | PARTIAL_VIEW_NEGATIVE_TAGS
+    )
+    identity_tags = []
+    for tag in sorted(tags):
+        if tag in ignored or tag.startswith("rating:"):
+            continue
+        if tag.endswith(VISUAL_SUFFIXES):
+            continue
+        if re.fullmatch(r"\d+(girl|boy|girls|boys|people|persons)", tag):
+            continue
+        identity_tags.append(tag)
+    if identity_tags:
+        return "character_tags:" + "|".join(identity_tags[:5])
+
+    source_key = normalized_source_key(post.get("source"))
+    if source_key:
+        return f"source:{source_key}"
+    return f"post:{post.get('id')}"
 
 
 def allows_official_full_body(crawl_label: str, raw_tags: str) -> bool:
@@ -493,6 +571,8 @@ def prefilter_post(
         return False, "too_small", ""
 
     signature = character_signature(post, crawl_label)
+    if signature in seen_signatures:
+        return False, "duplicate_character_signature", signature
 
     if (
         not allow_official_full_body
@@ -626,11 +706,15 @@ def write_outputs(rows: list[dict[str, Any]], metadata_path: Path, manifest_path
 
 def seed_seen_sets(existing_rows: list[dict[str, Any]]) -> tuple[set[str], set[str]]:
     seen_ids: set[str] = set()
+    seen_signatures: set[str] = set()
     for row in existing_rows:
         post_id = str(row.get("post_id") or "").strip()
         if post_id:
             seen_ids.add(post_id)
-    return seen_ids, set()
+        signature = str(row.get("character_signature") or "").strip()
+        if signature:
+            seen_signatures.add(signature)
+    return seen_ids, seen_signatures
 
 
 def add_explicit_skip_ids(seen_ids: set[str], skip_post_ids: str) -> None:
