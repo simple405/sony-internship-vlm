@@ -25,15 +25,11 @@ STOPWORDS = {
     "an",
     "and",
     "are",
-    "color",
-    "colour",
     "has",
     "have",
     "is",
     "of",
     "the",
-    "type",
-    "value",
     "with",
 }
 
