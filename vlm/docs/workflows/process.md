@@ -1,6 +1,6 @@
 # VLM 监修下一步流程
 
-更新日期：2026-07-06 18:30 +08:00
+更新日期：2026-07-07 13:10 +08:00
 
 ## 当前结论
 
@@ -258,6 +258,25 @@ vlm/scripts/supervise/align_human_findings_to_atomic_rules.py
 vlm/scripts/supervise/summarize_pre_gold_assets.py
 ```
 
+新增文档：
+
+```text
+vlm/docs/supervision/stage1_annotation_instructions.md   # Stage 1 人工视觉监修标注说明（中文）
+```
+
+mock gold 闭环测试产物（2026-07-07）：
+
+```text
+vlm/tmp/mock_gold_test/trial_sample_config.json
+vlm/tmp/mock_gold_test/human_visual_findings.csv          # 3 条 mock finding
+vlm/tmp/mock_gold_test/annotator_gold.csv                 # 27 条 mock rule-level 标注
+vlm/tmp/mock_gold_test/atomic_rule_audit.csv              # 27 条 mock rule audit
+vlm/tmp/mock_gold_test/validation_output/                 # 57/57 PASS
+vlm/tmp/mock_gold_test/alignment_output/                  # 4 candidates
+vlm/tmp/mock_gold_test/verified_gold_output/              # 17 verified + 10 excluded
+vlm/tmp/mock_gold_test/pre_gold_summary/                  # 资产汇总
+```
+
 待人工数据回来后再适配：
 
 ```text
@@ -272,6 +291,8 @@ compare_predictions.py     # 等 verified gold 和 Qwen 大批量结果就绪后
 - ✅ 标准 CSV schema 已定义
 - ✅ 人工标注校验脚本已建立
 - ✅ verified gold 融合脚本骨架已建立，支持无人工数据 dry-run
+- ✅ Stage 1 标注说明文档已写（`vlm/docs/supervision/stage1_annotation_instructions.md`）
+- ✅ mock gold 闭环跑通（validate → align → verified gold → summary 全链路 PASS）
 - ✅ 标注模板生成脚本已建立
 - ✅ 通用 xlsx → csv 转换脚本已建立
 - ✅ 人工发现 → atomic_rules 候选对齐脚本已建立
@@ -322,19 +343,33 @@ backpack/2812503
 - [x] 新增 `validate_human_annotations.py`
 - [x] 新增 `build_verified_evaluation_gold.py` dry-run 骨架
 
-进行中：
-- [ ] 目录结构整理（2026-07-07）— 扁平化 generated/、创建 _paths.py、清理 tmp/ 和旧结构
+进行中：（无）
 
-暂停（等人工 gold + mock gold 闭环后再恢复）：
-- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪，按 handoff 优先级调整暂停
-- [ ] 扩大 backpack 测试到 10 样本 — 同上
+已完成（2026-07-07 mock gold 闭环测试）：
+- [x] 冻结试标样本包 — `multi_view试标数据集/` 24 样本（4 品类 × 4 + 2 特殊品类 × 4）已确认稳定
+- [x] Stage 1 标注说明文档 — `vlm/docs/supervision/stage1_annotation_instructions.md`
+- [x] human_visual_findings.csv 导入/校验链路 — validator 支持实际格式，57 行全部 PASS
+- [x] mock gold 闭环跑通 — 3 条 mock finding → validate → align → verified gold → 报告
+- [x] Stage 2 atomic_rule_audit.csv 字段设计 — schema 已定义 + mock 数据通过校验
+- [x] summarize_pre_gold_assets.py 验证 — 支持所有 mock 产物输入
 
-当前最高优先级（来自 handoff 2026-07-07）：
-1. 冻结试标样本包（确认 multi_view试标数据集 不再被替换）
-2. 明确给 labor 的 Stage 1 标注任务说明
-3. 准备 human_visual_findings.csv 导入/校验链路
-4. 用 mock gold 跑通闭环（手写 2-3 条假 finding 验证导入→校验→汇总→报告）
-5. 准备 Stage 2 atomic_rule_audit.csv 字段设计
+mock gold 闭环测试结果（backpack/2812503）：
+
+| 步骤 | 输入 | 输出 | 状态 |
+|------|------|------|------|
+| validate | 3 findings + 27 gold + 27 audit | 57/57 PASS | ✅ |
+| align | 3 findings + sample config | 4 candidates (2 broader, 1 related, 1 no_match) | ✅ |
+| verified gold | 27 gold + 27 audit | 17 verified + 10 excluded | ✅ |
+| pre-gold summary | all above | 1 sample, 3 findings, 17 gold rows | ✅ |
+
+已知限制：
+- align 的 STOPWORDS 包含 "headwear" 和 "ribbon"，导致 F002 (headwear_ribbon) 得 no_match_candidate
+- align 的候选分数偏低（最高 0.33），token-based 方法对自然语言 finding → terse rule_id 对齐效果有限
+- 后续可考虑 LLM-assisted semantic alignment 作为补充
+
+暂停（等人工 gold 回来后再恢复）：
+- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪
+- [ ] 扩大 backpack 测试到 10 样本
 
 等人工标注回来后：
 1. 拿到 .xlsx → 开发 `convert_annotator_xlsx.py` 转标准格式
