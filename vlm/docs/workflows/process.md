@@ -20,9 +20,11 @@
 ```text
 项目根目录: D:\索尼实习
 数据集根目录: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20
+生成数据目录: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated/
 试标数据集: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/multi_view试标数据集
 人工标注说明: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/multi_view试标数据集/动漫IP多品类商品设计检修标注说明v3.pdf
 API 环境变量: vlm/config/api.env
+集中路径常量: vlm/scripts/_paths.py
 标注产物脚本: vlm/scripts/supervise/build_annotation_products.py
 Claude Code 看图入口: vlm/scripts/supervise/qwen_vl_image_tool.py
 ```
@@ -51,34 +53,26 @@ Claude Code 中需要看图时使用：
 ## 已有产物
 
 ```text
-06.10 旧试标产物:
-vlm/tmp/annotation_products_script_check_20260706
-
-v3 schema 临时设计:
-vlm/tmp/supervision_agent_output_schema_20260706
-
-Qwen v3 单样本预测 (旧 prompt，back_visible 有误判):
-vlm/tmp/qwen_v3_prediction_backpack_2807649_scope_as_correct_invisible_20260706
-vlm/tmp/qwen_v3_prediction_backpack_2812503_invisible_status_correct_20260706
-
-v3 schema 固化 + 视角语义规则:
-vlm/tmp/v3_schema_and_backpack_view_rules_20260706
-
-Qwen v3 修正 prompt 重跑 (新 prompt，back_visible 已修正):
-vlm/tmp/backpack_supervision_review_v3/2812503_v3_view_semantics_20260706_135832
-vlm/tmp/backpack_supervision_review_v3/2807649_v3_view_semantics_20260706_140006
-
-对比报告:
-vlm/tmp/backpack_supervision_review_v3/COMPARISON_REPORT.md
+06.10 旧试标产物（已清理 — tmp/ 已清空）:
+（原路径 vlm/tmp/annotation_products_script_check_20260706 等已删除）
 
 正式配置文件:
 vlm/config/supervision/supervision_agent_output_v3.schema.json
 vlm/config/supervision/supervision_agent_output_v3.example.json
 vlm/config/supervision/backpack_review_samples.json
 
+品类 Prompt 模板:
+vlm/prompts/supervision/qwen_prompt_v3_backpack.txt
+vlm/prompts/supervision/qwen_prompt_v3_head_key_chain.txt
+vlm/prompts/supervision/qwen_prompt_v3_plush.txt
+vlm/prompts/supervision/qwen_prompt_v3_cake_roll.txt
+
 审核脚本:
 vlm/scripts/supervise/run_backpack_supervision_review.py
 vlm/scripts/supervise/run_multicategory_supervision_review.py
+
+集中路径常量:
+vlm/scripts/_paths.py
 ```
 
 ## 多品类视角语义规则 + 小批次测试
@@ -101,7 +95,7 @@ vlm/config/supervision/head_key_chain_review_samples.json
 vlm/config/supervision/cake_roll_review_samples.json
 vlm/config/supervision/plush_review_samples.json
 
-小批次测试结果:
+小批次测试结果（tmp/ 已清空，重跑后会自动重建）:
 vlm/tmp/multicategory_supervision_review_v3/head_key_chain/
 vlm/tmp/multicategory_supervision_review_v3/cake_roll/
 vlm/tmp/multicategory_supervision_review_v3/plush/
@@ -239,7 +233,7 @@ Stage 4：三类评估报告
 字段定义已固化到：
 
 ```text
-vlm/config/supervision/human_annotation_csv_schemas.md
+vlm/docs/supervision/human_annotation_csv_schemas.md
 ```
 
 核心文件：
@@ -329,8 +323,18 @@ backpack/2812503
 - [x] 新增 `build_verified_evaluation_gold.py` dry-run 骨架
 
 进行中：
-- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪，Qwen API 额度不足阻塞
-- [ ] 扩大 backpack 测试到 10 样本 — 配置已就绪，Qwen API 额度不足阻塞
+- [ ] 目录结构整理（2026-07-07）— 扁平化 generated/、创建 _paths.py、清理 tmp/ 和旧结构
+
+暂停（等人工 gold + mock gold 闭环后再恢复）：
+- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪，按 handoff 优先级调整暂停
+- [ ] 扩大 backpack 测试到 10 样本 — 同上
+
+当前最高优先级（来自 handoff 2026-07-07）：
+1. 冻结试标样本包（确认 multi_view试标数据集 不再被替换）
+2. 明确给 labor 的 Stage 1 标注任务说明
+3. 准备 human_visual_findings.csv 导入/校验链路
+4. 用 mock gold 跑通闭环（手写 2-3 条假 finding 验证导入→校验→汇总→报告）
+5. 准备 Stage 2 atomic_rule_audit.csv 字段设计
 
 等人工标注回来后：
 1. 拿到 .xlsx → 开发 `convert_annotator_xlsx.py` 转标准格式
