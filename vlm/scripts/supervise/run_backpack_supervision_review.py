@@ -30,7 +30,7 @@ if __package__ in (None, ""):
 
 DEFAULT_ENV_FILE = Path("vlm/config/api.env")
 DEFAULT_PROMPT_TEMPLATE = Path(
-    "vlm/tmp/v3_schema_and_backpack_view_rules_20260706/qwen_prompt_v3_final_backpack.txt"
+    "vlm/prompts/supervision/qwen_prompt_v3_backpack.txt"
 )
 DEFAULT_OUTPUT_ROOT = Path("vlm/tmp/backpack_supervision_review_v3")
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"

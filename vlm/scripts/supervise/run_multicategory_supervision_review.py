@@ -45,7 +45,7 @@ DEFAULT_MODEL = "qwen-vl-max"
 
 # Category → default prompt template mapping
 CATEGORY_PROMPT_TEMPLATES = {
-    "backpack": Path("vlm/tmp/v3_schema_and_backpack_view_rules_20260706/qwen_prompt_v3_final_backpack.txt"),
+    "backpack": Path("vlm/prompts/supervision/qwen_prompt_v3_backpack.txt"),
     "head_key_chain": Path("vlm/prompts/supervision/qwen_prompt_v3_head_key_chain.txt"),
     "plush": Path("vlm/prompts/supervision/qwen_prompt_v3_plush.txt"),
     "cake_roll": Path("vlm/prompts/supervision/qwen_prompt_v3_cake_roll.txt"),
