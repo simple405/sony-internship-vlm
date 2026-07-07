@@ -1,1 +1,1 @@
-
+"""RunningHub generation entry points."""

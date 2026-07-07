@@ -2,6 +2,7 @@
 vlm/data/
 vlm/tmp/
 vlm/archive/
+vlm/config/*.env
 vlm/reference/
 vlm/experiments/runs/
 vlm/docs/source_pdfs/
