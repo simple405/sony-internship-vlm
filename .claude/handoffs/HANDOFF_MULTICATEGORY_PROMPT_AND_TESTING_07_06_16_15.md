@@ -156,6 +156,29 @@ vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated_3d_no_rules/�
 
 ## Current State
 
+### Priority Update (2026-07-07)
+
+后续讨论确认：当前手头的数据只有**未经人工金标验证的 `atomic_rules`** 和 **RunningHub 生成的 `multiview` 三视图**。因此 `atomic_rules` 不能直接作为 gold，也不能让人工第一轮只按 `atomic_rules` 逐条核对。当前优先级应从“继续扩大 Qwen API 测试”调整为“等待人工 Stage 1 gold 期间，先把标注导入、校验、mock gold 和评估闭环准备好”。
+
+新的数据口径：
+
+1. **Stage 1: human visual findings / generation quality gold**
+   - 输入：`2d_original.*` + `multiview_design.*`
+   - 不把 `atomic_rules.json` 当标准答案
+   - labor 需要自由找视觉问题、画框、记录 issue
+   - 目标：判断生成三视图是否忠于原始 2D 角色，以及错在哪里
+
+2. **Stage 2: atomic_rules audit / rule quality gold**
+   - 输入：`2d_original.*` + `atomic_rules.json`
+   - 逐条审核 atomic rule 是否真实描述原图
+   - 目标：把 rule extraction error 和 generation error 拆开
+
+3. **Stage 3: verified evaluation gold**
+   - 输入：Stage 1 findings + Stage 2 rule audit + atomic_rules
+   - 只把人工确认正确/可对齐的内容用于后续 Qwen 预测对比
+
+在人工 gold 回来前，Qwen 只保留小样本 baseline / dry-run / schema 稳定性检查，不建议继续大规模烧 API 额度。
+
 ### What's Working
 
 - ✅ head_key_chain prompt + 脚本 + 2 样本测试通过（QC FAIL = 0）
@@ -182,20 +205,26 @@ vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated_3d_no_rules/�
 
 ### Immediate (Start Here)
 
-1. **扩大测试到 5-10 个样本/品类**：从数据集目录中选取更多样本，更新 sample config JSON，运行 API 测试。观察 Qwen 是否仍然：(a) 输出格式稳定，(b) 不过于宽松（全判 correct），(c) 正确识别真实视觉差异。
-2. **等 RunningHub 补 figurine/QSitFigures 数据**：补图后创建 prompt 模板 + 样本配置 + 小批次测试。
+1. **冻结当前人工试标样本包**：把 `multi_view试标数据集` 作为当前 Stage 1 gold seed，确认样本列表、`2d_original.*`、`multiview_design.*`、`atomic_rules.json` 不再被替换。记录生成方式为 RunningHub / 原图 + prompt，避免人工标注回来后文件对不上。
+2. **明确给 labor 的 Stage 1 标注任务**：第一轮只看 `2d_original.*` + `multiview_design.*`，不要把 `atomic_rules.json` 当标准答案。labor 需要自由找问题、画框，并按固定字段记录一行一个 visual finding。
+3. **准备 `human_visual_findings.csv` 导入/校验链路**：支持 xlsx/csv 导入，校验 `sample_id`、`category`、`issue_type`、`view`、`severity`、bbox 格式、重复行、空样本等问题。
+4. **用 mock gold 跑通闭环**：手写 2-3 条假的 human findings，验证导入 -> 校验 -> 汇总 -> 报告骨架可运行。不要等真实人工标注回来后才发现格式读不了。
+5. **准备 Stage 2 `atomic_rules` 审核表**：设计 `atomic_rule_audit.csv` 字段，包括 `sample_id`、`rule_id`、`rule_value`、`rule_validity`、`corrected_value`、`reason`、`bbox_original`。第二轮再让 labor 审核 rules。
 
 ### Subsequent
 
-- 扩大 backpack 测试到 5-10 个样本
-- 考虑在 prompt 中约束 Qwen 只输出请求的 rule_id（减少 WARN）
-- 等人工标注回来后：`build_annotation_products.py` → 自动质检 → 合并 gold annotations → Qwen predictions 对比
-- 分析 Qwen 判断错误的模式，迭代优化 prompt
+- 准备 human finding -> atomic rule 的候选对齐逻辑：只生成候选，不自动当 gold。真实标注回来后再人工复核。
+- 抽查现有 multi_view 失败类型，整理 failure taxonomy，例如新增兽耳/角、发型简化、颜色漂移、三视图不一致、背面乱补、商品类型跑偏、图案位置错误。
+- Qwen baseline 保持小样本运行即可，用于检查输出 schema 稳定性、是否漏规则、是否乱判背面、是否能识别三视图不一致。不要在没有 gold 的情况下继续扩大 API 调用。
+- 等人工 Stage 1 / Stage 2 标注回来后：导入 -> 自动质检 -> 构建 verified evaluation gold -> Qwen predictions 对比。
+- 有 verified gold 后，再决定是否扩大 backpack/head_key_chain/cake_roll/plush 到 5-10 个样本或更多，并分析 Qwen 判断错误模式，迭代 prompt。
+- 等 RunningHub 补 figurine/QSitFigures 数据后，再创建 prompt 模板 + 样本配置 + 小批次测试。
 
 ### Blocked On
 
-- figurine/QSitFigures 数据：需 RunningHub 补图（参考 `runninghub_blocked_samples.csv` 跳过风控样本）
-- 无其他阻塞项
+- 人工 Stage 1 visual findings 尚未回来：无法做真实 generation quality 评估。
+- 人工 Stage 2 atomic_rules audit 尚未回来：`atomic_rules` 不能作为 gold。
+- figurine/QSitFigures 数据：需 RunningHub 补图（参考 `runninghub_blocked_samples.csv` 跳过风控样本）。
 
 ---
 
@@ -230,8 +259,11 @@ ls "vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated_3d_no_rul
 
 ## Open Questions
 
-- [ ] Qwen 对 5-10 个样本是否仍保持稳定？还是会出现新的格式/逻辑问题？
-- [ ] Qwen 是否对某些品类过于宽松（全判 correct 而忽略真实错误）？需要人工抽检
+- [ ] Stage 1 labor 返回的 bbox 格式是什么？是否需要补 alias/转换器？
+- [ ] human_visual_findings.csv 是否需要支持一个 issue 多个 bbox？
+- [ ] Stage 2 atomic_rules audit 是否由同一批 labor 完成，还是需要单独说明规则审核口径？
+- [ ] Qwen 对 5-10 个样本是否仍保持稳定？该问题等 gold 或 mock gold 闭环跑通后再扩大验证。
+- [ ] Qwen 是否对某些品类过于宽松（全判 correct 而忽略真实错误）？需要人工 gold 回来后判断。
 - [ ] `BODY_RULE_KEYWORDS` 列表是否足够覆盖？新样本可能出现未匹配的规则前缀
 - [ ] figurine/QSitFigures 何时能有生成数据？
 - [ ] 是否需要在 prompt 中限制 Qwen 只输出请求的 rule_id（减少 WARN 噪音）？
