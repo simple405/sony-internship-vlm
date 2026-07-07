@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-1. 人工标注回来前，先完善标注产物生成、Qwen baseline、prompt/视角规则和后续评测脚本。
+1. 人工标注回来前，先完善标注模板、数据导入、候选对齐、校验、报告骨架；Qwen baseline 扩大测试因 API 额度不足暂时阻塞。
 2. v3 标注系统暂不新增 `excluded`；商品范围外的身体部位仍按 v3 表格填写：
    - `*_visible=invisible`
    - `*_status=correct`
@@ -12,7 +12,7 @@
    - 不使用 `correct invisible`。
 3. Qwen 已能按上面规则输出结构化 JSON，但仅靠通用 prompt 仍会误判 backpack 的 back view，需要加入品类视角语义。
 4. Claude Code 已接入 Qwen API，但不要让 Claude Code 原生 `Read` 图片文件；百炼 Anthropic 兼容接口会拒绝 Claude Code 的 `tool_result` 图片消息，报 `Unexpected item type in content`。需要看图时使用项目内 Qwen-VL CLI，返回纯文本/JSON 给 Claude Code。
-5. **人工标注采用三段式流程**（详见"人工标注 + 评估工作流"章节）：先建立人工视觉真值，再审核 atomic_rules 本身，最后融合出 verified gold。
+5. **人工标注采用可变的三段式流程**（详见"人工标注 + 评估工作流"章节）：先收集人工自由视觉发现，再审核 atomic_rules 本身，最后通过候选对齐/人工复核生成后续评估资产。
 6. **atomic_rules 不是天然 gold**：它是 Qwen review 的输入，也是需要被标注员审核的资产。评估时必须拆开 generation quality、atomic rule quality、Qwen review quality。
 
 ## 核心路径
@@ -157,13 +157,13 @@ vlm/tmp/multicategory_supervision_review_v3/plush/
         ↓
 Stage 1：人工视觉监修标注
         ↓
-得到 human_visual_findings / annotator_gold
+得到 human_visual_findings
         ↓
 Stage 2：atomic_rules 正误审核
         ↓
 得到 atomic_rule_audit
         ↓
-Stage 3：融合 verified_evaluation_gold
+Stage 3：候选语义对齐 + 人工复核
         ↓
 Stage 4：三类评估报告
 ```
@@ -174,7 +174,7 @@ Stage 4：三类评估报告
 |------|------|----------|
 | Generation Quality | 生成图相对 2D 是否正确 | Stage 1 人工视觉监修 |
 | Atomic Rule Quality | atomic_rules 是否正确覆盖 2D | Stage 2 atomic rule audit |
-| Qwen Review Quality | Qwen 能否基于正确规则发现生成图问题 | verified gold vs Qwen prediction |
+| Qwen Review Quality | Qwen 能否基于正确规则发现生成图问题 | verified gold vs Qwen prediction（额度恢复后） |
 
 ### 三段式标注流程
 
@@ -184,15 +184,15 @@ Stage 4：三类评估报告
                            ↓
         Stage 1: 人工视觉监修标注（不把 atomic_rules 当真值）
                            ↓
-          human_visual_findings.csv + annotator_gold.csv
+          human_visual_findings.csv
                            ↓
           Stage 2: atomic_rules 正误审核（只看 2D + rules）
                            ↓
                     atomic_rule_audit.csv
                            ↓
-          Stage 3: build_verified_evaluation_gold.py
+          Stage 3: align_human_findings_to_atomic_rules.py
                            ↓
-       verified_evaluation_gold.csv + coverage gaps + rule errors
+       mapping candidates + review queue + coverage gaps
                            ↓
           Stage 4: Qwen / generation / rules 三类评估
 ```
@@ -200,8 +200,8 @@ Stage 4：三类评估报告
 #### Stage 1：人工视觉监修
 
 - **输入**：2D 原图 + 3D 多视角生成图
-- **做什么**：标注员先记录生成图相对 2D 的真实视觉差异，再填写 v3 规则级表
-- **产出**：`human_visual_findings.csv`、`annotator_gold.csv`
+- **做什么**：标注员自由找元素、画框，并按当前 v3 体系记录这个元素在生成图中符合/不符合
+- **产出**：`human_visual_findings.csv`
 - **价值**：发现 atomic_rules 覆盖不到的问题，用于审计规则库完整性
 
 #### Stage 2：atomic_rules 正误审核
@@ -211,12 +211,12 @@ Stage 4：三类评估报告
 - **产出**：`atomic_rule_audit.csv`
 - **价值**：把 rule extraction error 和 generation/Qwen error 拆开
 
-#### Stage 3：融合 verified gold
+#### Stage 3：候选语义对齐
 
-- **输入**：`annotator_gold.csv` + `atomic_rule_audit.csv` + 可选 `human_visual_findings.csv`
-- **做什么**：只保留 `rule_validity=correct` 且当前商品品类 in-scope 的规则进入 Qwen 评估 gold
-- **产出**：`verified_evaluation_gold.csv`、`atomic_rule_quality_report.csv`、`coverage_gap_report.csv`
-- **价值**：避免错误 atomic_rules 污染 Qwen review accuracy
+- **输入**：`human_visual_findings.csv` + sample config + atomic_rules
+- **做什么**：只生成 human finding 到 atomic rule 的候选映射，不直接替换金标
+- **产出**：`human_to_atomic_rule_mapping_candidates.csv`、`mapping_review_queue.csv`
+- **价值**：把人工自由发现和 atomic_rules 建立可复核桥梁，同时保留 coverage gap
 
 ### 样本文件夹结构（目标状态）
 
@@ -228,8 +228,9 @@ Stage 4：三类评估报告
 ├── qwen_supervision_result.csv          ← Qwen 预测（已有）
 ├── qwen_supervision_result_summary.json ← Qwen 预测摘要
 ├── human_visual_findings.csv            ← 标注员 Stage 1 视觉发现（待标注回来）
-├── annotator_gold.csv                   ← 标注员 Stage 1 v3 规则级表（待标注回来）
 ├── atomic_rule_audit.csv                ← 标注员 Stage 2 rule 正误审核（待标注回来）
+├── human_to_atomic_rule_mapping_candidates.csv ← Stage 3 候选对齐输出
+├── mapping_review_queue.csv             ← 需要人工复核的映射
 └── verified_evaluation_gold.csv         ← Stage 3 融合输出（脚本生成）
 ```
 
@@ -246,7 +247,7 @@ vlm/config/supervision/human_annotation_csv_schemas.md
 ```text
 human_visual_findings.csv
 atomic_rule_audit.csv
-annotator_gold.csv
+human_to_atomic_rule_mapping_candidates.csv
 verified_evaluation_gold.csv
 ```
 
@@ -257,12 +258,15 @@ verified_evaluation_gold.csv
 ```text
 vlm/scripts/supervise/validate_human_annotations.py
 vlm/scripts/supervise/build_verified_evaluation_gold.py
+vlm/scripts/supervise/create_human_annotation_templates.py
+vlm/scripts/supervise/convert_annotation_xlsx_to_csv.py
+vlm/scripts/supervise/align_human_findings_to_atomic_rules.py
+vlm/scripts/supervise/summarize_pre_gold_assets.py
 ```
 
 待人工数据回来后再适配：
 
 ```text
-convert_annotator_xlsx.py  # 等拿到实际 xlsx 格式后开发
 compare_predictions.py     # 等 verified gold 和 Qwen 大批量结果就绪后开发
 ```
 
@@ -274,8 +278,12 @@ compare_predictions.py     # 等 verified gold 和 Qwen 大批量结果就绪后
 - ✅ 标准 CSV schema 已定义
 - ✅ 人工标注校验脚本已建立
 - ✅ verified gold 融合脚本骨架已建立，支持无人工数据 dry-run
+- ✅ 标注模板生成脚本已建立
+- ✅ 通用 xlsx → csv 转换脚本已建立
+- ✅ 人工发现 → atomic_rules 候选对齐脚本已建立
+- ✅ pre-gold 资产汇总/阻塞项报告脚本已建立
 - ⏳ 等人工标注数据回来
-- ⏳ 拿到实际 .xlsx 后开发 `convert_annotator_xlsx.py`
+- ⏳ 拿到实际 .xlsx 后检查是否需要补列名 alias
 - ⏳ 有 verified gold 后开发 `compare_predictions.py`
 
 ## Qwen Baseline 发现的问题
@@ -321,8 +329,8 @@ backpack/2812503
 - [x] 新增 `build_verified_evaluation_gold.py` dry-run 骨架
 
 进行中：
-- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪
-- [ ] 扩大 backpack 测试到 10 样本 — 配置已就绪
+- [ ] 扩大测试到 10 样本/品类（head_key_chain, cake_roll, plush）— 配置已就绪，Qwen API 额度不足阻塞
+- [ ] 扩大 backpack 测试到 10 样本 — 配置已就绪，Qwen API 额度不足阻塞
 
 等人工标注回来后：
 1. 拿到 .xlsx → 开发 `convert_annotator_xlsx.py` 转标准格式

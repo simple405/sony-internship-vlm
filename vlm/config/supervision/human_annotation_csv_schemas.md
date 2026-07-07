@@ -17,9 +17,19 @@ Required columns:
 | sample_id | yes | sample id | Must match the sample config or dataset folder. |
 | category | yes | category id | Example: `backpack`, `head_key_chain`, `cake_roll`, `plush`. |
 | finding_id | yes | free text id | Unique within one sample. |
+| human_rule_name | no | free text | Annotator's own rule/element phrasing. |
+| element_name | no | free text | The visual element, e.g. hair, eye, headwear ribbon. |
+| attribute | no | free text | Attribute under review, e.g. color, shape, length, existence. |
 | view | yes | `front`, `side`, `back`, `multiple`, `all`, `unknown` | The affected view. |
+| bbox_2d | no | `x,y,w,h` or tool-native box string | Evidence box on original 2D image. |
+| bbox_multiview | no | `x,y,w,h` or tool-native box string | Evidence box on generated multi-view image. |
+| visible | no | `visible`, `invisible`, `unknown` | Optional v3-like visibility for the annotator's own finding. |
+| status | no | v3 status values or `unknown` | Optional v3-like status for the annotator's own finding. |
+| match_status | no | `correct`, `wrong`, `unsure` | Whether this human finding matches the 2D expectation. |
 | issue_type | yes | `wrong color`, `wrong shape`, `missing`, `extra`, `wrong invisible`, `other` | Human-visible issue type. |
-| feature_key | yes | free text | Human-readable feature name, not necessarily an atomic rule id. |
+| feature_key | no | free text | Human-readable feature name, not necessarily an atomic rule id. At least one of `feature_key`, `human_rule_name`, or `element_name` should be filled. |
+| expected_value | no | free text | Short normalized expected value if available. |
+| observed_value | no | free text | Short normalized observed value if available. |
 | expected_from_2d | no | free text | What the 2D source shows. |
 | observed_in_multiview | no | free text | What the generated product shows. |
 | severity | no | `critical`, `major`, `minor`, `unknown` | Defaults to `unknown` if left blank. |
@@ -121,3 +131,40 @@ audit_reason
 
 Rules excluded from verified gold are written to `excluded_gold_rows.csv` with
 an `exclude_reason` column.
+
+## human_to_atomic_rule_mapping_candidates.csv
+
+Generated candidate mapping table. This is not gold and must not directly
+rewrite human annotations.
+
+Core columns:
+
+```text
+sample_id
+category
+human_finding_id
+human_rule_name
+human_element_name
+human_attribute
+human_value
+atomic_rule_id
+atomic_rule_value
+candidate_match_type
+mapping_score
+mapping_reason
+needs_review
+warnings
+```
+
+Candidate match types:
+
+```text
+exact_match_candidate
+semantic_equivalent_candidate
+broader_or_narrower_candidate
+related_candidate
+low_confidence_candidate
+no_match_candidate
+```
+
+Only reviewed and accepted mappings should be used in downstream evaluation.

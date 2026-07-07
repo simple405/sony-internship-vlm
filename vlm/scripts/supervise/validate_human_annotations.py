@@ -30,6 +30,19 @@ VISUAL_FINDINGS_COLUMNS = [
     "finding_id",
     "view",
     "issue_type",
+]
+
+VISUAL_FINDINGS_OPTIONAL_COLUMNS = [
+    "human_rule_name",
+    "element_name",
+    "attribute",
+    "bbox_2d",
+    "bbox_multiview",
+    "visible",
+    "status",
+    "match_status",
+    "expected_value",
+    "observed_value",
     "feature_key",
     "expected_from_2d",
     "observed_in_multiview",
@@ -70,6 +83,8 @@ ATOMIC_RULE_AUDIT_COLUMNS = [
 VIEW_VALUES = {"front", "side", "back", "multiple", "all", "unknown"}
 VISUAL_ISSUE_TYPES = {"wrong color", "wrong shape", "missing", "extra", "wrong invisible", "other"}
 SEVERITY_VALUES = {"critical", "major", "minor", "unknown", ""}
+OPTIONAL_VISIBLE_VALUES = {"visible", "invisible", "unknown", ""}
+MATCH_STATUS_VALUES = {"correct", "wrong", "unsure", ""}
 RULE_VALIDITY_VALUES = {"correct", "wrong_value", "missing_from_2d", "ambiguous", "out_of_scope", "duplicate"}
 VISIBLE_VALUES = {"visible", "invisible"}
 VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong shape", "extra"}
@@ -217,16 +232,22 @@ def validate_visual_findings(path: Path, registry: dict[str, dict[str, Any]]) ->
     for index, row in enumerate(rows, start=2):
         issues: list[str] = []
         warnings: list[str] = []
-        for column in ["sample_id", "category", "finding_id", "view", "issue_type", "feature_key"]:
+        for column in VISUAL_FINDINGS_COLUMNS:
             if not row.get(column):
                 issues.append(f"missing_{column}")
+        if not (row.get("feature_key") or row.get("human_rule_name") or row.get("element_name")):
+            issues.append("missing_feature_key_or_human_rule_name_or_element_name")
         validate_known_sample(row, registry, issues, warnings)
         if row.get("view") and row["view"] not in VIEW_VALUES:
             issues.append(f"invalid_view:{row['view']}")
         if row.get("issue_type") and row["issue_type"] not in VISUAL_ISSUE_TYPES:
             issues.append(f"invalid_issue_type:{row['issue_type']}")
-        if row.get("severity") not in SEVERITY_VALUES:
+        if row.get("severity", "") not in SEVERITY_VALUES:
             issues.append(f"invalid_severity:{row['severity']}")
+        if row.get("visible", "") not in OPTIONAL_VISIBLE_VALUES:
+            issues.append(f"invalid_visible:{row['visible']}")
+        if row.get("match_status", "") not in MATCH_STATUS_VALUES:
+            issues.append(f"invalid_match_status:{row['match_status']}")
         key = (row.get("sample_id", ""), row.get("finding_id", ""))
         if key in seen:
             issues.append("duplicate_finding_id_for_sample")
