@@ -25,8 +25,8 @@ CATEGORIES = (
 HEAD_ONLY_CATEGORIES = {"head_key_chain", "backpack", "cake_roll"}
 FULL_BODY_CATEGORIES = {"plush", "dataset_QSitFigures", "dataset_figurine"}
 # Note 3: These two sets encode the current on-disk split under
-# generated_3d_no_rules/.../head_only and full body. They are intentionally
-# data-layout rules, not semantic rules about what the product should depict.
+# generated/. They are intentionally data-layout rules, not semantic
+# rules about what the product should depict.
 
 Decision = Literal[
     "approved",

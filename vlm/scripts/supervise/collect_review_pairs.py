@@ -23,7 +23,7 @@ from vlm.scripts.supervise.review_schemas import (  # noqa: E402
 
 
 DEFAULT_DATASET = Path("vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20")
-DEFAULT_GENERATED_ROOT = DEFAULT_DATASET / "generated_3d_no_rules" / "监修vlm数据"
+DEFAULT_GENERATED_ROOT = DEFAULT_DATASET / "generated"
 DEFAULT_OUTPUT = DEFAULT_DATASET / "reports" / "supervision_review" / "latest" / "review_pairs.jsonl"
 DEFAULT_SEED_CASES = Path("vlm/experiments/supervision/seed_cases.jsonl")
 
@@ -90,14 +90,9 @@ def read_manifest(path: Path) -> dict[str, dict[str, str]]:
 
 
 def generated_category_dir(generated_root: Path, category: str) -> Path:
-    # Note 5: This is the single routing point for the current supervision data
-    # layout. If the dataset is reorganized later, update this function instead
-    # of scattering path conditionals across the collector.
-    if category in HEAD_ONLY_CATEGORIES:
-        return generated_root / "head_only" / category
-    if category in FULL_BODY_CATEGORIES:
-        return generated_root / "full body" / category
-    raise ValueError(f"Unknown category: {category}")
+    # Note 5: Flat layout — each category is a direct child of generated_root.
+    # e.g. generated/backpack/, generated/head_key_chain/, etc.
+    return generated_root / category
 
 
 def is_usable_generated_image(path: Path) -> bool:
