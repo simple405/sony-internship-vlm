@@ -34,16 +34,16 @@ DEFAULT_PROMPT_TEMPLATE = Path(
 )
 DEFAULT_OUTPUT_ROOT = Path("vlm/tmp/backpack_supervision_review_v3")
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-DEFAULT_MODEL = "qwen-vl-max"
+DEFAULT_MODEL = "qwen3.7-plus"
 
 OUT_OF_SCOPE_RULE_IDS = [
     "skirt_type", "skirt_color", "skirt_length",
     "legwear_type", "legwear_color",
     "footwear_type", "footwear_color",
 ]
-ERROR_STATUSES = {"wrong color", "wrong shape", "extra", "wrong invisible"}
+ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "extra", "wrong invisible"}
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong shape", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
 
 
@@ -186,16 +186,16 @@ def build_prompt_text(
     rules_json = json.dumps(atomic_rules, ensure_ascii=False, indent=2)
 
     sample_block = f"""
-Sample:
+样本：
 sample_id: {sample_id}
 category: {category}
 product_type: {category}
 
-Atomic rules:
+Atomic rules（输入规则，封闭集合）：
 {rules_json}
 
-Return a top-level JSON object with: schema_version, task, sample_id, category, product_type, inputs, overall_decision, overall_reason, aggregate_counts, rules, metadata.
-Each rule object must include: rule_id, value, front_visible, front_status, side_visible, side_status, back_visible, back_status, result, issue_type, confidence, reason, evidence."""
+请返回一个顶层 JSON object，必须包含：schema_version, task, sample_id, category, product_type, inputs, overall_decision, overall_reason, aggregate_counts, rules, metadata。
+每个 rule object 必须包含：rule_id, value, front_visible, front_status, side_visible, side_status, back_visible, back_status, result, issue_type, confidence, reason, evidence。"""
 
     return prompt_template + sample_block
 
@@ -361,7 +361,7 @@ def run_one_sample(
 
     # Build messages
     messages = [
-        {"role": "system", "content": "You output valid JSON only and obey hard override rules exactly."},
+        {"role": "system", "content": "你只能输出合法 JSON，并严格遵守所有硬性覆盖规则。"},
         {
             "role": "user",
             "content": [

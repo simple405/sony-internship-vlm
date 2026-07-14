@@ -26,6 +26,7 @@ import base64
 import csv
 import json
 import os
+import shutil
 import sys
 import time
 from datetime import datetime
@@ -41,7 +42,7 @@ if __package__ in (None, ""):
 DEFAULT_ENV_FILE = Path("vlm/config/api.env")
 DEFAULT_OUTPUT_ROOT = Path("vlm/tmp/multicategory_supervision_review_v3")
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-DEFAULT_MODEL = "qwen-vl-max"
+DEFAULT_MODEL = "qwen3.7-plus"
 
 # Category → default prompt template mapping
 CATEGORY_PROMPT_TEMPLATES = {
@@ -53,9 +54,18 @@ CATEGORY_PROMPT_TEMPLATES = {
     "dataset_QSitFigures": Path("vlm/prompts/supervision/qwen_prompt_v3_QSitFigures.txt"),
 }
 
-ERROR_STATUSES = {"wrong color", "wrong shape", "extra", "wrong invisible"}
+ACCEPTANCE_ISSUE_TYPES = {"wrong color", "wrong material", "wrong shape", "paired box completion"}
+DESIGN_QUALITY_ISSUE_TYPES = {"extra", "wrong invisible", "ambiguous", "other"}
+ERROR_STATUSES = {
+    "wrong color",
+    "wrong material",
+    "wrong shape",
+    "paired box completion",
+    "extra",
+    "wrong invisible",
+}
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong shape", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "paired box completion", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
 
 
@@ -207,18 +217,37 @@ def build_prompt_text(
 ) -> str:
     """Build the full prompt text by appending sample metadata and atomic rules."""
     rules_json = json.dumps(atomic_rules, ensure_ascii=False, indent=2)
+    rule_ids_json = json.dumps([r["rule_id"] for r in atomic_rules], ensure_ascii=False)
 
     sample_block = f"""
-Sample:
+样本：
 sample_id: {sample_id}
 category: {category}
 product_type: {category}
 
-Atomic rules:
+Atomic rules（输入规则，封闭集合）：
 {rules_json}
 
-Return a top-level JSON object with: schema_version, task, sample_id, category, product_type, inputs, overall_decision, overall_reason, aggregate_counts, rules, metadata.
-Each rule object must include: rule_id, value, front_visible, front_status, side_visible, side_status, back_visible, back_status, result, issue_type, confidence, reason, evidence."""
+最终 rule_id 锁定：
+上方 Atomic rules 是封闭集合。你输出的 rules 数组必须包含且只包含 {len(atomic_rules)} 个对象，并且顺序必须与输入 Atomic rules 完全一致。
+允许的 rule_id 仅限以下列表：
+{rule_ids_json}
+
+每个输出 rule 对象必须遵守：
+- rule_id 必须逐字复制对应输入 atomic rule。
+- value 必须逐字复制对应输入 atomic rule。
+- 不要新增、改名、合并、拆分、泛化、归一化或发明 rule_id。
+- 不要输出提示词中的示例 rule_id，除非该 rule_id 原样出现在上方 Atomic rules 中。
+- 如果某条规则超出当前商品范围，仍然输出原始 rule_id 和 value，并标记为 invisible + correct。
+
+请返回一个顶层 JSON object，必须包含：schema_version, task, sample_id, category, product_type, inputs, overall_decision, overall_reason, aggregate_counts, billable_annotation_issues, design_quality_notes, human_review_required, rules, metadata。
+每个 rule object 必须包含：rule_id, value, front_visible, front_status, side_visible, side_status, back_visible, back_status, result, issue_type, confidence, reason, evidence。
+
+分 lane 规则：
+- billable_annotation_issues 只能包含：wrong color, wrong material, wrong shape, paired box completion。
+- paired box completion 表示明确成对的部件/对象需要补一个对应框，或已合并的一对对象需要拆成两个框；只有证据明确时才使用。
+- design_quality_notes 用于不可计费的质量风险，例如 extra, wrong invisible, 身份/设计疑问，或证据不足的观察。
+- 当证据不清楚、confidence 低，或问题不能安全计入可计费验收项时，human_review_required 必须为 true。"""
 
     return prompt_template + sample_block
 
@@ -253,9 +282,9 @@ def validate_rule(rule: dict[str, Any]) -> list[str]:
     status_values = [rule.get(f"{v}_status", "") for v in ["front", "side", "back"]]
     expected = "wrong" if any(s in ERROR_STATUSES for s in status_values) else "correct"
     result = rule.get("result", "")
-    if result and result not in {"correct", "wrong"}:
+    if result and result not in {"correct", "wrong", "unsure"}:
         issues.append(f"invalid_result:{result}")
-    elif result and result != expected:
+    elif result and result != "unsure" and result != expected:
         issues.append(f"result_mismatch_expected_{expected}")
 
     return issues
@@ -338,8 +367,11 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 # Status normalization: Qwen sometimes outputs underscores instead of spaces
 STATUS_NORMALIZATION = {
     "wrong_color": "wrong color",
+    "wrong_material": "wrong material",
     "wrong_shape": "wrong shape",
+    "paired_box_completion": "paired box completion",
     "wrong_invisible": "wrong invisible",
+    "wrong": "wrong shape",
 }
 
 
@@ -365,6 +397,184 @@ def normalize_prediction(prediction: dict[str, Any]) -> dict[str, Any]:
         statuses = [rule.get(f"{v}_status", "") for v in ["front", "side", "back"]]
         has_error = any(s in ERROR_STATUSES for s in statuses)
         rule["result"] = "wrong" if has_error else "correct"
+    return prediction
+
+
+def parse_confidence(value: Any) -> float:
+    if isinstance(value, (int, float)):
+        return max(0.0, min(1.0, float(value)))
+    text = str(value or "").strip().lower().replace("_", " ")
+    if text in {"high", "very high"}:
+        return 0.95
+    if text == "medium":
+        return 0.75
+    if text == "low":
+        return 0.5
+    try:
+        return max(0.0, min(1.0, float(text)))
+    except ValueError:
+        return 0.75
+
+
+def evidence_for_view(rule: dict[str, Any], view: str) -> list[dict[str, str]]:
+    raw_evidence = rule.get("evidence", [])
+    if isinstance(raw_evidence, list):
+        evidence = [
+            item for item in raw_evidence
+            if isinstance(item, dict) and item.get("view") in {view, "overall"}
+        ]
+        if evidence:
+            return evidence
+    return [{
+        "view": view,
+        "note": str(rule.get("reason", "")).strip(),
+    }]
+
+
+def issue_from_rule(rule: dict[str, Any], *, issue_type: str, view: str) -> dict[str, Any]:
+    return {
+        "rule_id": str(rule.get("rule_id", "")),
+        "value": str(rule.get("value", "")),
+        "view": view,
+        "issue_type": issue_type,
+        "action_type": "description_correction" if issue_type != "paired box completion" else "unspecified",
+        "confidence": parse_confidence(rule.get("confidence")),
+        "reason": str(rule.get("reason", "")).strip(),
+        "evidence": evidence_for_view(rule, view),
+    }
+
+
+def note_from_rule(rule: dict[str, Any], *, issue_type: str, view: str) -> dict[str, Any]:
+    return {
+        "rule_id": str(rule.get("rule_id", "")),
+        "value": str(rule.get("value", "")),
+        "view": view,
+        "issue_type": issue_type,
+        "severity": "medium",
+        "confidence": parse_confidence(rule.get("confidence")),
+        "reason": str(rule.get("reason", "")).strip(),
+        "evidence": evidence_for_view(rule, view),
+    }
+
+
+def derive_lanes(rules: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]], bool]:
+    billable_issues: list[dict[str, Any]] = []
+    design_notes: list[dict[str, Any]] = []
+    human_review_required = False
+
+    for rule in rules:
+        confidence = parse_confidence(rule.get("confidence"))
+        issue_type = str(rule.get("issue_type", "none")).strip()
+        result = str(rule.get("result", "")).strip()
+
+        if result == "unsure" or confidence < 0.6:
+            human_review_required = True
+
+        added_rule_level_issue = False
+        added_design_note = False
+        for view in ["front", "side", "back"]:
+            status = str(rule.get(f"{view}_status", "")).strip()
+            if status in ACCEPTANCE_ISSUE_TYPES:
+                billable_issues.append(issue_from_rule(rule, issue_type=status, view=view))
+                added_rule_level_issue = True
+            elif status in DESIGN_QUALITY_ISSUE_TYPES:
+                design_notes.append(note_from_rule(rule, issue_type=status, view=view))
+                added_design_note = True
+
+        if issue_type == "paired box completion" and not added_rule_level_issue:
+            billable_issues.append(issue_from_rule(rule, issue_type=issue_type, view="overall"))
+        elif issue_type in ACCEPTANCE_ISSUE_TYPES and result == "wrong" and not added_rule_level_issue:
+            billable_issues.append(issue_from_rule(rule, issue_type=issue_type, view="overall"))
+        elif issue_type in DESIGN_QUALITY_ISSUE_TYPES and result == "wrong" and not added_design_note:
+            design_notes.append(note_from_rule(rule, issue_type=issue_type, view="overall"))
+
+    return billable_issues, design_notes, human_review_required
+
+
+def finalize_agent_output(
+    prediction: dict[str, Any],
+    *,
+    sample_id: str,
+    category: str,
+    source_image: Path,
+    multiview_image: Path,
+    atomic_rules_path: Path,
+    model: str,
+    prompt_template: Path,
+    elapsed_seconds: float | None = None,
+) -> dict[str, Any]:
+    rules = prediction.get("rules", [])
+    if not isinstance(rules, list):
+        rules = []
+        prediction["rules"] = rules
+
+    billable_issues, design_notes, human_review_required = derive_lanes(rules)
+    correct_count = sum(1 for rule in rules if rule.get("result") == "correct")
+    wrong_count = sum(1 for rule in rules if rule.get("result") == "wrong")
+    unsure_count = sum(1 for rule in rules if rule.get("result") == "unsure")
+
+    if human_review_required and not billable_issues:
+        overall_decision = "unsure"
+    elif billable_issues:
+        overall_decision = "fail"
+    elif design_notes:
+        overall_decision = "minor_issue"
+    else:
+        overall_decision = "pass"
+
+    prediction.update({
+        "schema_version": "supervision_agent_output.v3",
+        "task": "anime_ip_merchandise_multiview_supervision",
+        "sample_id": sample_id,
+        "category": category,
+        "product_type": prediction.get("product_type") or category,
+        "inputs": {
+            "images": [
+                {"role": "source_2d", "path": str(source_image)},
+                {"role": "multiview_design", "path": str(multiview_image)},
+            ],
+            "atomic_rules_path": str(atomic_rules_path),
+        },
+        "overall_decision": overall_decision,
+        "overall_reason": (
+            f"{len(billable_issues)} billable annotation issues, "
+            f"{len(design_notes)} design quality notes, "
+            f"human_review_required={human_review_required}."
+        ),
+        "aggregate_counts": {
+            "total_rules": len(rules),
+            "correct_rules": correct_count,
+            "wrong_rules": wrong_count,
+            "unsure_rules": unsure_count,
+        },
+        "billable_annotation_issues": billable_issues,
+        "design_quality_notes": design_notes,
+        "human_review_required": human_review_required,
+    })
+    metadata = prediction.get("metadata", {})
+    if not isinstance(metadata, dict):
+        metadata = {}
+    metadata.update({
+        "model": model,
+        "prompt_template": str(prompt_template),
+    })
+    if elapsed_seconds is not None:
+        metadata["elapsed_seconds"] = elapsed_seconds
+    prediction["metadata"] = metadata
+    return prediction
+
+
+def lock_rule_ids_to_input(
+    prediction: dict[str, Any],
+    atomic_rules: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Force rule_id/value fields to match input order when rule count matches."""
+    rules = prediction.get("rules", [])
+    if len(rules) != len(atomic_rules):
+        return prediction
+    for rule, atomic_rule in zip(rules, atomic_rules):
+        rule["rule_id"] = atomic_rule["rule_id"]
+        rule["value"] = atomic_rule["value"]
     return prediction
 
 
@@ -474,9 +684,14 @@ def run_one_sample(
     # Save prompt
     (sample_dir / "prompt_v3.txt").write_text(prompt_text, encoding="utf-8")
 
+    # Copy source images and atomic rules for preview
+    for src_path in (source_image, multiview_image, atomic_rules_path):
+        if src_path and src_path.exists():
+            shutil.copy2(src_path, sample_dir / src_path.name)
+
     # Build messages
     messages = [
-        {"role": "system", "content": "You output valid JSON only and obey hard override rules exactly."},
+        {"role": "system", "content": "你只能输出合法 JSON，并严格遵守所有硬性覆盖规则。"},
         {
             "role": "user",
             "content": [
@@ -581,7 +796,19 @@ def run_one_sample(
     # Parse JSON
     prediction = extract_json_object(raw_text)
     prediction = normalize_prediction(prediction)
+    prediction = lock_rule_ids_to_input(prediction, atomic_rules)
     prediction = fill_missing_out_of_scope_rules(prediction, expected_rule_ids, category)
+    prediction = finalize_agent_output(
+        prediction,
+        sample_id=sample_id,
+        category=category,
+        source_image=source_image,
+        multiview_image=multiview_image,
+        atomic_rules_path=atomic_rules_path,
+        model=model,
+        prompt_template=template_path,
+        elapsed_seconds=elapsed,
+    )
     write_json(sample_dir / "qwen_prediction_v3.json", prediction)
 
     # Extract and flatten rules
@@ -615,7 +842,11 @@ def run_one_sample(
             "total_rules": len(rules),
             "correct_rules": correct_count,
             "wrong_rules": wrong_count,
+            "unsure_rules": sum(1 for r in rules if r.get("result") == "unsure"),
         },
+        "billable_annotation_issue_count": len(prediction.get("billable_annotation_issues", [])),
+        "design_quality_note_count": len(prediction.get("design_quality_notes", [])),
+        "human_review_required": prediction.get("human_review_required", False),
         "qc_counts": qc_counts,
         "output_dir": str(sample_dir),
     }
