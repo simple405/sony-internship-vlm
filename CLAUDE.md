@@ -50,3 +50,34 @@ When image understanding is needed, call the project CLI instead and use its tex
 ```
 
 This keeps Claude Code's context text-only while still using Qwen VL for visual understanding.
+
+## Claude Code DeepSeek Model Switching
+
+Claude Code is configured in `C:\Users\ZhuanZ\.claude\settings.json` to use the DeepSeek Anthropic-compatible gateway:
+
+- `ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic`
+- `ANTHROPIC_AUTH_TOKEN` is synced from `vlm/config/api.env` (`DEEPSEEK_API_KEY`; quotes are stripped automatically)
+- Default model: `deepseek-v4-pro[1m]`
+- Subagent/fast model: `deepseek-v4-flash`
+
+If the key in `vlm/config/api.env` changes, sync it again:
+
+```powershell
+.\vlm\scripts\dev\sync_claude_code_deepseek.ps1
+```
+
+Switch models for one launch:
+
+```powershell
+claude --model "deepseek-v4-pro[1m]"
+claude --model deepseek-v4-pro
+claude --model deepseek-v4-flash
+```
+
+Inside an interactive Claude Code session, use `/model` and select or type one of:
+
+- `deepseek-v4-pro[1m]` — strongest/long-context DeepSeek option for complex code/reasoning
+- `deepseek-v4-pro` — standard DeepSeek Pro option
+- `deepseek-v4-flash` — fastest/cheapest option for short checks
+
+Qwen models require switching the gateway back to DashScope first; this DeepSeek setup uses the real `DEEPSEEK_API_KEY`.

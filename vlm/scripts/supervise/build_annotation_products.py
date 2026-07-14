@@ -42,9 +42,9 @@ V3_COLUMNS = [
 LEGACY_VIEW_VALUES = {"TRUE", "FALSE"}
 RESULT_VALUES = {"correct", "wrong"}
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong shape", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
-ERROR_STATUSES = {"wrong color", "wrong shape", "extra", "wrong invisible"}
+ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "extra", "wrong invisible"}
 
 
 def parse_args() -> argparse.Namespace:

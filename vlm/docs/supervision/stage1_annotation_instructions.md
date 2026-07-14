@@ -1,223 +1,172 @@
-# Stage 1 人工视觉监修标注说明
+# Stage 1 人工标注验收说明（压缩版）
 
-**版本**: v1.0 | **日期**: 2026-07-07
+版本：v1.2 | 日期：2026-07-08
 
----
+本文件只约束乙方人工标注的验收、修改和计费范围，不代表生图或 atomic_rules 只能覆盖这些内容。生图和 atomic_rules 仍应保留角色身份、关键配饰、服装结构、商品形态等完整设计要求。
 
-## 任务概述
+## 1. 当前执行标准
 
-你的工作是对比 **2D 原图**（角色设计图）和 **3D 多视角生成图**（商品渲染图），找出两者之间的视觉差异。
+### 描述修改范围
 
-**重要**：第一轮请完全基于你自己的视觉观察。不要参考 atomic_rules.json 或其他自动化产出作为标准答案。你的发现是独立的、有价值的。
+- 仅允许对预识别阶段已标注出的部位、装饰物等进行修正。
+- 修正维度只限于 **颜色、材质、形状** 三方面的明显错误。
+- 不主动补充预识别阶段未标出的普通细节，不扩写描述，不追加与颜色/材质/形状无关的信息。
 
----
+### 左右方位
 
-## 工作流程
+- 所有“左”“右”判断，统一以标注员自身观察视角为准。
+- Agent 输出左右方位时也必须使用观察者视角，不切换成角色自身左右。
 
-```text
-2D 原图（角色设计参考）  ←对比→  多视角生成图（商品渲染结果）
-         ↓                            ↓
-         └────── 找出差异 ──────┘
-                    ↓
-         填写 human_visual_findings.csv
-```
+### 成对物品或身体部位
 
----
+- 一双鞋、两条腿、两只犄角等成对部位，如果原标注框只覆盖一侧，须补全另一侧标注框并添加对应描述。
+- 两侧外观无差异时，描述内容可完全相同。
+- 两侧外观存在差异时，需要分别描述。
+- 如果预识别阶段把成对部位合并为一个大框，例如两条腿合为一框，须拆分为独立单框，并逐框独立描述。
 
-## 你拿到什么
+### 计费范围
 
-每个样本文件夹包含：
+- 凡涉及描述修改或新增标注框的操作，均纳入修改计费范畴。
+- Agent 报告中应区分 `description_correction` 与 `paired_box_completion`。
 
-| 文件 | 说明 |
-|------|------|
-| `2d_original.jpg` | 2D 角色设计原图（你的参考标准） |
-| `multiview_design.png` | 3D 多视角生成图（你要检查的对象） |
-| `atomic_rules.json` | ⚠️ **暂不参考** — 等 Stage 2 再看 |
+## 2. 工作流程
 
----
-
-## 你要做什么
-
-### 第一步：整体观察
-
-1. 打开 2D 原图，观察角色的整体外观：头发、眼睛、服装、配饰等
-2. 打开多视角生成图，通常包含正面（front）、侧面（side）、背面（back）三个视角
-3. 逐一检查每个视角中的元素是否与 2D 原图一致
-
-### 第二步：记录发现
-
-每发现一个差异或问题，在 `human_visual_findings.csv` 中新增一行。
-
-**找什么？**
-
-- **颜色错误**：头发颜色不对、眼睛颜色不对、服装颜色不对
-- **形状错误**：发型形状不对、服装款式不对
-- **缺失元素**：2D 图中有的元素在生成图中缺失（比如蝴蝶结不见了）
-- **多余元素**：生成图中出现了 2D 图中没有的元素
-- **可见性问题**：应该在某个视角可见的元素不可见，或反过来
-
-### 第三步：填写 CSV
-
----
-
-## CSV 字段说明
-
-### 必填字段（每个发现都要填）
-
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| `sample_id` | 样本编号（文件夹名） | `2812503` |
-| `category` | 商品品类 | `backpack` |
-| `finding_id` | 你给这个发现编的 ID，同一个样本内不重复 | `F001` |
-| `view` | 受影响的视角 | `front` / `side` / `back` / `multiple` / `all` |
-| `issue_type` | 问题类型 | `wrong color` / `wrong shape` / `missing` / `extra` / `wrong invisible` / `other` |
-
-### 推荐填写（帮助后续分析）
-
-| 字段 | 说明 | 示例 |
-|------|------|------|
-| `element_name` | 出问题的元素名称 | `hair_color` / `headwear_ribbon` |
-| `attribute` | 出问题的属性 | `color` / `shape` / `existence` |
-| `feature_key` | 你对这个发现起的特征名 | `hair color mismatch` |
-| `expected_from_2d` | 2D 图中看到的是什么 | `brown hair` |
-| `observed_in_multiview` | 生成图中看到的是什么 | `dark brown / almost black hair` |
-| `severity` | 严重程度 | `critical` / `major` / `minor` |
-| `reason` | 你的解释 | `side view hair color significantly darker than 2D reference` |
-
-### 可选字段
-
-| 字段 | 说明 |
-|------|------|
-| `human_rule_name` | 你自己定义的规则描述 |
-| `bbox_2d` | 2D 图上问题区域的坐标框 |
-| `bbox_multiview` | 生成图上问题区域的坐标框 |
-| `visible` | 元素是否可见：`visible` / `invisible` / `unknown` |
-| `status` | v3 状态值（如 `correct`、`wrong color` 等） |
-| `match_status` | `correct` / `wrong` / `unsure` |
-| `expected_value` | 期望值 |
-| `observed_value` | 观察到的值 |
-| `source_2d_evidence` | 2D 图中的证据说明 |
-| `multiview_evidence` | 生成图中的证据说明 |
-| `annotator_id` | 你的工号 |
-| `annotation_batch` | 批次号/日期 |
-
----
-
-## 填写示例
-
-以下是一个 backpack 品类的示例：
-
-### 示例 1：头发颜色错误
+标注输入来自 `generated/` 下每个样本文件夹里的三件套：
 
 ```text
-sample_id:           2812503
-category:            backpack
-finding_id:          F001
-view:                front
-issue_type:          wrong color
-element_name:        hair_color
-attribute:           color
-feature_key:         front hair color
-expected_from_2d:    brown
-observed_in_multiview: dark brown
-severity:            major
-reason:              front view hair appears darker than the 2D reference brown
+2D 原图 / source image
+多视角生成图 / multiview product image
+atomic_rules.json / 预识别规则
 ```
-
-### 示例 2：蝴蝶结缺失
 
 ```text
-sample_id:           2812503
-category:            backpack
-finding_id:          F002
-view:                side
-issue_type:          missing
-element_name:        headwear_ribbon
-attribute:           existence
-feature_key:         beret ribbon missing on side
-expected_from_2d:    ribbon present on beret
-observed_in_multiview: no ribbon visible on side view
-severity:            critical
-reason:              the beret should have a visible ribbon on the side view
+2D 原图 + 3D 多视角生成图
+  -> 检查预识别阶段已标注内容
+  -> 只记录颜色/材质/形状明显错误
+  -> 检查成对部位是否漏框或合框
+  -> 填写 human_visual_findings.csv
 ```
 
-### 示例 3：背包背面图案正确
+## 3. 需要记录的问题类型
 
 ```text
-sample_id:           2812503
-category:            backpack
-finding_id:          F003
-view:                back
-issue_type:          other
-element_name:        back_pattern
-attribute:           pattern
-feature_key:         back panel pattern
-expected_from_2d:    white zigzag pattern
-observed_in_multiview: white zigzag pattern
-severity:            minor
-match_status:        correct
-reason:              back panel pattern matches 2D reference
+wrong color:
+  头发、眼睛、服装、装饰物等颜色明显不对。
+
+wrong material:
+  金属、布料、皮革、毛绒、透明件等材质明显不对。
+
+wrong shape:
+  发型轮廓、装饰物形状、部件外形明显不对。
+
+paired box completion:
+  成对物品或身体部位只框一侧，或两侧被合并成一个大框，需要补框或拆框。
 ```
 
-> **注意**：不需要记录"一切正常"的发现。只记录你注意到的差异和问题。但如果某个元素你不确定，可以记录并标注 `match_status=unsure`。
+当前不主动处理：
 
----
+```text
+- 预识别阶段没有标出的普通细节
+- 开放式描述补充
+- 与颜色/材质/形状无关的扩写
+- 普通 missing/extra 细节，除非属于成对补框/拆框场景
+```
 
-## 品类特殊说明
+## 4. CSV 最小字段
 
-### backpack（背包）
+`human_visual_findings.csv` 至少包含：
 
-- ⚠️ **背面视角（back）是背包的背板，不是角色的背面**
-- 背包产品只看背包本身，不看角色的下半身（裙子、裤子、鞋子等）
-- 角色头发、帽子等如果在背包正面/侧面可见，需要检查
-- 背包背板上的图案、拉链、口袋需要检查
+```text
+sample_id
+category
+finding_id
+view                 # front / side / back / multiple / all / unknown
+issue_type           # wrong color / wrong material / wrong shape / paired box completion / other
+element_name
+attribute            # color / material / shape / paired_box
+expected_from_2d
+observed_in_multiview
+severity             # critical / major / minor / unknown
+reason
+```
 
-### head_key_chain（头部钥匙扣）
+可选字段仍可保留 bbox、annotator_id、annotation_batch、match_status 等，详见 `human_annotation_csv_schemas.md`。
 
-- ⚠️ **背面视角是角色的后脑勺**
-- 只看头部和头发相关元素，颈部以下全部不检查
-- 发饰、蝴蝶结、耳朵装饰等需要检查
+## 5. 示例
 
-### cake_roll（蛋糕卷）
+### 颜色错误
 
-- ⚠️ **背面视角是蛋糕卷的螺旋纹面，不是角色背面**
-- 角色身体/服装全部不适用
-- 只检查蛋糕卷上印制的角色图案
+```text
+sample_id: 2812503
+category: backpack
+finding_id: F001
+view: front
+issue_type: wrong color
+element_name: hair_color
+attribute: color
+expected_from_2d: brown
+observed_in_multiview: dark brown / almost black
+severity: major
+reason: pre-recognized hair color is visibly darker than the 2D reference
+```
 
-### plush（毛绒玩偶）
+### 材质错误
 
-- ⚠️ **背面视角是角色的全身背面**
-- 这是全身产品，所有元素都需要检查
-- 正面、侧面、背面的所有特征都要对比
+```text
+sample_id: 2812503
+category: backpack
+finding_id: F002
+view: front
+issue_type: wrong material
+element_name: shoulder_strap
+attribute: material
+expected_from_2d: fabric strap
+observed_in_multiview: glossy metal-like strap
+severity: major
+reason: pre-recognized strap material is inconsistent with the 2D reference
+```
 
----
+### 成对部位补框
 
-## 提交格式
+```text
+sample_id: 2812503
+category: plush
+finding_id: F003
+view: front
+issue_type: paired box completion
+element_name: left_horn_and_right_horn
+attribute: paired_box
+expected_from_2d: two horns should be labeled separately
+observed_in_multiview: only one horn has a box
+severity: major
+reason: paired parts require both sides to be boxed and described independently
+```
 
-- 文件编码：UTF-8（Excel 打开后另存为 CSV UTF-8 即可）
-- 文件名：`human_visual_findings.csv`
-- 每个样本一个 CSV 文件，放在对应样本文件夹中
+## 6. 品类视角提醒
 
-**也可以把所有样本的发现合并到一个 CSV 中**，通过 `sample_id` 区分。
+```text
+backpack:
+  back 是背包背板，不是角色背面。
 
----
+head_key_chain:
+  back 是角色后脑勺；只看头部，颈部以下不检查。
 
-## 常见问题
+cake_roll:
+  back 是蛋糕卷螺旋纹面，不是角色背面；身体/服装不适用。
 
-### Q: 我不确定这是不是问题，要不要记？
-A: 记。标注 `match_status=unsure`，`severity=minor`。
+plush:
+  back 是角色全身背面；全身产品均在范围内。
+```
 
-### Q: 2D 图中某个元素在生成图的某个视角看不到，这算问题吗？
-A: 不一定。如果那个视角本来就不应该看到（比如正面看不到后脑勺），那不算问题。如果应该看到但看不到（比如正面的蝴蝶结消失了），那算 `missing`。
+## 7. 常见判断
 
-### Q: 颜色有一点点偏差算问题吗？
-A: 如果是明显的色差（比如棕色变成黑色），算。如果只是轻微色差（光线造成的），可以记为 `minor`。
+```text
+颜色轻微偏差:
+  光照或渲染导致的轻微偏差可记 minor 或不记；明显色差才记 wrong color。
 
-### Q: 生成图比 2D 图多了细节（比如纹理），这算问题吗？
-A: 如果多出的细节不矛盾，一般不算问题。但如果多出了 2D 中完全不存在的元素（比如多了一个口袋），记为 `extra`。
+看起来少了某个未预识别细节:
+  不作为当前乙方可修改/可计费项，可备注到 design_quality_notes 或 human_review_required。
 
----
-
-## 时间估算
-
-每个样本预计需要 3-5 分钟。4 品类 × 4 样本 = 16 个样本，预计总时间 1-2 小时。
+生成图多了纹理:
+  如果没有导致预识别部位的颜色/材质/形状明显错误，不作为当前描述修改项。
+```

@@ -81,15 +81,24 @@ ATOMIC_RULE_AUDIT_COLUMNS = [
 ]
 
 VIEW_VALUES = {"front", "side", "back", "multiple", "all", "unknown"}
-VISUAL_ISSUE_TYPES = {"wrong color", "wrong shape", "missing", "extra", "wrong invisible", "other"}
+VISUAL_ISSUE_TYPES = {
+    "wrong color",
+    "wrong material",
+    "wrong shape",
+    "paired box completion",
+    "missing",
+    "extra",
+    "wrong invisible",
+    "other",
+}
 SEVERITY_VALUES = {"critical", "major", "minor", "unknown", ""}
 OPTIONAL_VISIBLE_VALUES = {"visible", "invisible", "unknown", ""}
 MATCH_STATUS_VALUES = {"correct", "wrong", "unsure", ""}
 RULE_VALIDITY_VALUES = {"correct", "wrong_value", "missing_from_2d", "ambiguous", "out_of_scope", "duplicate"}
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong shape", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
-ERROR_STATUSES = {"wrong color", "wrong shape", "extra", "wrong invisible"}
+ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "extra", "wrong invisible"}
 RESULT_VALUES = {"correct", "wrong"}
 
 

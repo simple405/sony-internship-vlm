@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.sony-internship/vlm/schemas/supervision_agent_output_v3_final.schema.json",
   "title": "Anime IP Merchandise Supervision Agent Output v3 (Finalized)",
-  "description": "Rule-level output contract for a VLM supervision agent. This is the finalized version with the 'invisible + correct' convention: when a feature is invisible on a given view, status MUST be 'correct' (not 'correct invisible').",
+  "description": "Rule-level output contract for a VLM supervision agent. This is the finalized version with the 'invisible + correct' convention: when a feature is invisible on a given view, status MUST be 'correct' (not 'correct invisible'). Current 2026-07-08 execution scope allows color/material/shape corrections on pre-recognized parts plus paired box completion in human findings.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -103,6 +103,24 @@
         }
       }
     },
+    "billable_annotation_issues": {
+      "type": "array",
+      "description": "Billable annotation acceptance issues only: color/material/shape corrections and paired box completion.",
+      "items": {
+        "$ref": "#/$defs/annotation_issue"
+      }
+    },
+    "design_quality_notes": {
+      "type": "array",
+      "description": "Non-billable design quality or diagnostic notes kept outside acceptance metrics.",
+      "items": {
+        "$ref": "#/$defs/design_quality_note"
+      }
+    },
+    "human_review_required": {
+      "type": "boolean",
+      "description": "True when evidence is unclear, confidence is low, or the issue should not be auto-billed."
+    },
     "rules": {
       "type": "array",
       "minItems": 1,
@@ -150,11 +168,13 @@
     },
     "view_status_visible": {
       "type": "string",
-      "description": "Status values allowed when visible=visible. 'correct' means the feature matches the source. The other three are error types.",
+      "description": "Status values allowed when visible=visible. 'correct' means the feature matches the source. The other values are error types.",
       "enum": [
         "correct",
         "wrong color",
+        "wrong material",
         "wrong shape",
+        "paired box completion",
         "extra"
       ]
     },
@@ -172,7 +192,9 @@
       "enum": [
         "correct",
         "wrong color",
+        "wrong material",
         "wrong shape",
+        "paired box completion",
         "extra",
         "wrong invisible"
       ]
@@ -232,7 +254,9 @@
           "enum": [
             "none",
             "wrong color",
+            "wrong material",
             "wrong shape",
+            "paired box completion",
             "extra",
             "wrong invisible",
             "ambiguous",
@@ -307,6 +331,135 @@
         },
         "note": {
           "type": "string"
+        }
+      }
+    },
+    "annotation_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "value",
+        "view",
+        "issue_type",
+        "action_type",
+        "confidence",
+        "reason",
+        "evidence"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string",
+          "enum": [
+            "front",
+            "side",
+            "back",
+            "overall"
+          ]
+        },
+        "issue_type": {
+          "type": "string",
+          "enum": [
+            "wrong color",
+            "wrong material",
+            "wrong shape",
+            "paired box completion"
+          ]
+        },
+        "action_type": {
+          "type": "string",
+          "enum": [
+            "description_correction",
+            "add_counterpart_box",
+            "split_merged_box",
+            "unspecified"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_item"
+          }
+        }
+      }
+    },
+    "design_quality_note": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "value",
+        "view",
+        "issue_type",
+        "severity",
+        "confidence",
+        "reason",
+        "evidence"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string"
+        },
+        "view": {
+          "type": "string",
+          "enum": [
+            "front",
+            "side",
+            "back",
+            "overall"
+          ]
+        },
+        "issue_type": {
+          "type": "string",
+          "enum": [
+            "extra",
+            "wrong invisible",
+            "ambiguous",
+            "other"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low",
+            "info"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "reason": {
+          "type": "string"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence_item"
+          }
         }
       }
     }
