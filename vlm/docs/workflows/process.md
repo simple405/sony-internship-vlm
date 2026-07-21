@@ -1,6 +1,6 @@
 # VLM 监修当前流程（压缩版）
 
-更新日期：2026-07-08 +08:00
+更新日期：2026-07-14 +08:00
 
 本文件用于节约后续上下文成本，只保留当前有效结论、关键路径、会议纪要和下一步。历史长流程已压缩。
 
@@ -99,6 +99,43 @@ vlm/scripts/supervise/summarize_pre_gold_assets.py
 - paired box completion 已作为人工标注验收问题类型保留。
 ```
 
+## 4b. 元素提取模型对比（2026-07-14）
+
+评估集：20 样本 / 111 gold elements，使用 `evaluate_element_extraction.py` + DashScope text-embedding-v3。
+
+| 模型 | Coverage | Conflicts | Unsupported Extra | 状态 |
+|------|----------|-----------|-------------------|------|
+| qwen3-vl-plus（基线） | 98.2% | 10 | 25 | 稳定，当前 API 首选 |
+| qwen3-vl-32b-instruct | 98.2% | 14 | 21 | 稳定，coverage 持平 |
+| qwen3-vl-30b-a3b-thinking | 94.6% | 21 | 26 | thinking 模式对结构化提取无益 |
+| qwen3-vl-30b-a3b-instruct | N/A | N/A | N/A | DashScope 45% JSON 崩溃 |
+
+关键结论：
+
+```text
+- qwen3-vl-plus 为闭源模型，无公开权重，不可本地部署。
+- qwen3-vl-32b-instruct 开源可部署，coverage 与 plus 持平，int4 量化约需 22GB VRAM。
+- qwen3-vl-30b-a3b-instruct 架构最优（MoE，总参数 30B，推理激活仅 3B），
+  DashScope 的 JSON 崩溃是平台侧问题，本地用 vLLM guided_json 可解决；
+  本地部署 ≤30B 场景的首选候选。
+- qwen3-vl-7b DashScope 无托管（404），可作为本地保守方案。
+- thinking 模式对结构化提取任务有害，不要使用 -thinking 后缀的模型。
+- 所有模型共同漏掉 char_013 的"胡须"和"袜子"——提示词无面部毛发/腿部叠层规则，
+  待新数据确认后再考虑修改（避免过拟合20样本评估集）。
+```
+
+脚本与数据路径：
+
+```text
+提取脚本:  vlm/scripts/supervise/run_element_extraction.py
+评估脚本:  vlm/scripts/supervise/evaluate_element_extraction.py
+提示词:    vlm/prompts/supervision/element_extraction_from_2d.txt
+Gold 数据: vlm/data/SN_6期动漫数据标注/
+结果目录:  vlm/data/element_extraction_results/          ← qwen3-vl-plus 基线
+           vlm/data/element_extraction_results_32b/      ← qwen3-vl-32b-instruct
+           vlm/data/element_extraction_results_30b_thinking/ ← qwen3-vl-30b-a3b-thinking
+```
+
 ## 5. 人工标注 + 评估工作流
 
 当前三段式流程：
@@ -159,7 +196,32 @@ generated 三件套: 2D 原图 + multi_view 生成图 + atomic_rules
 
 ## 6. 下一步
 
-等人工标注数据回来后：
+### 6a. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
+
+新数据形式：源图 + 人工标注 element 名称与描述（作为 gold）。
+
+```text
+1. 将新图片和人工标注整理到 vlm/data/SN_新批次/ 目录，
+   每张图一个子文件夹，gold JSON 与现有 vlm/data/SN_6期动漫数据标注/ 格式一致：
+   {"elements": [{"name": "...", "value": "..."}, ...]}
+
+2. 在新图上跑元素提取（--workers 根据 DashScope QPS 限制调整，默认 6）：
+   python -m vlm.scripts.supervise.run_element_extraction \
+     --model qwen3-vl-plus \
+     --output-root vlm/data/element_extraction_results_new_batch \
+     --gold-root vlm/data/SN_新批次
+
+3. 跑评估，与 6期 baseline 对比：
+   python -m vlm.scripts.supervise.evaluate_element_extraction \
+     --pred-root vlm/data/element_extraction_results_new_batch \
+     --gold-root vlm/data/SN_新批次 \
+     --report-path vlm/data/element_extraction_results_new_batch/evaluation_report.json
+
+4. 若新 gold 中"胡须"/"袜子"类细节在多个样本出现且仍被漏掉，
+   再考虑修改 vlm/prompts/supervision/element_extraction_from_2d.txt。
+```
+
+### 6b. 监修验收工作流（如有 .xlsx/.csv 人工验收标注文件）
 
 ```text
 1. 拿到 .xlsx 或 .csv。
