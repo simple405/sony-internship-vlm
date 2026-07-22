@@ -1,0 +1,4 @@
+interface:
+  display_name: "Anime IP Fidelity Eval"
+  short_description: "Evaluate 2D-to-3D anime IP fidelity"
+  default_prompt: "Use $anime-ip-fidelity-eval to evaluate a generated 3D design against its source image and element annotations."

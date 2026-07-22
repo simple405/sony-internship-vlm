@@ -1,0 +1,4 @@
+interface:
+  display_name: "VLM Generation Experiment"
+  short_description: "Run reproducible multimodal generation experiments"
+  default_prompt: "Use $vlm-generation-experiment to prepare and run a reproducible image-generation experiment."

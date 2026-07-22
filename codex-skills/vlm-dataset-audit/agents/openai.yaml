@@ -1,0 +1,4 @@
+interface:
+  display_name: "VLM Dataset Audit"
+  short_description: "Audit paired image-text datasets before experiments"
+  default_prompt: "Use $vlm-dataset-audit to audit this paired image-text dataset before running experiments."

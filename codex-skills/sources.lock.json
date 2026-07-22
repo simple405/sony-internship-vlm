@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "skills": [
+    {
+      "name": "anime-ip-fidelity-eval",
+      "repo": "simple405/sony-internship-vlm",
+      "ref": "main",
+      "path": "codex-skills/anime-ip-fidelity-eval",
+      "source": "custom"
+    },
+    {
+      "name": "vlm-generation-experiment",
+      "repo": "simple405/sony-internship-vlm",
+      "ref": "main",
+      "path": "codex-skills/vlm-generation-experiment",
+      "source": "custom"
+    },
+    {
+      "name": "vlm-dataset-audit",
+      "repo": "simple405/sony-internship-vlm",
+      "ref": "main",
+      "path": "codex-skills/vlm-dataset-audit",
+      "source": "custom"
+    },
+    {
+      "name": "huggingface-datasets",
+      "repo": "huggingface/skills",
+      "ref": "86cdeee824b73e504198b6005bb113552cdfa7ba",
+      "path": "skills/huggingface-datasets",
+      "source": "upstream"
+    },
+    {
+      "name": "wandb-primary",
+      "repo": "wandb/skills",
+      "ref": "6ca7ed0a00f3a4bf60a2124757fe0fa303344026",
+      "path": "skills/wandb-primary",
+      "source": "upstream"
+    }
+  ]
+}

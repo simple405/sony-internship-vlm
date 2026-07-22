@@ -1,0 +1,36 @@
+{
+  "sample_id": "char_001",
+  "source_image": "data/char_001/char_001.png",
+  "generated_image": "outputs/run_001/char_001/seed_0.png",
+  "run_id": "run_001",
+  "prompt_version": "front-view-v1",
+  "model": "provider-model-id",
+  "seed": 0,
+  "element_assessments": [
+    {
+      "name": "black hair bow",
+      "weight": 1,
+      "status": "preserved",
+      "evidence": "Large black bow is visible at the top center of the hair."
+    },
+    {
+      "name": "blue gem collar ornament",
+      "weight": 1,
+      "status": "partial",
+      "evidence": "Blue circular ornament is present, but its black ribbon is missing."
+    }
+  ],
+  "spec_checks": {
+    "front_view": true,
+    "full_body": true,
+    "single_subject": true,
+    "white_background": true,
+    "three_dimensional": true,
+    "no_extra_text_or_watermark": true
+  },
+  "identity_match": 0.9,
+  "identity_evidence": "Hair silhouette, eye color, clothing colors, and main accessories match.",
+  "visual_quality": 0.8,
+  "visual_quality_evidence": "Clean render with a minor hand artifact.",
+  "hallucinations": []
+}
