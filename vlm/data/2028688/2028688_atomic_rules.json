@@ -1,0 +1,77 @@
+{
+  "code": "2028688",
+  "atomic_rules": [
+    {
+      "id": "hair_color",
+      "value": "blonde"
+    },
+    {
+      "id": "hair_length",
+      "value": "short"
+    },
+    {
+      "id": "eye_color",
+      "value": "yellow"
+    },
+    {
+      "id": "skin_tone",
+      "value": "fair"
+    },
+    {
+      "id": "headwear_color",
+      "value": "white"
+    },
+    {
+      "id": "headwear_type",
+      "value": "mob_cap"
+    },
+    {
+      "id": "headwear_trim",
+      "value": "frilled"
+    },
+    {
+      "id": "top_color",
+      "value": "purple"
+    },
+    {
+      "id": "top_type",
+      "value": "collared_shirt"
+    },
+    {
+      "id": "sleeve_length",
+      "value": "short"
+    },
+    {
+      "id": "sleeve_style",
+      "value": "puffy"
+    },
+    {
+      "id": "collar_color",
+      "value": "white"
+    },
+    {
+      "id": "collar_pattern",
+      "value": "red_zigzag"
+    },
+    {
+      "id": "has_buttons",
+      "value": true
+    },
+    {
+      "id": "bottom_type",
+      "value": "long_skirt"
+    },
+    {
+      "id": "bottom_color",
+      "value": "purple"
+    },
+    {
+      "id": "hem_trim",
+      "value": "white_frills"
+    },
+    {
+      "id": "shoe_color",
+      "value": "red"
+    }
+  ]
+}
