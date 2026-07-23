@@ -1,0 +1,20 @@
+{
+  "gates": {
+    "front_view": true,
+    "single_subject": true,
+    "white_background": true,
+    "three_dimensional": false,
+    "no_text_watermark": true,
+    "no_red_frame": true
+  },
+  "elements": [
+    {"name": "金色长发与黑色蝴蝶结", "status": "preserved", "evidence_cn": "可见角色拥有飘逸的金色长发，头顶正中央系有一个大而明显的黑色蝴蝶结。"},
+    {"name": "红色眼睛", "status": "preserved", "evidence_cn": "眼睛为鲜艳的红色，眼神锐利，与原图一致。"},
+    {"name": "白色衬衫与蓝色宝石领饰", "status": "preserved", "evidence_cn": "穿着白色衬衫，领口处有黑色小领结和一枚镶嵌蓝色宝石的圆形领饰，细节清晰。"},
+    {"name": "黑色短裙与腰带", "status": "preserved", "evidence_cn": "下身搭配黑色短裙，腰部可见两条平行的灰色横向装饰带，符合标注定义。"},
+    {"name": "白色外套", "status": "preserved", "evidence_cn": "外穿一件宽松的白色外套，衣襟边缘有黑色纽扣，自然垂落。"}
+  ],
+  "identity_match": 1.0,
+  "visual_quality": 0.95,
+  "summary_cn": "生成图准确还原了原图的所有关键视觉元素和服装细节，角色特征一致。但画面仍为2D平面插画风格，未呈现立体手办造型或材质光影，因此three_dimensional判定为false。"
+}

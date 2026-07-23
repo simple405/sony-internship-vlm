@@ -1,0 +1,20 @@
+{
+  "gates": {
+    "front_view": true,
+    "single_subject": true,
+    "white_background": true,
+    "three_dimensional": false,
+    "no_text_watermark": false,
+    "no_red_frame": false
+  },
+  "elements": [
+    {"name": "金色长发与黑色蝴蝶结", "status": "preserved", "evidence_cn": "可见角色拥有金色长发，头顶正中央系有黑色大蝴蝶结，特征一致。"},
+    {"name": "红色眼睛", "status": "preserved", "evidence_cn": "角色双眼呈现鲜艳的红色，眼神锐利，与原图一致。"},
+    {"name": "白色衬衫与蓝色宝石领饰", "status": "preserved", "evidence_cn": "可见穿着白色衬衫，领口处有黑色小领结及镶嵌蓝色宝石的圆形领饰，细节清晰。"},
+    {"name": "黑色短裙与腰带", "status": "preserved", "evidence_cn": "下身搭配黑色短裙，腰部位置可见两条平行的灰色横向装饰带，符合标注定义。"},
+    {"name": "白色外套", "status": "preserved", "evidence_cn": "外穿宽松白色外套，衣襟边缘有黑色纽扣，自然垂落。"}
+  ],
+  "identity_match": 0.95,
+  "visual_quality": 0.85,
+  "summary_cn": "角色特征还原准确，服装细节与标注一致。但生成图仍为2D平面插画风格，未呈现3D手办实体感；且画面包含水印及红色边框，违反基础门禁条件。"
+}
