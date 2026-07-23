@@ -1,0 +1,46 @@
+{
+  "v1_original": {
+    "prompt_label": "v1_original",
+    "aggregate_metrics": {
+      "avg_similarity_mean": 0.7478,
+      "avg_similarity_std": 0.032,
+      "avg_similarity_min": 0.6898,
+      "avg_similarity_max": 0.8126,
+      "avg_description_similarity": 0.7828,
+      "coverage_mean": 0.9595,
+      "precision_mean": 0.8642,
+      "total_gt_elements": 111,
+      "total_pred_elements": 124,
+      "total_matched": 106,
+      "total_good_matches": 100,
+      "total_weak_matches": 6,
+      "total_unmatched_pred": 18,
+      "total_unmatched_gt": 5,
+      "overall_coverage": 0.955,
+      "overall_precision": 0.8548,
+      "good_match_ratio": 0.9434
+    }
+  },
+  "v2_optimized": {
+    "prompt_label": "v2_optimized",
+    "aggregate_metrics": {
+      "avg_similarity_mean": 0.7844,
+      "avg_similarity_std": 0.0513,
+      "avg_similarity_min": 0.6921,
+      "avg_similarity_max": 0.8844,
+      "avg_description_similarity": 0.7414,
+      "coverage_mean": 0.8686,
+      "precision_mean": 0.9378,
+      "total_gt_elements": 111,
+      "total_pred_elements": 102,
+      "total_matched": 95,
+      "total_good_matches": 91,
+      "total_weak_matches": 4,
+      "total_unmatched_pred": 7,
+      "total_unmatched_gt": 16,
+      "overall_coverage": 0.8559,
+      "overall_precision": 0.9314,
+      "good_match_ratio": 0.9579
+    }
+  }
+}
