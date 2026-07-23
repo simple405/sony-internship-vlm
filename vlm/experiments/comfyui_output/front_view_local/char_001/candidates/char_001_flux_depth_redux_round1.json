@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-07-22T15:47:27.377793+08:00",
+  "provider": "server_local_flux_depth_plus_redux_offline",
+  "source": "/home/intern/wmy/ComfyUI/input/local_pipeline/char_001/cleaned_white.png",
+  "source_sha256": "6c3f1baa54f928ee57c023117d98341f8dd3d8cf469cd378ff330ef92c98d647",
+  "depth": "/home/intern/Supervised 2D to 3D/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/char_001_da3_depth.png",
+  "depth_sha256": "6f92d62a44f40558e690a93ccb84a0c55009aecb69b61dedc06b748c13ae204b",
+  "flux_model": "/home/intern/.cache/huggingface/hub/models--black-forest-labs--FLUX.1-Depth-dev/snapshots/fb5e9b1bae41b8c8adcea4ea2a87b74dd298f07a",
+  "flux_revision": "fb5e9b1bae41b8c8adcea4ea2a87b74dd298f07a",
+  "redux_model": "/home/intern/.cache/huggingface/hub/models--black-forest-labs--FLUX.1-Redux-dev/snapshots/c95859fbf7703ca4d6824b4da4407d7cd0434f81",
+  "redux_revision": "c95859fbf7703ca4d6824b4da4407d7cd0434f81",
+  "prompt": "A high-end stylized 3D resin anime figure render of exactly the same young woman in the reference, strict straight-on front view and identical waist-up crop, identical face proportions and expression. Preserve every visible design detail one-for-one: long pale golden hair with peach-pink tips, one huge black bow centered on top of the head, vivid red eyes, tiny blue earrings, white shirt with the exact vertical ruffled placket and dark buttons, small black neck ribbon with one round blue gemstone ornament, dark skirt and waist with exactly two parallel gray horizontal bands, loose white coat with the same lapels, pockets, black buttons and arm placement. Clearly sculpted three-dimensional hair locks and garment thickness, painted PVC and resin materials, coherent soft studio key light, contact shading and rounded volume, clean pure white studio background. No redesign, no added accessory, no missing seam, no text, no watermark, no border.",
+  "settings": {
+    "width": 512,
+    "height": 992,
+    "steps": 28,
+    "guidance": 10.0,
+    "redux_strength": 0.65,
+    "seed": 20260722004,
+    "dtype": "torch.bfloat16",
+    "offload": "sequential_cpu_offload"
+  },
+  "output": "/home/intern/Supervised 2D to 3D/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/char_001_flux_depth_redux_round1.png",
+  "output_sha256": "c3c258dd93a70e24acd51b109e104bd951cc68566e864e42efe9750afd6108f2",
+  "network_policy": "offline_local_files_only",
+  "cuda_visible_devices": "2"
+}

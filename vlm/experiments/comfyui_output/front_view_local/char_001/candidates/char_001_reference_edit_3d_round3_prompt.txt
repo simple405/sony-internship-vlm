@@ -1,0 +1,6 @@
+Use case: precise-object-edit
+Image 1 is the edit target. Image 2 is the sole authoritative reference.
+Make one tiny localized correction only to the paired white trim running down both sides of the dusty-pink center shirt placket.
+The trim must remain present because it is visibly present in Image 2, but match Image 2 exactly: make each side much narrower, flatter, and subtler, with tiny tightly spaced white stitched/scalloped loops hugging the placket edge. Reduce the current large rounded lace loops by about half. It must read as narrow sewn white shirt edging, not prominent lace, flowers, pearls, chain, jewelry, or silver metal.
+Do not alter the blue gemstone, compact black neck ribbon, dusty-pink center strip, or dark buttons.
+Absolute invariants outside this narrow trim: exact face, red eyes, centered black head bow, golden hair and peach tips, earrings, outward arms, white coat and black buttons, exactly two gray waist bands, black skirt, framing, pure white background, lighting, and sculpted 3D PVC/resin style. No text, watermark, border, added accessory, or redesign.

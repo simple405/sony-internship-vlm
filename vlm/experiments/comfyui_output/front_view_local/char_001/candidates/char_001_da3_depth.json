@@ -1,0 +1,23 @@
+{
+  "created_at": "2026-07-22T15:42:51.072983+08:00",
+  "provider": "server_local_depth_anything_3_offline",
+  "source": "/home/intern/wmy/ComfyUI/input/local_pipeline/char_001/cleaned_white.png",
+  "source_sha256": "6c3f1baa54f928ee57c023117d98341f8dd3d8cf469cd378ff330ef92c98d647",
+  "foreground_mask": "/home/intern/wmy/ComfyUI/input/local_pipeline/char_001/foreground_mask.png",
+  "foreground_mask_sha256": "5b42f1acdb386191fdbccc3db17034d1e6da54661782d6cb6af920bd70b26c05",
+  "model": "/home/intern/.cache/huggingface/hub/models--depth-anything--DA3-SMALL/snapshots/e08cab65ca0ec38e7826075418411ab90cab4da3",
+  "model_revision": "e08cab65ca0ec38e7826075418411ab90cab4da3",
+  "process_res": 504,
+  "raw_depth_shape": [
+    504,
+    266
+  ],
+  "inverse_depth_percentiles": {
+    "p02": 1.0245905494689942,
+    "p98": 1.342789421081543
+  },
+  "output": "/home/intern/Supervised 2D to 3D/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/char_001_da3_depth.png",
+  "output_sha256": "6f92d62a44f40558e690a93ccb84a0c55009aecb69b61dedc06b748c13ae204b",
+  "network_policy": "offline_local_files_only",
+  "cuda_visible_devices": "2"
+}
