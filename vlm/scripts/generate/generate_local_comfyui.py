@@ -111,6 +111,31 @@ ROUND_PROFILES: dict[str, dict[str, Any]] = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the local ComfyUI generation pipeline.
+
+    Key parameters
+    --------------
+    sample_dirs         Zero or more sample directories, each containing a single
+                        ``*.json`` annotation file and its declared source image.
+                        Defaults to ``DEFAULT_SOURCE_ROOT/char_001``.
+    --server            ComfyUI server base URL (default: http://127.0.0.1:8188).
+    --birefnet-dir      Path to the audited local BiRefNet snapshot directory
+                        (must contain BiRefNet_config.py, birefnet.py,
+                        model.safetensors).
+    --preprocess-device CUDA device for BiRefNet inference (e.g. "cuda:2").
+    --timeout           Maximum seconds to wait for a ComfyUI workflow to finish.
+    --skip-preprocess   Reuse previously written cleaned_white.png and
+                        ipadapter_reference.png instead of re-running BiRefNet.
+    --style-reference   Optional path to an existing character-free material
+                        reference image.  If omitted, a deterministic neutral
+                        material board is generated locally.
+    --round-profile     One of the ROUND_PROFILES keys, controlling the diffusion
+                        strength and style-transfer mix.  See ROUND_PROFILES for
+                        the ordered description of each profile.
+    --candidate-only    Write output to a ``candidates/`` subdirectory with a
+                        profile-tagged filename rather than overwriting the fixed
+                        accepted output path.
+    """
     parser = argparse.ArgumentParser(
         description="Run local BiRefNet + IP-Adapter Plus + Canny ControlNet + SDXL."
     )
@@ -146,6 +171,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def sha256(path: Path) -> str:
+    """Return the lowercase hex SHA-256 digest of a file, read in 1MiB chunks."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -154,6 +180,13 @@ def sha256(path: Path) -> str:
 
 
 def atomic_json(path: Path, value: Any) -> None:
+    """Write *value* as pretty-printed UTF-8 JSON to *path* atomically.
+
+    Creates the parent directories if they do not exist. The file is first
+    written to a sibling ``.tmp`` file with a random suffix, explicitly
+    flushed and fsynced, then renamed over *path* via ``os.replace``, so
+    a concurrent reader never sees a partial write.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     with temp.open("w", encoding="utf-8") as handle:
@@ -165,6 +198,12 @@ def atomic_json(path: Path, value: Any) -> None:
 
 
 def atomic_png(image: Image.Image, path: Path) -> None:
+    """Save *image* as an optimised PNG to *path* atomically.
+
+    Uses the same write-to-temp-then-rename strategy as ``atomic_json`` to
+    guarantee that *path* is either the previous complete file or the new
+    complete file — never a truncated intermediate state.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     image.save(temp, format="PNG", optimize=True)
@@ -172,6 +211,20 @@ def atomic_png(image: Image.Image, path: Path) -> None:
 
 
 def api_json(server: str, path: str, payload: Any | None = None) -> Any:
+    """Send a JSON request to the ComfyUI server and return the parsed response.
+
+    Args:
+        server: Base URL of the ComfyUI server (e.g., "http://127.0.0.1:8188").
+        path: API endpoint path (e.g., "/object_info", "/prompt").
+        payload: Optional dict to send as the JSON body (GET if None, POST if provided).
+
+    Returns:
+        The JSON-decoded response from the server.
+
+    Notes:
+        - Explicitly disables all proxy environment variables to ensure local connections.
+        - 30-second timeout per request.
+    """
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
         f"{server.rstrip('/')}{path}",
@@ -184,6 +237,20 @@ def api_json(server: str, path: str, payload: Any | None = None) -> Any:
 
 
 def validate_local_stack(server: str) -> None:
+    """Verify that the ComfyUI server exposes every node and model required by this pipeline.
+
+    Queries ``/object_info`` and checks that the following custom nodes are
+    registered: DiffusersLoader, IPAdapterUnifiedLoader, IPAdapterAdvanced,
+    IPAdapterPreciseComposition, IPAdapterPreciseStyleTransfer, ControlNetLoader,
+    ControlNetApplyAdvanced, Canny, LoadImageMask, SetLatentNoiseMask.
+
+    Also verifies that the specific ControlNet checkpoint and IP-Adapter preset
+    named in SETTINGS are available on the server.
+
+    Raises:
+        RuntimeError: If any required node, ControlNet model, or IP-Adapter
+                      preset is missing from the server's registry.
+    """
     object_info = api_json(server, "/object_info")
     required_nodes = {
         "DiffusersLoader",
@@ -251,6 +318,24 @@ def load_local_birefnet(model_dir: Path, device: str):
 
 
 def red_frame_crop_box(image: Image.Image, search_width: int = 8) -> tuple[int, int, int, int]:
+    """Detect and return the crop box that removes a red border frame from an image.
+
+    Some source reference scans have a vivid red rectangular frame drawn around
+    the character artwork.  This function scans the outermost ``search_width``
+    rows/columns on each edge for lines where >= 55% of pixels are classified
+    as "red" (R >= 130 and R >= 1.6 × G and R >= 1.6 × B).  If all four edges
+    produce at least one red line, the crop box trims just inside those lines.
+
+    The 55% coverage threshold makes the detector robust to partial occlusion
+    (e.g., artwork that slightly bleeds into the frame row) while still firing
+    on dense solid-colour borders.
+
+    Returns:
+        (left, top, right, bottom) crop coordinates in pixel units.  If any
+        edge has no red line or if the resulting crop would be smaller than 80%
+        of the original dimension, the full image (0, 0, width, height) is
+        returned unchanged — this is the safe fallback when there is no red frame.
+    """
     pixels = np.asarray(image.convert("RGB"))
     red = (
         (pixels[:, :, 0] >= 130)
@@ -287,6 +372,35 @@ def preprocess_reference(
     model,
     device: str,
 ) -> dict[str, Any]:
+    """Remove the background from the character reference image using BiRefNet.
+
+    Steps
+    -----
+    1. Open the source image and crop out any red frame (``red_frame_crop_box``).
+    2. Resize to 1024 × 1024 and normalise with ImageNet mean/std for BiRefNet
+       inference (mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]).
+    3. Run BiRefNet in ``inference_mode``; take the final prediction, apply
+       sigmoid, then bilinearly interpolate the mask back to the cropped size.
+    4. Threshold: ``alpha = clip((mask - 0.08) / 0.84, 0, 1)``.  The 0.08 lower
+       cut suppresses faint background remnants; 0.84 normalises the remaining
+       range to [0, 1] without clipping genuine anti-aliased edges.
+    5. Composite the foreground over a white background to produce
+       ``cleaned_white.png``.
+    6. Fit the cleaned image into a 1024 × 1024 square (max side 960, centred)
+       to create ``ipadapter_reference.png`` for IP-Adapter.
+    7. Save the binary alpha as ``foreground_mask.png``.
+
+    Returns a dict of paths and SHA-256 hashes written, suitable for inclusion
+    in the run manifest.
+
+    Args:
+        source:       Raw source image path (may contain a red frame).
+        cleaned_path: Destination for the white-background cleaned PNG.
+        square_path:  Destination for the 1024 × 1024 IP-Adapter reference.
+        mask_path:    Destination for the grayscale foreground mask.
+        model:        Loaded BiRefNet model (from ``load_local_birefnet``).
+        device:       CUDA device string (e.g. "cuda:2").
+    """
     import torch
     import torch.nn.functional as torch_functional
 
@@ -349,6 +463,22 @@ def preprocess_reference(
 
 
 def prepare_style_reference(source: Path, destination: Path) -> dict[str, Any]:
+    """Prepare an existing 3D reference image as a 1024 × 1024 style-transfer input.
+
+    The source image is scaled to cover the entire 1024 × 1024 canvas (cropping
+    the overflow along the longer axis) so the style-transfer IP-Adapter node
+    sees the material/shading at full resolution.  This is used when a user
+    supplies a previously-generated 3D candidate as the style reference instead
+    of the neutral material board.
+
+    Args:
+        source:      Path to an existing 3D render PNG (e.g., a previous SDXL output).
+        destination: Destination 1024 × 1024 PNG path (within ComfyUI/input/).
+
+    Returns:
+        A dict with keys "source", "source_sha256", "prepared_path",
+        "prepared_sha256", "provenance" for inclusion in the run manifest.
+    """
     if not source.is_file():
         raise FileNotFoundError(f"Missing local 3D style reference: {source}")
     image = Image.open(source).convert("RGB")
@@ -418,6 +548,39 @@ def prepare_style_masks(
     full_mask_path: Path,
     regional_mask_path: Path,
 ) -> dict[str, Any]:
+    """Build the two style-transfer latent masks used by the ComfyUI pipeline.
+
+    Two masks are written:
+
+    **full_mask** (``style_mask_foreground.png``)
+        The binarised foreground mask resized to the SDXL canvas
+        (SETTINGS["width"] × SETTINGS["height"]).  Pixels >= 96 become 255.
+        This mask is used in round1 and round2 where style transfer is applied
+        uniformly across the entire foreground.
+
+    **regional_mask** (``style_mask_regional.png``)
+        Derived from the full mask with identity-critical regions zeroed out so
+        the style-transfer IP-Adapter is blocked from influencing them.  Zeroed
+        regions (fill=0 = do not apply style here):
+
+        - Face/eye ellipse (25%-75% width, 15%-42% height) — preserves the
+          character's exact facial geometry, eye size, and expression.
+        - Head bow / top ornament rectangle (25%-75% width, 3%-20% height) —
+          the large hair bow is a key identity marker.
+        - Collar/neck area rectangle (35%-65% width, 40%-55% height) — protects
+          the blue gem ornament and neck ribbon from colour drift.
+        - Shirt placket rectangle (40%-60% width, 52%-74% height) — locks in
+          the exact waist-band colours.
+        - Waist-band rectangle (24%-76% width, 73%-82% height) — protects the
+          two continuous parallel gray horizontal bands.
+
+        A diagonal white band is drawn back over the lower-right corner to
+        expose the visible watermark zone for repainting.  The mask is then
+        Gaussian-blurred (radius=12) so transitions are soft rather than
+        hard-edged, preventing rectangular artefacts in the latent space.
+
+    Returns a dict with paths and SHA-256 hashes of both masks.
+    """
     foreground = Image.open(foreground_mask_path).convert("L").resize(
         (SETTINGS["width"], SETTINGS["height"]),
         Image.Resampling.LANCZOS,
@@ -468,6 +631,20 @@ def prepare_style_masks(
 
 
 def resolve_sample(sample_dir: Path) -> tuple[str, Path, Path, dict[str, Any]]:
+    """Resolve and validate the annotation JSON and source image for a sample directory.
+
+    Expects exactly one ``*.json`` annotation file in ``sample_dir``.  The JSON
+    must have a "sample_id" field that matches the directory name, a "source_image"
+    field naming a file that exists in the directory, and a non-empty "elements" list.
+
+    Returns:
+        (sample_id, source_path, annotation_path, annotation_dict)
+
+    Raises:
+        ValueError:       If there is not exactly one JSON, if sample_id does not
+                          match the directory name, or if "elements" is absent/empty.
+        FileNotFoundError: If the declared source image file does not exist.
+    """
     sample_dir = sample_dir.resolve()
     json_candidates = sorted(sample_dir.glob("*.json"))
     if len(json_candidates) != 1:
@@ -493,6 +670,30 @@ def build_prompts(
     annotation: dict[str, Any],
     profile_name: str,
 ) -> tuple[str, str]:
+    """Build the positive and negative text prompts for SDXL from the annotation.
+
+    If a hand-written ``CHARACTER_PROMPTS`` entry exists for ``sample_id``, those
+    curated trait strings are used directly.  Otherwise, a generic fallback is
+    generated from the annotation element names.
+
+    The positive prompt combines:
+    - A base quality/style preamble (faithful 3D reconstruction, toon-shaded render).
+    - Per-character visual trait strings (hair, eyes, costume details).
+    - A framing constraint (single front view, centred on white, no border).
+    - A profile tag so ComfyUI's prompt cache is keyed per round.
+
+    The negative prompt lists identity drift, costume redesign, wrong proportions,
+    chibi distortions, extra anatomy, and background contamination.
+
+    Args:
+        sample_id:    e.g. "char_001" — used to look up CHARACTER_PROMPTS.
+        annotation:   The parsed annotation JSON dict (used only for the fallback path).
+        profile_name: The ROUND_PROFILES key — embedded in the positive prompt to
+                      differentiate prompt cache entries across rounds.
+
+    Returns:
+        (positive_prompt, negative_prompt) as comma-separated strings.
+    """
     traits = CHARACTER_PROMPTS.get(sample_id)
     if traits is None:
         traits = [
@@ -527,6 +728,22 @@ def build_prompts(
 
 
 def comfy_relative(path: Path) -> str:
+    """Return the path of a file relative to the ComfyUI input directory as a POSIX string.
+
+    ComfyUI's LoadImage and LoadImageMask nodes accept file paths relative to
+    their ``input/`` root.  This helper converts an absolute filesystem path to
+    the format ComfyUI expects in the workflow JSON payload.
+
+    Args:
+        path: Absolute path to an image inside ``COMFY_INPUT_ROOT``.
+
+    Returns:
+        A forward-slash-separated relative path string, e.g.
+        ``"local_pipeline/char_001/cleaned_white.png"``.
+
+    Raises:
+        ValueError: If *path* is not under ``COMFY_INPUT_ROOT``.
+    """
     return path.resolve().relative_to(COMFY_INPUT_ROOT.resolve()).as_posix()
 
 
@@ -540,6 +757,77 @@ def build_workflow(
     negative: str,
     profile_name: str,
 ) -> dict[str, Any]:
+    """Construct the ComfyUI node graph JSON for the current round profile.
+
+    Node wiring overview
+    --------------------
+    The workflow is represented as a dict of node-id → node-descriptor pairs.
+    Each node descriptor has ``class_type`` and ``inputs``; input values may be
+    literal scalars or ``["node_id", output_index]`` edge references.
+
+    Core nodes (always present)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    1  DiffusersLoader         → loads the SDXL base model (model, CLIP, VAE)
+    2  LoadImage (source)      → loads cleaned_white.png
+    3  ImageScale              → resizes the source to SETTINGS width × height
+    4  VAEEncode               → encodes the resized source into latent space
+    5  CLIPTextEncode +        → encodes the positive text prompt
+    6  CLIPTextEncode -        → encodes the negative text prompt
+    7  LoadImage (ipadapter)   → loads the 1024 × 1024 IP-Adapter reference
+    8  IPAdapterUnifiedLoader  → loads the IP-Adapter weights and preset
+    9  IPAdapterPreciseComposition → applies identity/composition IP-Adapter
+                                    from the source reference (node 7)
+    10 Canny                   → extracts Canny edge map from the scaled source
+    11 ControlNetLoader        → loads the Canny ControlNet checkpoint
+    12 ControlNetApplyAdvanced → fuses ControlNet conditioning into positive/negative
+    13 KSampler (pass 1 or only pass) → SDXL denoising step
+    14 VAEDecode               → decodes the sampled latent to pixel space
+    15 SaveImage               → saves output with the unique work_token prefix
+    16 LoadImage (style)       → loads the 1024 × 1024 style reference
+    18 LoadImageMask           → loads the style mask (full or regional)
+
+    Conditional nodes (style_weight > 0)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    17 IPAdapterPreciseStyleTransfer → applies material/style IP-Adapter from
+                                       the style reference (node 16) with an
+                                       attention mask (node 18).  When present,
+                                       node 13 sources its model from node 17
+                                       instead of node 9.
+
+    Two-pass nodes (regional_style = True, i.e. round3_regional_3d)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    Pass 1 (identity base): node 13 runs at ``base_denoise`` (0.30) with
+        node 9's model (composition only, no style), using the bare positive
+        prompt (not ControlNet-conditioned) to lock in a faithful identity base
+        without the Canny watermark contamination.
+    Pass 2 (regional style): node 19 (SetLatentNoiseMask) applies the regional
+        mask to the pass-1 latent so that only the permitted garment zones are
+        modified.  Node 20 (second KSampler) then denoises at the full
+        ``profile["denoise"]`` (0.68) with node 17's model (style-aware) and
+        the ControlNet-conditioned prompt pair from node 12.  Node 14 decodes
+        from node 20's output.
+
+    Why the node 12 conditioning is used in pass 2 but not pass 1:
+        The Canny map (node 10) is derived from the source image, which may
+        contain a watermark band.  Pass 1 skips ControlNet entirely (uses raw
+        positive/negative from nodes 5 and 6) to prevent the watermark edge from
+        being reinforced in the identity base.  Pass 2 uses the ControlNet
+        conditioning because the regional mask already excludes the watermark area
+        from the high-denoise region, so the Canny structure reinforcement is safe.
+
+    Args:
+        cleaned_input:     ComfyUI-relative path to the cleaned source PNG.
+        ipadapter_input:   ComfyUI-relative path to the 1024 × 1024 IP-Adapter reference.
+        style_input:       ComfyUI-relative path to the style reference PNG.
+        style_mask_input:  ComfyUI-relative path to the style mask (full or regional).
+        output_prefix:     SaveImage filename prefix (includes work_token for uniqueness).
+        positive:          Positive SDXL text prompt.
+        negative:          Negative SDXL text prompt.
+        profile_name:      Key into ROUND_PROFILES selecting the denoise / weight mix.
+
+    Returns:
+        A dict that can be POSTed directly to ComfyUI's ``/prompt`` endpoint.
+    """
     profile = ROUND_PROFILES[profile_name]
     workflow: dict[str, Any] = {
         "1": {"class_type": "DiffusersLoader", "inputs": {"model_path": SETTINGS["model"]}},
@@ -672,6 +960,26 @@ def build_workflow(
 
 
 def wait_for_output(server: str, prompt_id: str, timeout: int) -> Path:
+    """Poll the ComfyUI history endpoint until the workflow finishes or times out.
+
+    ComfyUI executes workflows asynchronously.  This function polls
+    ``/history/<prompt_id>`` every second until the ``status.completed`` flag
+    is set.  It expects exactly one image in the "15" (SaveImage) node output;
+    any other count raises a RuntimeError.
+
+    Args:
+        server:    ComfyUI server base URL.
+        prompt_id: The UUID string returned by the ``/prompt`` POST.
+        timeout:   Maximum wall-clock seconds to wait before raising TimeoutError.
+
+    Returns:
+        Absolute Path to the output PNG written by ComfyUI.
+
+    Raises:
+        RuntimeError:  If ComfyUI reports a workflow error, or if the number of
+                       saved images is not exactly 1.
+        TimeoutError:  If the workflow does not complete within *timeout* seconds.
+    """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         history = api_json(server, f"/history/{prompt_id}").get(prompt_id)
@@ -690,6 +998,17 @@ def wait_for_output(server: str, prompt_id: str, timeout: int) -> Path:
 
 
 def plugin_revision() -> str:
+    """Return the current git commit hash of the IP-Adapter ComfyUI plugin.
+
+    Reads ``.git/HEAD`` from the ``IPADAPTER_PLUGIN`` directory.  If HEAD points
+    to a branch ref (``ref: refs/heads/…``), the actual commit hash is resolved
+    by reading the packed ref file.  If the plugin directory has no ``.git``
+    metadata (e.g., it was installed as a plain directory copy), returns
+    "unknown".
+
+    This value is recorded in the run manifest so reproducibility audits can
+    confirm exactly which version of the IP-Adapter node was active.
+    """
     head = IPADAPTER_PLUGIN / ".git/HEAD"
     if not head.is_file():
         return "unknown"
@@ -711,6 +1030,40 @@ def generate_one(
     profile_name: str,
     candidate_only: bool,
 ) -> Path:
+    """Run the full ComfyUI generation pipeline for a single character sample.
+
+    Orchestration steps
+    -------------------
+    1. Resolve the annotation and source image via ``resolve_sample``.
+    2. Build positive and negative prompts from the annotation and profile name.
+    3. Generate a unique ``work_token`` (UUID hex) to prefix the ComfyUI output
+       filename, preventing filename collisions on concurrent runs.
+    4. Build the full workflow JSON via ``build_workflow`` and POST it to
+       ``/prompt``.
+    5. Poll ``/history`` with ``wait_for_output`` until the image is saved.
+    6. Atomically rename the ComfyUI working output to the final destination:
+       - ``candidate_only=True``:  ``candidates/<sample_id>_<profile_name>.png``
+       - ``candidate_only=False``: ``<sample_id>_front_view.png``
+    7. Write a detailed JSON manifest recording all inputs, settings, hashes,
+       prompt text, and network-isolation environment flags.
+    8. Delete any previous ``last_error.json`` on success.
+
+    Args:
+        sample_dir:        Directory containing the annotation JSON and source image.
+        server:            ComfyUI server URL.
+        timeout:           Maximum seconds to wait for the workflow.
+        preprocess_record: Manifest fragment from ``preprocess_reference`` or the
+                           skip-preprocess dict.
+        style_record:      Manifest fragment from ``prepare_style_reference`` or
+                           ``prepare_neutral_style_reference``.
+        style_mask_record: Manifest fragment from ``prepare_style_masks``.
+        profile_name:      ROUND_PROFILES key (controls denoise and style weight).
+        candidate_only:    If True, writes to a tagged candidate path rather than
+                           the accepted fixed output path.
+
+    Returns:
+        Absolute path to the final output PNG.
+    """
     sample_id, source_path, annotation_path, annotation = resolve_sample(sample_dir)
     sample_output_dir = OUTPUT_ROOT / "front_view_local" / sample_id
     if candidate_only:
@@ -800,6 +1153,39 @@ def generate_one(
 
 
 def main() -> None:
+    """Entry point for the local ComfyUI generation pipeline.
+
+    Execution sequence
+    ------------------
+    1. Set offline environment flags to prevent any network access during the
+       run (HF_HUB_OFFLINE, TRANSFORMERS_OFFLINE, HF_HUB_DISABLE_TELEMETRY,
+       HF_HUB_DISABLE_IMPLICIT_TOKEN, DO_NOT_TRACK).  All proxy variables are
+       also cleared so that local ComfyUI connections are never accidentally
+       routed through a corporate proxy.
+    2. Call ``validate_local_stack`` to confirm that the ComfyUI server is
+       reachable and has every required node and model checkpoint.
+    3. If ``--skip-preprocess`` is not set, load BiRefNet via
+       ``load_local_birefnet`` on the specified CUDA device.
+    4. For each sample directory:
+       a. Resolve the annotation and source image.
+       b. Run ``preprocess_reference`` (or reuse cached outputs).
+       c. Build both style masks (full foreground and regional).
+       d. Prepare the style reference (neutral board or user-supplied image).
+       e. Call ``generate_one`` to submit the workflow and collect the output.
+       f. On failure: write ``last_error.json`` with error details and break
+          (one failure stops the batch to avoid cascading manifest corruption).
+    5. Free the BiRefNet model and flush the CUDA cache regardless of success
+       or failure (try/finally).
+    6. Exit with code 1 if any sample failed.
+
+    The three ROUND_PROFILES are deliberately ordered from identity-first to
+    stronger material conversion:
+    - round1_fidelity    (denoise=0.30): Pure identity lock; no style transfer.
+    - round2_light_3d    (denoise=0.36): Light 3D feel; weak global style.
+    - round3_regional_3d (denoise=0.68): Stronger 3D conversion via 2-pass
+                                         regional masking; full style weight.
+    All three use the same SDXL checkpoint, ControlNet, and IP-Adapter weights.
+    """
     args = parse_args()
     sample_dirs = args.sample_dirs or [DEFAULT_SOURCE_ROOT / "char_001"]
     sample_dirs = [path.resolve() for path in sample_dirs]

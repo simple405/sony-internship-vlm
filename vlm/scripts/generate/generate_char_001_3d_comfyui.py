@@ -113,6 +113,7 @@ NEGATIVE = ", ".join(
 # ── helpers ──────────────────────────────────────────────────────────
 
 def sha256(path: Path) -> str:
+    """Compute the SHA-256 hash of a file for provenance tracking."""
     digest = hashlib.sha256()
     with path.open("rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -121,6 +122,11 @@ def sha256(path: Path) -> str:
 
 
 def api_json(path: str, payload=None):
+    """POST JSON to the ComfyUI HTTP API and return the parsed JSON response.
+
+    If payload is None, performs a GET request instead.
+    Bypasses any system proxy to reach the local ComfyUI server directly.
+    """
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         f"{SERVER}{path}", data=data,
@@ -132,6 +138,11 @@ def api_json(path: str, payload=None):
 
 
 def copy_to_input(src: Path, name: str) -> str:
+    """Copy a source image into ComfyUI's input directory under the pipeline subfolder.
+
+    Returns the relative POSIX path from COMFY_INPUT, which is the format
+    ComfyUI's LoadImage node expects.
+    """
     dest_dir = COMFY_INPUT / "char_001_3d_pipeline"
     dest_dir.mkdir(parents=True, exist_ok=True)
     dest = dest_dir / name
@@ -173,6 +184,14 @@ def build_regional_mask(source_path: Path, output_path: Path) -> Path:
 
 
 def wait_for(prompt_id: str, timeout: int = 600) -> Path:
+    """Poll ComfyUI for workflow completion and return the output image path.
+
+    Uses the GET /history/{id} endpoint, polling every 2 seconds until the
+    prompt's status shows completion or error. Returns the resolved path to
+    the first output image from the highest-numbered SaveImage node.
+
+    Raises RuntimeError if the workflow errors, TimeoutError if timeout is exceeded.
+    """
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         history = api_json(f"/history/{prompt_id}").get(prompt_id)
@@ -193,6 +212,11 @@ def wait_for(prompt_id: str, timeout: int = 600) -> Path:
 
 
 def submit_and_wait(workflow: dict) -> Path:
+    """Submit a workflow to ComfyUI via POST /prompt and wait for completion.
+
+    Generates a unique client_id, submits the workflow, prints the prompt_id,
+    polls until the workflow finishes, then returns the output image path.
+    """
     submitted = api_json("/prompt", {
         "prompt": workflow,
         "client_id": f"char001-{uuid.uuid4().hex[:8]}",
