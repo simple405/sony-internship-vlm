@@ -1,6 +1,6 @@
 # VLM 监修当前流程（压缩版）
 
-更新日期：2026-07-14 +08:00
+更新日期：2026-07-24 +08:00
 
 本文件用于节约后续上下文成本，只保留当前有效结论、关键路径、会议纪要和下一步。历史长流程已压缩。
 
@@ -72,6 +72,8 @@ vlm/prompts/supervision/qwen_prompt_v3_backpack.txt
 vlm/prompts/supervision/qwen_prompt_v3_head_key_chain.txt
 vlm/prompts/supervision/qwen_prompt_v3_plush.txt
 vlm/prompts/supervision/qwen_prompt_v3_cake_roll.txt
+vlm/prompts/supervision/element_extraction_from_2d.txt
+vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt  # 冻结的前视图提示词
 ```
 
 核心脚本：
@@ -85,6 +87,11 @@ vlm/scripts/supervise/convert_annotation_xlsx_to_csv.py
 vlm/scripts/supervise/align_human_findings_to_atomic_rules.py
 vlm/scripts/supervise/build_verified_evaluation_gold.py
 vlm/scripts/supervise/summarize_pre_gold_assets.py
+vlm/scripts/supervise/run_element_extraction.py
+vlm/scripts/supervise/evaluate_element_extraction.py
+vlm/scripts/generate/runninghub_client.py         # RunningHub API 公共模块
+vlm/scripts/generate/batch_front_view.py           # 前视图 PVC 手办批量生成（4 并发，支持 resume）
+vlm/scripts/generate/smoke_test_front_view.py      # 单样本冒烟测试
 ```
 
 ## 4. 已知当前状态
@@ -97,6 +104,8 @@ vlm/scripts/supervise/summarize_pre_gold_assets.py
 - head_key_chain / plush / cake_roll 已有品类视角语义 prompt。
 - wrong material 已加入 schema、prompt 和本地校验常量。
 - paired box completion 已作为人工标注验收问题类型保留。
+- RunningHub 前视图 PVC 手办批量生成已完成：19/20 成功（1568×672），char_008 被内容审核拦截（errorCode 1501）。
+- runninghub_client.py 已抽取为公共 API 模块，消除 ~150 行重复代码。
 ```
 
 ## 4b. 元素提取模型对比（2026-07-14）
@@ -196,7 +205,26 @@ generated 三件套: 2D 原图 + multi_view 生成图 + atomic_rules
 
 ## 6. 下一步
 
-### 6a. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
+### 6a. RunningHub 前视图生图后续工作（4-phase 计划）
+
+完整计划见 `.claude/handoffs/PLAN_runninghub-batch-complete_consolidated_2026-07-24.md`：
+
+```text
+Phase 1（立即）: Qwen VL 批量评估 19 张生成图
+  - 写 vlm/scripts/supervise/batch_review_runninghub.py
+  - 评估 19 张 vlm/data/smoke_test/char_*/{id}_front_view.png
+  - 产出 batch_review_summary.json（identity_match 分布、three_dimensional 通过率）
+
+Phase 2（可与 Phase 1 并行）: 处理 char_008 内容审核拦截
+  - 尝试预处理原图绕过审核，三种方案都失败则正式标记为永久排除
+
+Phase 3（Phase 1 之后）: 工程化已完成
+  - runninghub_client.py 已抽取，batch_front_view.py 和 smoke_test_front_view.py 已重构
+
+Phase 4（条件性，需用户批准 IC-Light）: RunningHub vs IC-Light 双链路质量对比
+```
+
+### 6b. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
 
 新数据形式：源图 + 人工标注 element 名称与描述（作为 gold）。
 

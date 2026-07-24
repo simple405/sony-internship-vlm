@@ -33,6 +33,11 @@ PROMPTS_DIR = VLM_ROOT / "prompts"
 SUPERVISION_PROMPTS_DIR = PROMPTS_DIR / "supervision"
 GENERATION_PROMPTS_DIR = PROMPTS_DIR / "generation" / "runninghub"
 
+# Data — annotation and generation outputs
+SN_6_ANNOTATION_ROOT = DATA_ROOT / "SN_6期动漫数据标注"
+SMOKE_TEST_ROOT = DATA_ROOT / "smoke_test"
+ELEMENT_EXTRACTION_ROOT = DATA_ROOT / "element_extraction_results"
+
 # Output
 TMP_DIR = VLM_ROOT / "tmp"
 ARCHIVE_DIR = VLM_ROOT / "archive"
