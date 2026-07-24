@@ -27,11 +27,12 @@ import requests
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._paths import API_ENV_FILE
 
 DEFAULT_DATA_ROOT = Path("vlm/data/SN_6期动漫数据标注")
 DEFAULT_OUTPUT_ROOT = Path("vlm/data/element_extraction_results")
 DEFAULT_PROMPT_TEMPLATE = Path("vlm/prompts/supervision/element_extraction_from_2d.txt")
-DEFAULT_ENV_FILE = Path("vlm/config/api.env")
+DEFAULT_ENV_FILE = API_ENV_FILE
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MODEL = "qwen3.7-plus"
 

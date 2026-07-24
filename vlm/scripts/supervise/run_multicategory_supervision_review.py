@@ -38,8 +38,9 @@ import requests
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._paths import API_ENV_FILE
 
-DEFAULT_ENV_FILE = Path("vlm/config/api.env")
+DEFAULT_ENV_FILE = API_ENV_FILE
 DEFAULT_OUTPUT_ROOT = Path("vlm/tmp/multicategory_supervision_review_v3")
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MODEL = "qwen3.7-plus"

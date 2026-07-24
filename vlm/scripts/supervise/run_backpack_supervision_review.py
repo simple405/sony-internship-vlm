@@ -27,8 +27,9 @@ import requests
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._paths import API_ENV_FILE
 
-DEFAULT_ENV_FILE = Path("vlm/config/api.env")
+DEFAULT_ENV_FILE = API_ENV_FILE
 DEFAULT_PROMPT_TEMPLATE = Path(
     "vlm/prompts/supervision/qwen_prompt_v3_backpack.txt"
 )

@@ -20,13 +20,12 @@ from typing import Any
 import requests
 from requests import RequestsDependencyWarning
 
+from vlm.scripts._paths import API_ENV_FILE, load_api_env
+
 warnings.filterwarnings("ignore", category=RequestsDependencyWarning)
 
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
-
-
-DEFAULT_ENV_FILE = Path("vlm/config/api.env")
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_MODEL = "qwen-vl-max"
 DEFAULT_PROMPT = """你是动漫 IP 商品监修流程中的图片理解助手。
@@ -40,8 +39,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("images", nargs="+", type=Path, help="Local image path(s).")
     parser.add_argument("--prompt", default=DEFAULT_PROMPT, help="Question/instruction for the image model.")
-    parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
-    parser.add_argument("--api-key", default="", help="Qwen API key. Prefer vlm/config/api.env.")
+    parser.add_argument("--env-file", type=Path, default=API_ENV_FILE)
+    parser.add_argument("--api-key", default="", help="Qwen API key. Prefer api.env.")
     parser.add_argument("--base-url", default="", help="OpenAI-compatible Qwen base URL.")
     parser.add_argument("--model", default="", help="Vision model, e.g. qwen-vl-max or qwen3-vl-plus.")
     parser.add_argument("--max-tokens", type=int, default=2000)
@@ -51,20 +50,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, help="Optional output file for the model response.")
     parser.add_argument("--debug-request", type=Path, help="Optional redacted request preview JSON.")
     return parser.parse_args()
-
-
-def load_env_file(path: Path) -> None:
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8-sig").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip("\"'")
-        if key:
-            os.environ.setdefault(key, value)
 
 
 def require_value(cli_value: str, env_name: str, default: str = "") -> str:
@@ -154,7 +139,7 @@ def write_debug_request(path: Path, *, model: str, base_url: str, image_paths: l
 
 def main() -> None:
     args = parse_args()
-    load_env_file(args.env_file)
+    load_api_env(args.env_file)
 
     api_key = require_value(args.api_key, "QWEN_API_KEY")
     base_url = require_value(args.base_url, "QWEN_BASE_URL", DEFAULT_BASE_URL)

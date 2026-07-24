@@ -1,0 +1,36 @@
+{
+  "created_at": "2026-07-24T13:59:13.562632+08:00",
+  "provider": "iclight_fbc_local",
+  "device": "cuda",
+  "model": "/home/intern/ssr/IC-Light/models/iclight_sd15_fbc.safetensors",
+  "model_sha256": "bb8ccedaa4944b16cfa8356afcbc2c2174cc4c4af57de19124ae0cddd0d96947",
+  "base_model": "stablediffusionapi/realistic-vision-v51",
+  "source": "/home/intern/wmy/ComfyUI/input/local_pipeline/char_001/cleaned_white.png",
+  "source_sha256": "6c3f1baa54f928ee57c023117d98341f8dd3d8cf469cd378ff330ef92c98d647",
+  "source_size": [
+    405,
+    776
+  ],
+  "target_size": [
+    512,
+    768
+  ],
+  "bg": {
+    "source": "preset:studio",
+    "method": "generated"
+  },
+  "prompt": "anime PVC figurine of this exact character, sculpted 3D volume, matte painted resin, soft studio lighting, subtle rim light, glossy hair, matte clothing, white seamless background",
+  "seed": 20260724,
+  "steps": 25,
+  "cfg": 2.0,
+  "highres_scale": 1.0,
+  "highres_denoise": 0.2,
+  "tag": "bgstudio_d20",
+  "output_path": "/home/intern/jsy/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/iclight/char_001_iclight_bgstudio_d20_s20260724_0.png",
+  "output_native_path": "/home/intern/jsy/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/iclight/char_001_iclight_bgstudio_d20_s20260724_0_native.png",
+  "output_sha256": "a5aad953175862753a87bc1439252903666bd1372d5a7be1f20cb0371adfec34",
+  "network_policy": {
+    "hf_hub_offline": "1",
+    "transformers_offline": "1"
+  }
+}

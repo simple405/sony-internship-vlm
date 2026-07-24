@@ -32,7 +32,9 @@ DEFAULT_GOLD_ROOT = Path("vlm/data/SN_6期动漫数据标注")
 DEFAULT_PRED_ROOT = Path("vlm/data/element_extraction_results")
 DEFAULT_REPORT_PATH = Path("vlm/data/element_extraction_results/evaluation_report.json")
 DEFAULT_EMBED_CACHE_PATH = Path("vlm/tmp/embedding_cache.json")
-DEFAULT_ENV_FILE = Path("vlm/config/api.env")
+from vlm.scripts._paths import API_ENV_FILE, load_api_env
+
+DEFAULT_ENV_FILE = API_ENV_FILE
 
 # Cosine similarity above this counts as "semantically the same real-world detail"
 # when deciding whether an extra prediction is a hallucination vs. a valid split
@@ -677,11 +679,7 @@ def main() -> None:
 
     scorer: EmbeddingScorer | None = None
     if args.use_embeddings:
-        for line in DEFAULT_ENV_FILE.read_text(encoding="utf-8-sig").splitlines():
-            s = line.strip()
-            if s and not s.startswith("#") and "=" in s:
-                k, v = s.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip("\"'"))
+        load_api_env()
         api_key = os.environ.get("QWEN_API_KEY", "")
         if not api_key:
             raise SystemExit("QWEN_API_KEY is required for --use-embeddings. Set it in vlm/config/api.env.")

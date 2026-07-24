@@ -1,0 +1,11 @@
+{
+  "base_url": "http://127.0.0.1:11434",
+  "model": "qwen36-vl:latest",
+  "image_paths": [
+    "/home/intern/jsy/vlm/data/SN_6期动漫数据标注/char_001/char_001.png",
+    "/home/intern/jsy/vlm/experiments/comfyui_output/front_view_local/char_001/candidates/iclight/char_001_iclight_bgstudio_d20_s20260724_0_native.png"
+  ],
+  "annotation_path": "/home/intern/jsy/vlm/data/SN_6期动漫数据标注/char_001/char_001.json",
+  "prompt_chars": 1122,
+  "note": "Image bytes are local and omitted from this audit preview."
+}

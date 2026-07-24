@@ -3,119 +3,27 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
-import requests
-from PIL import Image
-
-
-def load_api_env(env_path: Path) -> None:
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8-sig").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
-            continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip("'\"")
-        if key and key not in os.environ:
-            os.environ[key] = value
+from vlm.scripts.generate.runninghub_client import (
+    init_client,
+    upload_image,
+    submit_task,
+    poll_task,
+    download_result,
+    get_image_size,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]  # -> /home/intern/jsy
-API_ENV = PROJECT_ROOT / "vlm" / "config" / "api.env"
-load_api_env(API_ENV)
+init_client()
 
-API_KEY = os.environ.get("RUNNINGHUB_API_KEY", "").strip()
-if not API_KEY:
-    raise SystemExit("RUNNINGHUB_API_KEY is not set.")
-
-# Constants
-ENDPOINT = "https://www.runninghub.cn/openapi/v2/rhart-image-g-2/image-to-image"
-UPLOAD_URL = "https://www.runninghub.cn/openapi/v2/media/upload/binary"
-QUERY_URL = "https://www.runninghub.cn/openapi/v2/query"
 PROMPT_FILE = PROJECT_ROOT / "vlm" / "prompts" / "generation" / "runninghub" / "runninghub_g2_figurine_front_view_user_cn.txt"
 SOURCE_ROOT = PROJECT_ROOT / "vlm" / "data" / "SN_6期动漫数据标注"
 OUTPUT_ROOT = PROJECT_ROOT / "vlm" / "data" / "smoke_test"
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
-
-
-def auth_headers(*, json_content: bool = True) -> dict[str, str]:
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    if json_content:
-        headers["Content-Type"] = "application/json"
-    return headers
-
-
-def upload_image(image_path: Path) -> dict:
-    with image_path.open("rb") as fh:
-        resp = requests.post(
-            UPLOAD_URL,
-            headers={"Authorization": f"Bearer {API_KEY}"},
-            files={"file": (image_path.name, fh)},
-            timeout=120,
-        )
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("code") not in (0, "0", None):
-        raise RuntimeError(f"Upload failed: {data}")
-    url = data.get("data", {}).get("download_url", "")
-    if not url:
-        raise RuntimeError(f"No download_url: {data}")
-    return data["data"]
-
-
-def submit_task(image_url: str, prompt: str) -> dict:
-    payload = {"prompt": prompt, "imageUrls": [image_url], "aspectRatio": "21:9", "resolution": "1k"}
-    resp = requests.post(ENDPOINT, headers=auth_headers(), data=json.dumps(payload), timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
-    if data.get("errorCode") or str(data.get("status", "")).upper() == "FAILED":
-        raise RuntimeError(f"Submit failed: {data}")
-    if not data.get("taskId"):
-        raise RuntimeError(f"No taskId: {data}")
-    return data
-
-
-def poll_task(task_id: str, poll_interval: int = 6, timeout: int = 900) -> dict:
-    deadline = time.time() + timeout
-    last_status = ""
-    while True:
-        resp = requests.post(QUERY_URL, headers=auth_headers(), data=json.dumps({"taskId": task_id}), timeout=120)
-        resp.raise_for_status()
-        data = resp.json()
-        status = str(data.get("status", "")).upper()
-        if status != last_status:
-            last_status = status
-        if status == "SUCCESS":
-            return data
-        if status not in ("QUEUED", "RUNNING"):
-            raise RuntimeError(f"Task failed: {data}")
-        if time.time() >= deadline:
-            raise TimeoutError(f"Timeout for {task_id}. Last: {data}")
-        time.sleep(poll_interval)
-
-
-def download_result(result: dict, out_dir: Path, sample_id: str) -> Path:
-    url = result.get("url")
-    if not url:
-        raise RuntimeError(f"No URL in result: {result}")
-    ext = str(result.get("outputType") or "png").strip(".") or "png"
-    out_path = out_dir / f"{sample_id}_front_view.{ext.lower()}"
-    tmp = out_path.with_suffix(out_path.suffix + ".part")
-    with requests.get(url, stream=True, timeout=120) as r:
-        r.raise_for_status()
-        with tmp.open("wb") as fh:
-            for chunk in r.iter_content(chunk_size=256 * 1024):
-                if chunk:
-                    fh.write(chunk)
-    tmp.replace(out_path)
-    return out_path
 
 
 def has_output(sample_id: str) -> bool:
@@ -167,8 +75,7 @@ def process_one(sample_id: str, prompt: str) -> dict:
 
     # Download
     downloaded = download_result(results[0], out_dir, sample_id)
-    with Image.open(downloaded) as img:
-        w, h = img.size
+    w, h = get_image_size(downloaded)
 
     elapsed = round(time.time() - t0, 1)
     return {"sample_id": sample_id, "task_id": task_id, "status": "completed",
