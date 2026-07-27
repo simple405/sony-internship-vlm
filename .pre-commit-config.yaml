@@ -1,0 +1,40 @@
+repos:
+  # --- Python docstring enforcement ---
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: Check Python docstrings (Google style)
+        args:
+          - --convention=google
+          # D100: missing docstring in public module   (enforced)
+          # D101: missing docstring in public class    (enforced)
+          # D102: missing docstring in public method   (enforced)
+          # D103: missing docstring in public function (enforced)
+          # D104: missing docstring in public package  (ignored — __init__.py files)
+          # D105: missing docstring in magic method    (ignored — __str__ etc.)
+          # D107: missing docstring in __init__        (ignored)
+          - --add-ignore=D104,D105,D107
+        files: ^vlm/scripts/.*\.py$
+        exclude: ^vlm/scripts/(__init__|.*__init__)\.py$
+
+  # --- General file hygiene ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace      # Remove trailing spaces
+      - id: end-of-file-fixer        # Ensure files end with newline
+      - id: check-yaml               # Validate YAML syntax
+      - id: check-json               # Validate JSON syntax
+      - id: check-merge-conflict     # Reject files with merge conflict markers
+      - id: check-added-large-files  # Block files > 500KB from being committed
+        args: ['--maxkb=500']
+      - id: no-commit-to-branch      # Prevent direct commits to main
+        args: ['--branch', 'main']
+
+  # --- Secrets detection ---
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.4
+    hooks:
+      - id: gitleaks
+        name: Detect hardcoded secrets (API keys, tokens, passwords)

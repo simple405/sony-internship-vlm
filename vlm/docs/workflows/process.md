@@ -1,6 +1,6 @@
 # VLM 监修当前流程（压缩版）
 
-更新日期：2026-07-14 +08:00
+更新日期：2026-07-27 +08:00
 
 本文件用于节约后续上下文成本，只保留当前有效结论、关键路径、会议纪要和下一步。历史长流程已压缩。
 
@@ -16,6 +16,26 @@
 4. **计费范围说明**：凡涉及描述修改或新增标注框的操作，均纳入修改计费范畴，按统一规则核算。
 
 Agent 输出约束：必须区分 `billable_annotation_issues` 与 `design_quality_notes`。普通缺失细节和开放式描述补充不作为当前乙方主验收目标；如需保留观察，可进入设计质量备注或人工复核，不直接影响乙方计费/验收分数。
+
+## 1b. 监修 Agent 架构（已统一定义）
+
+```text
+输入：2D 原图 + 商品设计图（由上游生图流程提供，不属于 agent 职责）
+  ↓
+Step 1: 元素提取 — 从 2D 原图自动生成 atomic_rules
+        脚本: vlm/scripts/supervise/run_element_extraction.py
+        模型: qwen3-vl-plus（当前首选）
+  ↓
+Step 2: VLM 审查 — 用 atomic_rules 对比商品设计图
+        脚本: vlm/scripts/supervise/run_multicategory_supervision_review.py
+        Prompt: vlm/prompts/supervision/qwen_prompt_v3_{category}.txt
+  ↓
+输出：结构化监修报告
+        billable_annotation_issues（颜色/材质/形状错误、成对补框）
+        design_quality_notes（设计质量观察，不计入主指标）
+```
+
+**关键约束：** atomic_rules 由 agent 内部从 2D 原图生成，不作为外部输入。生图链路（RunningHub、IC-Light）是上游流程，不是监修 agent 的组成部分。
 
 ## 2. 核心路径
 
@@ -72,6 +92,8 @@ vlm/prompts/supervision/qwen_prompt_v3_backpack.txt
 vlm/prompts/supervision/qwen_prompt_v3_head_key_chain.txt
 vlm/prompts/supervision/qwen_prompt_v3_plush.txt
 vlm/prompts/supervision/qwen_prompt_v3_cake_roll.txt
+vlm/prompts/supervision/element_extraction_from_2d.txt
+vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt  # 冻结的前视图提示词
 ```
 
 核心脚本：
@@ -85,6 +107,11 @@ vlm/scripts/supervise/convert_annotation_xlsx_to_csv.py
 vlm/scripts/supervise/align_human_findings_to_atomic_rules.py
 vlm/scripts/supervise/build_verified_evaluation_gold.py
 vlm/scripts/supervise/summarize_pre_gold_assets.py
+vlm/scripts/supervise/run_element_extraction.py
+vlm/scripts/supervise/evaluate_element_extraction.py
+vlm/scripts/generate/runninghub_client.py         # RunningHub API 公共模块
+vlm/scripts/generate/batch_front_view.py           # 前视图 PVC 手办批量生成（4 并发，支持 resume）
+vlm/scripts/generate/smoke_test_front_view.py      # 单样本冒烟测试
 ```
 
 ## 4. 已知当前状态
@@ -97,6 +124,8 @@ vlm/scripts/supervise/summarize_pre_gold_assets.py
 - head_key_chain / plush / cake_roll 已有品类视角语义 prompt。
 - wrong material 已加入 schema、prompt 和本地校验常量。
 - paired box completion 已作为人工标注验收问题类型保留。
+- RunningHub 前视图 PVC 手办批量生成已完成：19/20 成功（1568×672），char_008 被内容审核拦截（errorCode 1501）。
+- runninghub_client.py 已抽取为公共 API 模块，消除 ~150 行重复代码。
 ```
 
 ## 4b. 元素提取模型对比（2026-07-14）
@@ -196,7 +225,31 @@ generated 三件套: 2D 原图 + multi_view 生成图 + atomic_rules
 
 ## 6. 下一步
 
-### 6a. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
+### 6a. 监修 Agent 端到端串联（最高优先级）
+
+两个核心步骤的脚本均已就绪，缺少统一入口：
+
+```text
+目标：单命令完成 2D 原图 + 商品设计图 → 监修报告全流程
+
+待完成：
+  1. 写 vlm/scripts/supervise/run_supervision_agent.py
+     - 接收 --source（2D 原图）和 --product（商品设计图）两个参数
+     - 内部调用 run_element_extraction → 生成 atomic_rules
+     - 再调用 run_multicategory_supervision_review → 输出监修报告
+     - 输出：billable_annotation_issues + design_quality_notes JSON
+
+  2. 用现有 20 个样本端到端跑一次，验证两步串联无断点
+
+  3. 扩充 evaluation gold（新数据批次 40-50 张到手后）验证 agent 精度
+     - 主指标：acceptance_precision / acceptance_recall / acceptance_f1 / billable_issue_recall
+```
+
+### 6b. 生图链路（上游，与监修 agent 无关）
+
+RunningHub 批量生图已完成 19/20，生图链路属于监修 agent 的上游输入来源，不是 agent 本身的功能。相关后续工作（batch_review、char_008 重试、IC-Light 对比）独立推进，不阻塞监修 agent 开发。完整计划见 `.claude/handoffs/PLAN_runninghub-batch-complete_consolidated_2026-07-24.md`。
+
+### 6b. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
 
 新数据形式：源图 + 人工标注 element 名称与描述（作为 gold）。
 

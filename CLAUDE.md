@@ -28,6 +28,57 @@ This project has the following engineering skills installed. **Always check if a
 - `/atomic-commit` — split current changes into minimal atomic commits.
 - `/handoff` — generate session handoff document before ending.
 
+## Code Documentation Standards
+
+**Every Python file written in this project must follow these rules. No exceptions.**
+
+### Module Docstring (required in every .py file)
+```python
+"""One-line summary of what this module does.
+
+Longer description if needed: key inputs, outputs, pipeline stage,
+required environment (GPU, conda env, API keys, etc.).
+
+Usage:
+    python -m vlm.scripts.generate.my_script --arg value
+"""
+```
+
+### Function / Method Docstrings (required for every non-trivial function)
+Use Google style:
+```python
+def process_items(items: list[str], threshold: float = 0.5) -> dict[str, float]:
+    """Process items and return scored results.
+
+    Args:
+        items: List of item names to score.
+        threshold: Minimum score to include in output (0.0–1.0).
+
+    Returns:
+        Dict mapping item name to its score. Only items above threshold
+        are included.
+
+    Raises:
+        ValueError: If threshold is outside [0.0, 1.0].
+    """
+```
+
+### Inline Comments (required for non-obvious logic)
+```python
+# Use 2nd/98th percentile to avoid outlier depth values distorting normalization
+low, high = np.percentile(values[valid], [2.0, 98.0])
+
+WORKERS = 4  # Conservative concurrency — avoids RunningHub rate limiting
+```
+
+### What NOT to comment
+- Don't repeat what the code already says (`i += 1  # increment i`)
+- Don't document obvious parameters (`x: int  # an integer`)
+
+### Enforcement
+- `pydocstyle` runs as a pre-commit hook — commits without docstrings are rejected
+- Run manually: `.venv\Scripts\pydocstyle.exe vlm/scripts/ --convention=google`
+
 ## Working Conventions
 - Run commands from workspace root (`D:\索尼实习`).
 - Use `vlm/tmp/` for scratch outputs, `vlm/data/` for durable datasets.

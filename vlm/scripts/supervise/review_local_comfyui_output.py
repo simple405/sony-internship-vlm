@@ -16,9 +16,10 @@ from typing import Any
 import requests
 
 
-PROJECT_ROOT = Path("/home/intern/Supervised 2D to 3D")
-DEFAULT_SAMPLE_DIR = PROJECT_ROOT / "vlm/data/SN_6期动漫数据标注/char_001"
-OUTPUT_ROOT = PROJECT_ROOT / "vlm/experiments/comfyui_output/front_view_local"
+from vlm.scripts._paths import PROJECT_ROOT, SN_6_ANNOTATION_ROOT
+
+DEFAULT_SAMPLE_DIR = SN_6_ANNOTATION_ROOT / "char_001"
+OUTPUT_ROOT = PROJECT_ROOT / "vlm" / "experiments" / "comfyui_output" / "front_view_local"
 
 
 def parse_args() -> argparse.Namespace:

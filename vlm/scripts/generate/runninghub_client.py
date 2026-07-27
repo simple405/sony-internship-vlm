@@ -1,9 +1,7 @@
-"""Shared RunningHub API client for G-2.0 image-to-image generation.
+"""Shared RunningHub API helpers used by all generate scripts.
 
-Provides the full upload → submit → poll → download pipeline. Used by:
-- smoke_test_front_view.py (single sample)
-- batch_front_view.py (multi-sample, ThreadPoolExecutor)
-- retry_char_008.py (single sample retry)
+Import this module instead of duplicating upload/submit/poll/download logic.
+Caller is responsible for calling load_api_env() before require_api_key().
 """
 
 from __future__ import annotations
@@ -12,158 +10,134 @@ import json
 import os
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import requests
-from PIL import Image
-
-from vlm.scripts._paths import API_ENV_FILE, load_api_env
 
 
-# ── Constants ──────────────────────────────────────────────────────────
-API_BASE = "https://www.runninghub.cn"
-ENDPOINT = f"{API_BASE}/openapi/v2/rhart-image-g-2/image-to-image"
-UPLOAD_URL = f"{API_BASE}/openapi/v2/media/upload/binary"
-QUERY_URL = f"{API_BASE}/openapi/v2/query"
+IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
 
-DEFAULT_ASPECT_RATIO = "21:9"
-DEFAULT_RESOLUTION = "1k"
-DEFAULT_POLL_INTERVAL = 5.0
-DEFAULT_TIMEOUT = 900
+UPLOAD_URL = "https://www.runninghub.cn/openapi/v2/media/upload/binary"
+QUERY_URL = "https://www.runninghub.cn/openapi/v2/query"
+DEFAULT_ENDPOINT = "https://www.runninghub.cn/openapi/v2/rhart-image-g-2/image-to-image"
 
 
-# ── Configuration ──────────────────────────────────────────────────────
-def init_client(env_path: Optional[Path] = None) -> str:
-    """Load api.env and return the RunningHub API key.
+def load_api_env(env_path: Path | None = None) -> None:
+    """Load key=value pairs from api.env into os.environ (does not overwrite existing vars)."""
+    if env_path is None:
+        from vlm.scripts._paths import API_ENV_FILE
+        env_path = API_ENV_FILE
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8-sig").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, value = stripped.split("=", 1)
+        key, value = key.strip(), value.strip().strip("'\"")
+        if key and key not in os.environ:
+            os.environ[key] = value
 
-    Args:
-        env_path: Path to api.env. Defaults to API_ENV_FILE from _paths.
 
-    Returns:
-        RunningHub API key string.
-
-    Raises:
-        RuntimeError: If RUNNINGHUB_API_KEY is not set.
-    """
-    load_api_env(env_path or API_ENV_FILE)
+def require_api_key() -> str:
     api_key = os.environ.get("RUNNINGHUB_API_KEY", "").strip()
     if not api_key:
-        raise RuntimeError("RUNNINGHUB_API_KEY is not set.")
+        raise RuntimeError("RUNNINGHUB_API_KEY is not set. Check vlm/config/api.env.")
     return api_key
 
 
-# ── HTTP helpers ───────────────────────────────────────────────────────
-def _get_api_key() -> str:
-    """Return the RunningHub API key from environment."""
-    key = os.environ.get("RUNNINGHUB_API_KEY", "").strip()
-    if not key:
-        raise RuntimeError("RUNNINGHUB_API_KEY is not set. Call init_client() or load_api_env() first.")
-    return key
-
-
-def auth_headers(*, json_content: bool = True) -> dict[str, str]:
-    headers = {"Authorization": f"Bearer {_get_api_key()}"}
+def _auth_headers(api_key: str, *, json_content: bool = True) -> dict[str, str]:
+    headers = {"Authorization": f"Bearer {api_key}"}
     if json_content:
         headers["Content-Type"] = "application/json"
     return headers
 
 
-# ── Pipeline steps ─────────────────────────────────────────────────────
-def upload_image(image_path: Path) -> dict[str, Any]:
-    """Upload a local image. Returns the ``data`` dict with ``download_url``."""
+def upload_image(api_key: str, image_path: Path) -> dict[str, Any]:
+    """Upload a local image and return the RunningHub data payload (contains download_url)."""
     with image_path.open("rb") as fh:
         resp = requests.post(
             UPLOAD_URL,
-            headers={"Authorization": f"Bearer {_get_api_key()}"},
+            headers=_auth_headers(api_key, json_content=False),
             files={"file": (image_path.name, fh)},
             timeout=120,
         )
     resp.raise_for_status()
-    data: dict[str, Any] = resp.json()
+    data = resp.json()
     if data.get("code") not in (0, "0", None):
-        raise RuntimeError(f"Upload failed: {data}")
-    url = data.get("data", {}).get("download_url", "")
-    if not url:
+        raise RuntimeError(f"RunningHub upload failed: {data}")
+    payload = data.get("data") or {}
+    if not payload.get("download_url"):
         raise RuntimeError(f"No download_url in upload response: {data}")
-    return data["data"]
+    return payload
 
 
 def submit_task(
-    image_url: str,
+    api_key: str,
     prompt: str,
+    image_urls: list[str],
     *,
-    aspect_ratio: str = DEFAULT_ASPECT_RATIO,
-    resolution: str = DEFAULT_RESOLUTION,
+    endpoint: str = DEFAULT_ENDPOINT,
+    aspect_ratio: str = "21:9",
+    resolution: str = "1k",
 ) -> dict[str, Any]:
-    """Submit an image-to-image task. Returns the full response dict."""
+    """Submit an image-to-image task and return the API response (contains taskId)."""
     payload = {
         "prompt": prompt,
-        "imageUrls": [image_url],
+        "imageUrls": image_urls,
         "aspectRatio": aspect_ratio,
         "resolution": resolution,
     }
-    resp = requests.post(ENDPOINT, headers=auth_headers(), data=json.dumps(payload), timeout=120)
+    resp = requests.post(endpoint, headers=_auth_headers(api_key), data=json.dumps(payload), timeout=120)
     resp.raise_for_status()
-    data: dict[str, Any] = resp.json()
-    if data.get("errorCode") or str(data.get("status", "")).upper() == "FAILED":
-        raise RuntimeError(f"Submit failed: {data}")
+    data = resp.json()
+    if data.get("errorCode") or str(data.get("status") or "").upper() == "FAILED":
+        raise RuntimeError(f"RunningHub submission failed: {data}")
     if not data.get("taskId"):
         raise RuntimeError(f"No taskId in submit response: {data}")
     return data
 
 
 def poll_task(
+    api_key: str,
     task_id: str,
     *,
-    poll_interval: float = DEFAULT_POLL_INTERVAL,
-    timeout: float = DEFAULT_TIMEOUT,
+    poll_interval: int = 6,
+    timeout: int = 900,
 ) -> dict[str, Any]:
-    """Poll until SUCCESS. Raises RuntimeError on FAILED, TimeoutError if expired."""
+    """Poll until task reaches SUCCESS. Raises RuntimeError on failure, TimeoutError on timeout."""
     deadline = time.time() + timeout
     while True:
         resp = requests.post(
             QUERY_URL,
-            headers=auth_headers(),
+            headers=_auth_headers(api_key),
             data=json.dumps({"taskId": task_id}),
-            timeout=30,
+            timeout=120,
         )
         resp.raise_for_status()
-        data: dict[str, Any] = resp.json()
-        status = str(data.get("status", "")).upper()
+        data = resp.json()
+        status = str(data.get("status") or "").upper()
         if status == "SUCCESS":
             return data
         if status not in ("QUEUED", "RUNNING"):
-            raise RuntimeError(f"Task failed: {data}")
+            raise RuntimeError(f"Task {task_id} failed: {data}")
         if time.time() >= deadline:
-            raise TimeoutError(f"Timeout waiting for task {task_id}. Last status: {status}")
+            raise TimeoutError(f"Timeout waiting for task {task_id}. Last: {data}")
         time.sleep(poll_interval)
 
 
-def download_result(
-    result: dict[str, Any],
-    out_dir: Path,
-    sample_id: str,
-    *,
-    label: str = "front_view",
-) -> Path:
-    """Download a single result image. Returns the output path."""
+def download_result(result: dict[str, Any], output_path: Path) -> Path:
+    """Download a single result entry to output_path. Uses .part temp file for atomicity."""
     url = result.get("url")
     if not url:
-        raise RuntimeError(f"No URL in result: {result}")
-    ext = str(result.get("outputType") or "png").strip(".") or "png"
-    out_path = out_dir / f"{sample_id}_{label}.{ext.lower()}"
-    tmp = out_path.with_suffix(out_path.suffix + ".part")
+        raise RuntimeError(f"No URL in result entry: {result}")
+    tmp = output_path.with_suffix(output_path.suffix + ".part")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     with requests.get(url, stream=True, timeout=120) as r:
         r.raise_for_status()
         with tmp.open("wb") as fh:
             for chunk in r.iter_content(chunk_size=256 * 1024):
                 if chunk:
                     fh.write(chunk)
-    tmp.replace(out_path)
-    return out_path
-
-
-def get_image_size(image_path: Path) -> tuple[int, int]:
-    """Return (width, height) for a local image."""
-    with Image.open(image_path) as img:
-        return img.size
+    tmp.replace(output_path)
+    return output_path

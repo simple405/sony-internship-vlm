@@ -1,5 +1,53 @@
 """Build standard supervision annotation products from filled Excel files.
 
+Dual-schema support (legacy vs v3)
+-----------------------------------
+The script supports two annotation sheet schemas because the project evolved
+from a boolean "is the rule visible in this view?" design to a richer
+"visible + per-view status" design:
+
+1. Legacy schema (front/side/back boolean columns):
+   Columns: sample_id, rule_id, value, front, side, back, result, reason
+   front/side/back values: "TRUE" or "FALSE"
+   Used in early trial annotations before the v3 schema was introduced.
+
+2. V3 visible/status schema:
+   Columns: sample_id, rule_id, value, front_visible, front_status,
+            side_visible, side_status, back_visible, back_status, result
+   <view>_visible values: "visible" or "invisible"
+   <view>_status values: "correct", "wrong color", "wrong material", "wrong shape",
+                         "extra" (for visible), or "correct", "wrong invisible"
+                         (for invisible)
+   This is the current production schema.
+
+The detect_schema() function inspects the header row and returns the schema
+name. All downstream logic branches on schema to apply the correct validation
+rules (qc_legacy vs qc_v3). Both schemas produce the same agent_inputs.jsonl
+and merged_annotations.jsonl output shapes; only the row-level QC differs.
+
+XLSX parsing in stdlib-only mode
+---------------------------------
+The script reads .xlsx files without openpyxl so it can run in minimal
+environments (e.g. annotation review containers without Python deps).
+
+Algorithm:
+  1. Treat the .xlsx file as a ZIP archive (zipfile.ZipFile).
+  2. Parse xl/sharedStrings.xml to build the shared string table (an indexed
+     list of cell string values used by cells with type="s").
+  3. Parse xl/workbook.xml and xl/_rels/workbook.xml.rels to find the first
+     sheet's XML path (usually xl/worksheets/sheet1.xml).
+  4. Parse the sheet XML and extract <row>/<c> elements. Each <c> has:
+       - r attribute (cell reference like "B3")
+       - t attribute (type: "s" for shared string, "inlineStr" for inline, etc.)
+       - <v> child (value node for shared string index or direct value)
+       - <is> child (inline string node for inlineStr cells)
+  5. Map column letters to 0-based indices using column_index().
+  6. Build row lists by inserting "" for skipped columns (handles sparse rows).
+  7. The first row is the header; remaining rows are data rows.
+
+This approach is sufficient for the annotation workbooks which are simple
+single-sheet files with no formulas or complex formatting.
+
 The script is intentionally dependency-free: it reads .xlsx files through the
 standard-library zip/xml modules so it can run even when openpyxl is unavailable.
 It supports both legacy trial sheets with front/side/back boolean columns and
@@ -48,6 +96,16 @@ ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "extra", "wron
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for the annotation product builder.
+
+    Returns:
+        Parsed namespace with fields:
+          input_dir     -- root directory containing category/sample/*.xlsx files
+          output_dir    -- directory for generated products
+          copy_inputs   -- if True, copy each selected sample folder to output_dir/source_inputs
+          include_empty -- if True, include empty template workbooks in the manifest
+                          (they still won't contribute annotation rows)
+    """
     parser = argparse.ArgumentParser(
         description="Merge filled annotation .xlsx files into agent inputs, gold labels, QC report, and sample summary."
     )
@@ -67,6 +125,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def column_index(cell_ref: str) -> int:
+    """Convert an Excel cell reference (e.g. "C5") to a 0-based column index.
+
+    Algorithm:
+      1. Extract the letter prefix from the cell reference (ignoring digits).
+      2. Treat the letters as a base-26 number where A=1, B=2, ..., Z=26.
+      3. Return the 0-based index (so "A" -> 0, "B" -> 1, "AA" -> 26, etc.).
+
+    Args:
+        cell_ref: Excel cell reference string like "A1", "B3", "AA12".
+
+    Returns:
+        0-based column index (int). "A1" returns 0, "C5" returns 2.
+    """
     letters = "".join(ch for ch in cell_ref if ch.isalpha())
     index = 0
     for letter in letters:
@@ -75,6 +146,21 @@ def column_index(cell_ref: str) -> int:
 
 
 def read_xlsx_rows(path: Path) -> list[list[str]]:
+    """Read an .xlsx file using stdlib zipfile and xml.etree and return row lists.
+
+    This is the stdlib-only XLSX parser described in the module docstring.
+    It reads the shared string table, locates the first sheet via the workbook
+    relationships, parses the sheet XML, and builds a list of row lists where
+    each cell is a string (with empty strings for skipped columns).
+
+    Args:
+        path: Path to an .xlsx file.
+
+    Returns:
+        List of row lists. Each row is a list of cell strings (with "" for empty
+        cells or cells that don't exist in sparse rows). Returns an empty list
+        if the workbook has no sheets or the structure is unrecognised.
+    """
     with zipfile.ZipFile(path) as archive:
         shared_strings: list[str] = []
         if "xl/sharedStrings.xml" in archive.namelist():
@@ -111,6 +197,20 @@ def read_xlsx_rows(path: Path) -> list[list[str]]:
 
 
 def cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
+    """Extract the text value from an Excel cell XML element.
+
+    Handles three cell types:
+      - type="s": shared string (value is an index into shared_strings)
+      - type="inlineStr": inline string (text is in <is><t> child elements)
+      - default: direct value in <v> element (numeric, formula result, etc.)
+
+    Args:
+        cell: An <c> XML element from the sheet XML.
+        shared_strings: The shared string table loaded from xl/sharedStrings.xml.
+
+    Returns:
+        String value of the cell. Returns "" for empty cells or unrecognised types.
+    """
     cell_type = cell.attrib.get("t")
     value_node = cell.find("a:v", XML_NS)
     inline_node = cell.find("a:is", XML_NS)
@@ -124,6 +224,22 @@ def cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
 
 
 def detect_schema(header: list[str]) -> str | None:
+    """Detect whether the workbook uses the v3 visible/status schema or legacy bool schema.
+
+    Detection rules (see module docstring for schema descriptions):
+      - If header contains all six v3 columns (front_visible, front_status,
+        side_visible, side_status, back_visible, back_status), return
+        "v3_visible_status".
+      - Else if header contains front, side, back, result (legacy bool columns),
+        return "legacy_front_side_back_bool".
+      - Else return None (unrecognised schema).
+
+    Args:
+        header: List of column names from the first row of the workbook.
+
+    Returns:
+        Schema name string or None if the schema cannot be determined.
+    """
     columns = set(header)
     if {"front_visible", "front_status", "side_visible", "side_status", "back_visible", "back_status"} <= columns:
         return "v3_visible_status"
@@ -133,6 +249,17 @@ def detect_schema(header: list[str]) -> str | None:
 
 
 def value_at(row: list[str], index: dict[str, int], column: str) -> str:
+    """Extract a single column value from a row list using a column->index map.
+
+    Args:
+        row: Raw row list (list of cell strings from read_xlsx_rows).
+        index: Dict mapping column name -> 0-based column index.
+        column: Column name to extract.
+
+    Returns:
+        Stripped string value, or "" if the column is not in the index or the
+        row is too short to contain that column.
+    """
     position = index.get(column)
     if position is None or position >= len(row):
         return ""
@@ -140,6 +267,24 @@ def value_at(row: list[str], index: dict[str, int], column: str) -> str:
 
 
 def has_filled_annotation(rows: list[dict[str, str]], schema: str) -> bool:
+    """Check if any row has a non-empty value in at least one annotation column.
+
+    This distinguishes truly empty template workbooks from partially-filled ones.
+    A workbook with only sample_id/rule_id/value columns filled (no annotation
+    columns) is considered empty and will be skipped unless --include-empty is set.
+
+    Annotation columns checked:
+      - v3 schema: front_visible, front_status, side_visible, side_status,
+                   back_visible, back_status, result
+      - legacy schema: front, side, back, result, reason
+
+    Args:
+        rows: List of row dicts from rows_from_workbook().
+        schema: Schema name from detect_schema().
+
+    Returns:
+        True if at least one row has at least one non-empty annotation column.
+    """
     if schema == "v3_visible_status":
         columns = ["front_visible", "front_status", "side_visible", "side_status", "back_visible", "back_status", "result"]
     else:
@@ -148,6 +293,25 @@ def has_filled_annotation(rows: list[dict[str, str]], schema: str) -> bool:
 
 
 def rows_from_workbook(path: Path) -> tuple[str | None, list[dict[str, str]]]:
+    """Parse an .xlsx workbook and return (schema name, list of normalised row dicts).
+
+    Steps:
+      1. Call read_xlsx_rows() to get raw row lists.
+      2. Treat the first row as the header and detect the schema.
+      3. Build a column->index map from the header.
+      4. For each data row, extract the relevant columns (based on schema) and
+         build a row dict. Add a "source_row" key for QC traceability.
+      5. Skip rows where both sample_id and rule_id are empty (blank rows).
+
+    Args:
+        path: Path to an .xlsx workbook file.
+
+    Returns:
+        Tuple (schema_name, rows). schema_name is None if the schema is not
+        recognised or the workbook is empty. rows is a list of dicts where each
+        dict has the schema-appropriate columns plus "source_row" (1-based row
+        number from the Excel file).
+    """
     raw_rows = read_xlsx_rows(path)
     if not raw_rows:
         return None, []
@@ -168,6 +332,19 @@ def rows_from_workbook(path: Path) -> tuple[str | None, list[dict[str, str]]]:
 
 
 def sample_identity(workbook_path: Path, root: Path) -> tuple[str, str]:
+    """Infer (category, sample_id) from the workbook's relative path under root.
+
+    Expected directory structure: input_dir/category/sample_id/*.xlsx
+    If the path does not have at least 3 parts, falls back to using the parent
+    directory name as sample_id and grandparent as category.
+
+    Args:
+        workbook_path: Absolute path to the .xlsx file.
+        root: Absolute path to the input_dir (the search root).
+
+    Returns:
+        Tuple (category, sample_id). category may be "" if the structure is flat.
+    """
     relative = workbook_path.relative_to(root)
     if len(relative.parts) >= 3:
         return relative.parts[0], relative.parts[1]
@@ -177,6 +354,18 @@ def sample_identity(workbook_path: Path, root: Path) -> tuple[str, str]:
 
 
 def nearby_paths(sample_dir: Path) -> tuple[list[str], list[str], str]:
+    """Find images and JSON files in the sample directory for agent inputs.
+
+    Args:
+        sample_dir: Directory containing the annotation workbook and sample assets.
+
+    Returns:
+        Tuple (image_paths, json_paths, atomic_rules_path):
+          image_paths        -- sorted list of image file paths (str) in the directory
+          json_paths         -- sorted list of .json file paths (str) in the directory
+          atomic_rules_path  -- the first *atomic_rules.json file found, or the
+                               first json_path if no atomic_rules.json exists, or ""
+    """
     images = [str(path) for path in sorted(sample_dir.iterdir()) if path.is_file() and path.suffix.lower() in IMAGE_SUFFIXES]
     jsons = [str(path) for path in sorted(sample_dir.iterdir()) if path.is_file() and path.suffix.lower() == JSON_SUFFIX]
     atomic = next((path for path in jsons if path.endswith("atomic_rules.json")), jsons[0] if jsons else "")
@@ -184,6 +373,18 @@ def nearby_paths(sample_dir: Path) -> tuple[list[str], list[str], str]:
 
 
 def load_atomic_rule_ids(sample_dir: Path) -> set[str]:
+    """Load the set of known rule IDs from *atomic_rules.json in sample_dir.
+
+    Used for QC warnings: if an annotation row's rule_id is not in this set,
+    a "rule_id_not_in_atomic_rules" warning is added.
+
+    Args:
+        sample_dir: Directory to search for *atomic_rules.json files.
+
+    Returns:
+        Set of rule_id strings. Returns empty set if no atomic_rules.json is
+        found or the file cannot be parsed.
+    """
     candidates = sorted(sample_dir.glob("*atomic_rules.json"))
     if not candidates:
         return set()
@@ -204,6 +405,23 @@ def load_atomic_rule_ids(sample_dir: Path) -> set[str]:
 
 
 def qc_legacy(row: dict[str, str], known_rule_ids: set[str]) -> tuple[str, str, str]:
+    """Run QC checks on a single legacy-schema annotation row.
+
+    Legacy schema required columns: sample_id, rule_id, value, front, side, back, result.
+    front/side/back values must be "TRUE" or "FALSE".
+    result must be in RESULT_VALUES ("correct" or "wrong").
+    If result=="wrong" and reason is empty, a warning is added (not a hard failure).
+
+    Args:
+        row: Annotation row dict from the workbook.
+        known_rule_ids: Set of valid rule IDs for this sample (from atomic_rules.json).
+
+    Returns:
+        Tuple (qc_status, issues_str, warnings_str):
+          qc_status    -- "FAIL", "WARN", or "PASS"
+          issues_str   -- semicolon-joined hard validation failures
+          warnings_str -- semicolon-joined soft validation warnings
+    """
     issues: list[str] = []
     warnings: list[str] = []
     for column in ["sample_id", "rule_id", "value", "front", "side", "back", "result"]:
@@ -222,6 +440,31 @@ def qc_legacy(row: dict[str, str], known_rule_ids: set[str]) -> tuple[str, str, 
 
 
 def qc_v3(row: dict[str, str], known_rule_ids: set[str]) -> tuple[str, str, str]:
+    """Run QC checks on a single v3-schema annotation row.
+
+    V3 schema required columns: sample_id, rule_id, value, front_visible,
+    front_status, side_visible, side_status, back_visible, back_status, result.
+
+    Per-row checks:
+      - All required columns are non-empty.
+      - <view>_visible is in VISIBLE_VALUES ("visible" or "invisible").
+      - If visible=="visible", <view>_status is in VISIBLE_STATUS_VALUES.
+      - If visible=="invisible", <view>_status is in INVISIBLE_STATUS_VALUES.
+      - result is in RESULT_VALUES.
+      - Cross-view consistency: result must match the expected value computed
+        from per-view statuses (if any status is in ERROR_STATUSES, expected
+        result is "wrong"; otherwise "correct").
+
+    Args:
+        row: Annotation row dict from the workbook.
+        known_rule_ids: Set of valid rule IDs for this sample (from atomic_rules.json).
+
+    Returns:
+        Tuple (qc_status, issues_str, warnings_str):
+          qc_status    -- "FAIL", "WARN", or "PASS"
+          issues_str   -- semicolon-joined hard validation failures
+          warnings_str -- semicolon-joined soft validation warnings
+    """
     issues: list[str] = []
     warnings: list[str] = []
     for column in V3_COLUMNS:
@@ -249,6 +492,15 @@ def qc_v3(row: dict[str, str], known_rule_ids: set[str]) -> tuple[str, str, str]
 
 
 def qc_status(issues: list[str], warnings: list[str]) -> str:
+    """Compute QC status string from issue and warning lists.
+
+    Args:
+        issues: List of hard validation failures.
+        warnings: List of soft validation warnings.
+
+    Returns:
+        "FAIL" if issues is non-empty, "WARN" if only warnings, else "PASS".
+    """
     if issues:
         return "FAIL"
     if warnings:
@@ -257,6 +509,15 @@ def qc_status(issues: list[str], warnings: list[str]) -> str:
 
 
 def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
+    """Write records to a UTF-8-with-BOM CSV file with dynamically-discovered columns.
+
+    Column order is determined by the order in which keys first appear across
+    all records. Parent directories are created if needed.
+
+    Args:
+        path: Destination CSV file path.
+        records: List of row dicts to write.
+    """
     columns: list[str] = []
     for record in records:
         for key in record:
@@ -270,6 +531,12 @@ def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
 
 
 def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    """Write records as UTF-8 JSON Lines (one JSON object per line).
+
+    Args:
+        path: Destination .jsonl file path.
+        records: List of dicts to write (each becomes one line).
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         for record in records:
@@ -277,6 +544,37 @@ def write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
 
 
 def build_products(input_dir: Path, output_dir: Path, copy_inputs: bool, include_empty: bool) -> dict[str, Any]:
+    """Discover workbooks, run QC, and write all output products.
+
+    Algorithm:
+      1. Recursively find all .xlsx files under input_dir.
+      2. For each workbook, parse it with rows_from_workbook().
+      3. Skip workbooks with unrecognised schema or no filled annotations
+         (unless --include-empty is set).
+      4. Infer category/sample_id from the workbook path.
+      5. Load the atomic_rule_ids set for QC warnings.
+      6. Run schema-appropriate QC (qc_legacy or qc_v3) on each row.
+      7. Build manifest entry, agent_inputs entry, and annotation rows.
+      8. If --copy-inputs is set, copy the entire sample directory to
+         output_dir/source_inputs/category/sample_id.
+      9. Aggregate all rows and write output files:
+           - merged_annotations.jsonl
+           - agent_inputs.jsonl
+           - annotation_qc_report.csv
+           - sample_summary.csv
+           - selected_samples_manifest.csv
+           - summary.json
+
+    Args:
+        input_dir: Root directory containing category/sample/*.xlsx files.
+        output_dir: Destination directory for all products.
+        copy_inputs: If True, copy each sample folder to output_dir/source_inputs.
+        include_empty: If True, include empty template workbooks in the manifest
+                      (they still won't add annotation rows).
+
+    Returns:
+        Summary dict with run statistics (also written to summary.json).
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest: list[dict[str, Any]] = []
     annotations: list[dict[str, Any]] = []
@@ -381,6 +679,17 @@ def build_products(input_dir: Path, output_dir: Path, copy_inputs: bool, include
 
 
 def summarize_samples(annotations: list[dict[str, Any]], qc_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aggregate annotation and QC statistics by (category, sample_id).
+
+    Args:
+        annotations: List of all annotation row dicts (from merged_annotations.jsonl).
+        qc_rows: List of all QC row dicts (from annotation_qc_report.csv).
+
+    Returns:
+        List of sample summary dicts, one per unique (category, sample_id) pair.
+        Each dict contains: category, sample_id, rule_rows, correct_rows,
+        wrong_rows, qc_pass_rows, qc_warn_rows, qc_fail_rows, schema_version.
+    """
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     grouped_qc: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in annotations:
@@ -408,6 +717,7 @@ def summarize_samples(annotations: list[dict[str, Any]], qc_rows: list[dict[str,
 
 
 def main() -> None:
+    """Entry point: parse args, validate input_dir, build products, print summary."""
     args = parse_args()
     if not args.input_dir.exists():
         raise SystemExit(f"input directory does not exist: {args.input_dir}")

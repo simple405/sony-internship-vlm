@@ -4,6 +4,53 @@ This is a lightweight research runner for Stage 1 of the supervision-agent
 pipeline. It reads the small SN_6 pilot dataset, sends only the 2D source image
 to the model, and writes one normalized extracted-elements JSON per sample.
 
+CATEGORY_LABELS mapping
+-----------------------
+CATEGORY_LABELS maps VLM response keys to (canonical_category, Chinese label) tuples.
+The mapping is used exclusively by elements_from_identity_features() as a last-resort
+fallback when the model returns an "identity_features" dict instead of the expected
+flat "elements" list. The keys are the field names the model may produce under
+identity_features (e.g. "hair", "outfit", "props"). The tuple values are:
+  - canonical_category: the standard category string used in VALID_CATEGORIES
+    (e.g. "clothing" for outfit, "prop" for props)
+  - Chinese label: the human-readable element name used as the fallback element
+    name when the model does not provide a "type" field
+
+normalize_elements fallback cascade
+-------------------------------------
+normalize_elements() tries to find a raw element list in the parsed JSON using
+the following key order:
+
+  1. parsed["elements"]         -- expected schema (flat list of element dicts)
+  2. parsed["extracted_elements"] -- older schema variant (same shape as elements)
+  3. parsed["atomic_rules"]    -- rule-shaped output sometimes produced by the model
+                                   when it follows an atomic_rules.json prompt style
+  4. elements_from_identity_features(parsed["identity_features"])
+                                -- structured identity features dict (the model
+                                   organizes output by feature category rather than
+                                   flat list); converted to element dicts via
+                                   CATEGORY_LABELS and stringify_feature()
+
+If none of these paths produces a list, raw_elements defaults to [] and an empty
+normalized output is written (allowing the run to complete without crashing).
+
+--workers and DashScope QPS relationship
+------------------------------------------
+DashScope's Qwen VL API enforces a per-model queries-per-second (QPS) limit.
+The --workers flag controls how many concurrent HTTP requests the script makes.
+Setting --workers too high will cause HTTP 429 (rate limit) errors. Setting it
+too low will serialize processing unnecessarily.
+
+Recommended guidance:
+  - Default --workers 6 is calibrated for the DashScope free-tier limit of ~6 QPS
+    for qwen3.7-plus. For paid tiers with higher limits, increase --workers.
+  - In dry-run mode (--dry-run), --workers is forced to 1 to avoid spamming
+    disk I/O and because there are no API calls to parallelize.
+  - Each worker sends one request at a time (synchronous HTTP via requests.post).
+    The effective throughput is: min(--workers, DashScope_QPS_limit).
+  - If you see HTTP 429 errors, reduce --workers. If all requests succeed and
+    you want higher throughput, increase --workers within your tier's QPS limit.
+
 Examples:
     python -m vlm.scripts.supervise.run_element_extraction --sample-id char_001 --dry-run
     python -m vlm.scripts.supervise.run_element_extraction --limit 3
@@ -61,6 +108,25 @@ CATEGORY_LABELS = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse CLI arguments for the element extraction runner.
+
+    Returns:
+        Parsed namespace with fields:
+          data_root       -- root directory of the SN_6 pilot dataset
+          output_root     -- root directory for extraction result JSONs
+          sample_id       -- if non-empty, run only this one sample
+          limit           -- if > 0, run only the first N samples
+          prompt_template -- path to the element_extraction_from_2d.txt template
+          env_file        -- path to vlm/config/api.env for API credentials
+          qwen_api_key    -- overrides QWEN_API_KEY from env_file if non-empty
+          qwen_base_url   -- overrides QWEN_BASE_URL (default: DashScope endpoint)
+          model           -- Qwen model name (default: qwen3.7-plus)
+          temperature     -- sampling temperature (default 0.0 for determinism)
+          max_tokens      -- max response tokens (default 4000)
+          timeout         -- HTTP request timeout in seconds (default 300)
+          dry_run         -- if True, write prompt/request preview without API calls
+          workers         -- number of concurrent Qwen API calls (default 6)
+    """
     parser = argparse.ArgumentParser(description="Run source-2D character element extraction.")
     parser.add_argument("--data-root", type=Path, default=DEFAULT_DATA_ROOT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
@@ -80,6 +146,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def load_env_file(path: Path) -> None:
+    """Load key=value pairs from an env file into os.environ (non-overwriting).
+
+    Skips blank lines and lines starting with "#". Strips surrounding quotes
+    from values so that QWEN_API_KEY="sk-xxx" and QWEN_API_KEY=sk-xxx both work.
+    Uses os.environ.setdefault so existing environment variables are not overwritten
+    (allowing CLI overrides to take precedence over the env file).
+
+    Args:
+        path: Path to the env file (e.g. vlm/config/api.env). No-op if missing.
+    """
     if not path.exists():
         return
     for line in path.read_text(encoding="utf-8-sig").splitlines():
@@ -94,6 +170,21 @@ def load_env_file(path: Path) -> None:
 
 
 def require_value(cli_value: str, env_name: str, default: str = "") -> str:
+    """Resolve a configuration value from CLI flag, environment, or default.
+
+    Priority order: CLI flag > environment variable > default.
+
+    Args:
+        cli_value: Value provided via CLI flag (may be empty string if not set).
+        env_name: Environment variable name to check if cli_value is empty.
+        default: Fallback value if neither CLI flag nor env var is set.
+
+    Returns:
+        The first non-empty value from the priority chain.
+
+    Raises:
+        SystemExit: If all three sources are empty (configuration is required).
+    """
     value = cli_value.strip() or os.environ.get(env_name, "").strip() or default
     if not value:
         raise SystemExit(f"{env_name} is required. Set it in {DEFAULT_ENV_FILE} or pass the CLI flag.")
@@ -101,6 +192,17 @@ def require_value(cli_value: str, env_name: str, default: str = "") -> str:
 
 
 def media_type(path: Path) -> str:
+    """Return the MIME type string for a supported image file extension.
+
+    Args:
+        path: Path to an image file.
+
+    Returns:
+        MIME type string (e.g. "image/jpeg", "image/png", "image/webp").
+
+    Raises:
+        SystemExit: If the file extension is not in the supported set.
+    """
     suffix = path.suffix.lower()
     if suffix in {".jpg", ".jpeg"}:
         return "image/jpeg"
@@ -114,6 +216,23 @@ def media_type(path: Path) -> str:
 
 
 def encode_image_data_url(path: Path) -> str:
+    """Read an image file and encode it as a base64 data URL for the Qwen VL API.
+
+    The resulting string has the format:
+        data:{media_type};base64,{base64_encoded_bytes}
+
+    This is the format expected by the OpenAI-compatible chat completions API
+    for image inputs (used by DashScope's Qwen VL endpoint).
+
+    Args:
+        path: Absolute path to the image file.
+
+    Returns:
+        Base64 data URL string.
+
+    Raises:
+        SystemExit: If the image file does not exist or has an unsupported extension.
+    """
     if not path.exists():
         raise SystemExit(f"Image not found: {path}")
     data = base64.b64encode(path.read_bytes()).decode("ascii")
@@ -121,6 +240,24 @@ def encode_image_data_url(path: Path) -> str:
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
+    """Parse the first JSON object from a raw model response string.
+
+    Handles two common model output patterns:
+      1. Bare JSON: the entire response is a JSON string.
+      2. Markdown code block: the JSON is wrapped in ```json ... ``` or ``` ... ```.
+
+    Falls back to searching for the outermost { ... } substring if standard
+    parsing fails (handles models that prefix JSON with explanation text).
+
+    Args:
+        text: Raw text response from the Qwen VL model.
+
+    Returns:
+        Parsed dict from the response.
+
+    Raises:
+        json.JSONDecodeError: If no valid JSON object is found.
+    """
     stripped = text.strip()
     if stripped.startswith("```"):
         stripped = stripped.removeprefix("```json").removeprefix("```").strip()
@@ -136,11 +273,42 @@ def extract_json_object(text: str) -> dict[str, Any]:
 
 
 def write_json(path: Path, payload: Any) -> None:
+    """Write payload as pretty-printed UTF-8 JSON (no ASCII escaping).
+
+    Creates parent directories if they don't exist.
+
+    Args:
+        path: Destination file path.
+        payload: Any JSON-serialisable value.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def discover_samples(data_root: Path, sample_id: str = "", limit: int = 0) -> list[dict[str, Any]]:
+    """Discover and validate sample directories in the SN_6 pilot dataset.
+
+    Each sample directory must contain a {sample_dir.name}.json file (the sample
+    config) with a "source_image" field pointing to an image file in the same
+    directory. sample_id in the config must match the directory name.
+
+    Args:
+        data_root: Root directory containing one subdirectory per sample.
+        sample_id: If non-empty, only the matching sample directory is returned.
+        limit: If > 0, only the first N samples (after optional sample_id filter)
+               are returned.
+
+    Returns:
+        List of sample dicts with keys:
+          sample_id   -- directory name (str)
+          json_path   -- path to the sample config JSON
+          source_image -- image filename (str, relative to sample_dir)
+          image_path  -- absolute path to the source image (Path)
+
+    Raises:
+        SystemExit: If data_root doesn't exist, sample_id not found, sample config
+                    JSON is missing, sample_id mismatches, or source_image is missing.
+    """
     if not data_root.exists():
         raise SystemExit(f"Data root not found: {data_root}")
 
@@ -174,11 +342,41 @@ def discover_samples(data_root: Path, sample_id: str = "", limit: int = 0) -> li
 
 
 def build_prompt(template_path: Path, *, sample_id: str, source_image: str) -> str:
+    """Fill the prompt template with sample-specific values.
+
+    Replaces {{SAMPLE_ID}} and {{SOURCE_IMAGE}} placeholders in the template
+    file with the provided values. The template is read with UTF-8 encoding
+    (no BOM) since it is a text file managed in the repo.
+
+    Args:
+        template_path: Path to the element_extraction_from_2d.txt template.
+        sample_id: Sample identifier to substitute for {{SAMPLE_ID}}.
+        source_image: Source image filename to substitute for {{SOURCE_IMAGE}}.
+
+    Returns:
+        Filled prompt string.
+    """
     template = template_path.read_text(encoding="utf-8")
     return template.replace("{{SAMPLE_ID}}", sample_id).replace("{{SOURCE_IMAGE}}", source_image)
 
 
 def build_messages(prompt: str, image_path: Path) -> list[dict[str, Any]]:
+    """Build the OpenAI-compatible messages list for a Qwen VL chat request.
+
+    The messages list contains:
+      1. A system message instructing the model to output only valid JSON
+         and follow the user-provided schema strictly.
+      2. A user message with two content parts:
+           - text: the filled prompt string
+           - image_url: base64 data URL of the source image
+
+    Args:
+        prompt: Filled prompt string from build_prompt().
+        image_path: Absolute path to the source image file.
+
+    Returns:
+        List of message dicts compatible with the OpenAI chat completions API.
+    """
     return [
         {"role": "system", "content": "你只能输出合法 JSON，并严格遵守用户给定的 schema。"},
         {
@@ -201,6 +399,28 @@ def qwen_vl_chat(
     max_tokens: int,
     timeout: int,
 ) -> str:
+    """Send a chat request to the Qwen VL API and return the response text.
+
+    Uses the OpenAI-compatible chat completions endpoint. Sets
+    response_format={"type": "json_object"} to request structured JSON output
+    (supported by qwen3.7-plus and later Qwen VL models).
+
+    Args:
+        api_key: DashScope API key (QWEN_API_KEY).
+        base_url: Base URL for the API (default: DashScope compatible-mode endpoint).
+        model: Qwen model name (e.g. "qwen3.7-plus").
+        messages: Messages list from build_messages().
+        temperature: Sampling temperature (0.0 for deterministic output).
+        max_tokens: Maximum number of tokens in the response.
+        timeout: HTTP request timeout in seconds.
+
+    Returns:
+        Raw response text string from choices[0].message.content.
+
+    Raises:
+        requests.HTTPError: If the API returns a non-2xx status code.
+        RuntimeError: If the response is missing choices[0].message.content.
+    """
     payload = {
         "model": model,
         "messages": messages,
@@ -223,11 +443,36 @@ def qwen_vl_chat(
 
 
 def normalize_category(value: Any) -> str:
+    """Normalise a raw category value to a canonical VALID_CATEGORIES member.
+
+    Converts the input to lowercase, replaces hyphens and spaces with underscores,
+    and checks against VALID_CATEGORIES. Returns "other" if the result is not
+    a recognised category.
+
+    Args:
+        value: Raw category value from the model response (may be None).
+
+    Returns:
+        Lowercase canonical category string (always a member of VALID_CATEGORIES).
+    """
     text = str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
     return text if text in VALID_CATEGORIES else "other"
 
 
 def normalize_confidence(value: Any) -> str:
+    """Normalise a raw confidence value to "high", "medium", or "low".
+
+    Accepts the string members of VALID_CONFIDENCE directly. Also recognises
+    common near-equivalent strings:
+      - "very high", "0.9", "0.95", "1.0" -> "high"
+    Defaults to "medium" for any other unrecognised value.
+
+    Args:
+        value: Raw confidence value from the model response (may be None).
+
+    Returns:
+        Canonical confidence string ("high", "medium", or "low").
+    """
     text = str(value or "").strip().lower().replace("_", " ")
     if text in VALID_CONFIDENCE:
         return text
@@ -237,6 +482,32 @@ def normalize_confidence(value: Any) -> str:
 
 
 def normalize_elements(parsed: dict[str, Any], *, sample: dict[str, Any], model: str, elapsed_seconds: float) -> dict[str, Any]:
+    """Normalise the parsed VLM response into the element_extraction.v1 schema.
+
+    Fallback cascade (see module docstring for full explanation):
+      1. parsed["elements"]               -- expected schema
+      2. parsed["extracted_elements"]     -- older schema variant
+      3. parsed["atomic_rules"]           -- rule-shaped output
+      4. elements_from_identity_features(parsed["identity_features"])
+      5. []                               -- empty list if none found
+
+    For each raw element:
+      - Generates a deterministic element_id: {sample_id}_e{index:03d}
+      - Extracts name (fallback: first 20 chars of value) and value (fallback: name)
+      - Normalises category via normalize_category()
+      - Extracts and normalises attribute sub-dict (color, material, shape, location)
+      - Normalises confidence via normalize_confidence()
+      - Skips elements where both name and value are empty
+
+    Args:
+        parsed: Dict parsed from the model's JSON response.
+        sample: Sample dict from discover_samples() (needs sample_id and image_path).
+        model: Model name string (written to metadata).
+        elapsed_seconds: Wall-clock time for the API call (written to metadata).
+
+    Returns:
+        Normalised output dict with schema_version="element_extraction.v1".
+    """
     raw_elements = parsed.get("elements")
     if not isinstance(raw_elements, list):
         raw_elements = parsed.get("extracted_elements")
@@ -291,6 +562,25 @@ def normalize_elements(parsed: dict[str, Any], *, sample: dict[str, Any], model:
 
 
 def stringify_feature(value: Any) -> str:
+    """Recursively convert a nested feature value to a human-readable string.
+
+    Handles four value types:
+      - str: return stripped string
+      - dict: format as "key: value; key: value" (skip None/""/[]/{}
+              values)
+      - list: join non-empty items with "；" (Chinese fullwidth semicolon)
+      - None: return ""
+      - other: return str(value).strip()
+
+    Used by elements_from_identity_features() to flatten nested feature dicts
+    (e.g. {"color": "blue", "length": "long"}) into a single descriptive string.
+
+    Args:
+        value: Any value from the identity_features dict.
+
+    Returns:
+        Human-readable string representation.
+    """
     if isinstance(value, str):
         return value.strip()
     if isinstance(value, dict):
@@ -308,6 +598,31 @@ def stringify_feature(value: Any) -> str:
 
 
 def elements_from_identity_features(identity_features: Any) -> list[dict[str, Any]]:
+    """Convert an identity_features dict into a flat list of element dicts.
+
+    This is the last fallback in normalize_elements(). Some older Qwen VL model
+    responses organise output as {"identity_features": {"hair": [...], "outfit": [...], ...}}
+    rather than the expected flat "elements" list.
+
+    CATEGORY_LABELS maps each identity_features key to:
+      - canonical_category: used as element["category"]
+      - Chinese label: used as element["name"] when the model doesn't provide a "type"
+
+    For list-valued features (e.g. hair=[{...}, {...}]):
+      - Each list item is converted independently.
+      - The "type" field of each item (if present) is used as element["name"].
+
+    For scalar-valued features (e.g. a string or nested dict):
+      - A single element dict is created with label as name.
+
+    Args:
+        identity_features: The value of parsed["identity_features"]. Must be a
+                           dict; returns [] for any other type.
+
+    Returns:
+        List of partially-normalised element dicts (attributes are empty strings;
+        confidence is "medium"). Full normalisation happens in normalize_elements().
+    """
     if not isinstance(identity_features, dict):
         return []
     elements = []
@@ -359,6 +674,20 @@ def write_request_preview(
     prompt: str,
     dry_run: bool,
 ) -> None:
+    """Write a sanitised request preview JSON (no API key, no image bytes).
+
+    This file is written for every sample (including live runs) so that the
+    exact request parameters can be inspected and reproduced without access to
+    the raw API key or image data.
+
+    Args:
+        path: Destination path for the request_redacted.json file.
+        model: Qwen model name.
+        base_url: API base URL.
+        image_path: Absolute path to the source image (logged as path, not bytes).
+        prompt: Filled prompt string (only character count is logged).
+        dry_run: Whether this is a dry-run (logged in the output).
+    """
     write_json(path, {
         "model": model,
         "base_url": base_url,
@@ -383,6 +712,36 @@ def run_sample(
     timeout: int,
     dry_run: bool,
 ) -> dict[str, Any]:
+    """Run the full extraction pipeline for a single sample.
+
+    For each sample the following files are written to output_root/{sample_id}/:
+      element_extraction_prompt.txt -- the filled prompt (always written)
+      request_redacted.json         -- sanitised request parameters (always written)
+      raw_response.txt              -- raw model text response (skipped in dry_run)
+      extracted_elements.json       -- normalised element_extraction.v1 output (skipped in dry_run)
+
+    In dry-run mode, returns a "dry_run" status dict immediately after writing
+    the prompt and request preview.
+
+    Args:
+        sample: Sample dict from discover_samples().
+        prompt_template: Path to the prompt template file.
+        output_root: Root directory for output files.
+        api_key: DashScope API key.
+        base_url: API base URL.
+        model: Qwen model name.
+        temperature: Sampling temperature.
+        max_tokens: Maximum response tokens.
+        timeout: HTTP timeout in seconds.
+        dry_run: If True, skip the actual API call.
+
+    Returns:
+        Result dict with keys:
+          status        -- "ok", "dry_run", or "error"
+          sample_id     -- sample ID string
+          result_path   -- path to extracted_elements.json (if status=="ok")
+          element_count -- number of normalised elements (if status=="ok")
+    """
     sample_dir = output_root / sample["sample_id"]
     sample_dir.mkdir(parents=True, exist_ok=True)
     prompt = build_prompt(prompt_template, sample_id=sample["sample_id"], source_image=sample["source_image"])
@@ -434,6 +793,19 @@ def run_sample(
 
 
 def main() -> None:
+    """Entry point: load env, discover samples, run extraction with thread pool, print summary.
+
+    Uses a ThreadPoolExecutor with --workers threads (1 in dry-run mode).
+    Failed samples write error.json to their output directory and are counted
+    in the failure_count summary. Exits with code 1 if any sample failed.
+
+    Output layout for each sample at output_root/{sample_id}/:
+      element_extraction_prompt.txt  -- filled prompt
+      request_redacted.json          -- sanitised request parameters
+      raw_response.txt               -- raw model response (real run only)
+      extracted_elements.json        -- normalised extraction output (real run only)
+      error.json                     -- error details if the sample failed
+    """
     args = parse_args()
     load_env_file(args.env_file)
     if not args.prompt_template.exists():

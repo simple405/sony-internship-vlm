@@ -41,6 +41,23 @@ DEFAULT_OUTPUT = CANDIDATES_DIR / "char_001_moge_pbr.png"
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments for the MoGe-based PBR relighting pipeline.
+
+    Key parameters
+    --------------
+    --source            Clean white-background source PNG (source pixels are never
+                        repainted — only lighting is applied on top of them).
+    --foreground-mask   Grayscale mask; pixels >= 0.12 are treated as foreground.
+    --moge-depth        MoGe v2 depth PNG (8-bit L, informational only — not used
+                        for gradient normals in this script).
+    --moge-normal       MoGe v2 RGB normal map (OpenGL convention, primary shading
+                        driver replacing the depth-gradient + Step1X blend).
+    --output            Destination PNG path; a sibling ``.json`` manifest is also
+                        written.
+    --scale             Integer upscale factor applied after compositing (default 2).
+                        There is no ``--normal-strength`` here because MoGe normals
+                        are directly predicted and are naturally well-scaled.
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
     parser.add_argument("--foreground-mask", type=Path, default=DEFAULT_MASK)
@@ -52,6 +69,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def sha256(path: Path) -> str:
+    """Return the lowercase hex SHA-256 digest of a file, read in 1MiB chunks."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -60,6 +78,13 @@ def sha256(path: Path) -> str:
 
 
 def atomic_json(path: Path, value: object) -> None:
+    """Write *value* as pretty-printed UTF-8 JSON to *path* atomically.
+
+    Creates the parent directories if they do not exist. The file is first
+    written to a sibling ``.tmp`` file with a random suffix and then renamed
+    over *path* via ``os.replace``, so a concurrent reader never sees a
+    partial write.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     temp.write_text(
@@ -69,6 +94,12 @@ def atomic_json(path: Path, value: object) -> None:
 
 
 def atomic_png(image: Image.Image, path: Path) -> None:
+    """Save *image* as an optimised PNG to *path* atomically.
+
+    Uses the same write-to-temp-then-rename strategy as ``atomic_json`` to
+    guarantee that *path* is either the previous complete file or the new
+    complete file — never a truncated intermediate state.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
     image.save(temp, format="PNG", optimize=True)
@@ -76,6 +107,12 @@ def atomic_png(image: Image.Image, path: Path) -> None:
 
 
 def normalize(vector: np.ndarray) -> np.ndarray:
+    """Return *vector* divided by its per-pixel L2 norm.
+
+    A small epsilon (1e-6) guards against division by zero for background
+    pixels whose normal vector is the zero vector. The operation is applied
+    along the last axis so it works on arrays of shape (..., 3).
+    """
     return vector / np.maximum(np.linalg.norm(vector, axis=-1, keepdims=True), 1e-6)
 
 
@@ -114,6 +151,31 @@ def load_moge_depth(
 
 
 def main() -> None:
+    """Run the full MoGe-based PBR relighting pipeline and write outputs.
+
+    Key differences from ``render_local_depth_pbr.py``
+    ---------------------------------------------------
+    - MoGe v2 directly-predicted surface normals drive all shading.  There is
+      no gradient-from-depth step and no 78/22 blend with Step1X geometry normals.
+    - The depth PNG is loaded but is not used for normal derivation; it is only
+      included in the manifest for traceability.
+    - All Blinn-Phong constants (light direction, specular exponent 42, rim
+      power 1.7, shade formula coefficients, material heuristics) are identical
+      to ``render_local_depth_pbr.py`` so the two candidates are directly
+      comparable under the same lighting model.
+
+    Pipeline overview
+    -----------------
+    1. Load source RGB, foreground mask, MoGe depth (reference only), and
+       MoGe normal map.
+    2. Decode the OpenGL normal map to unit vectors.
+    3. Apply Blinn-Phong lighting (key light, specular, rim).
+    4. Estimate per-pixel glossiness from source saturation and brightness.
+    5. Add a soft warm specular highlight and Fresnel-like rim highlight.
+    6. Composite over a white background with a subtle drop-shadow.
+    7. Optionally upscale 2× with Lanczos + light sharpening.
+    8. Write the output PNG and a sibling JSON manifest atomically.
+    """
     args = parse_args()
     for path in (args.source, args.foreground_mask, args.moge_depth, args.moge_normal):
         if not path.is_file():
