@@ -216,7 +216,7 @@ def extract_gold_events(
             "rule_id": row.get("rule_id", ""),
             "attribute": row.get("attribute", ""),
             "element_name": row.get("element_name", ""),
-            "confidence": float(row.get("confidence", 1.0)),
+            "confidence": _parse_confidence(row.get("confidence", 1.0)),
             "reason": row.get("reason", ""),
         })
 

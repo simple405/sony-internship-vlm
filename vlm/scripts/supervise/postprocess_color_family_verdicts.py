@@ -162,6 +162,7 @@ def parse_args() -> argparse.Namespace:
           output_root        -- root directory for adjusted output JSONs
           report_path        -- path for the before/after comparison report JSON
     """
+    parser = argparse.ArgumentParser(description="Post-process tolerated color-family verdicts in pilot results.")
     parser.add_argument("--positive-results", type=Path, default=DEFAULT_POSITIVE_RESULTS)
     parser.add_argument("--negative-results", type=Path, default=DEFAULT_NEGATIVE_RESULTS)
     parser.add_argument("--negative-manifest", type=Path, default=DEFAULT_NEGATIVE_MANIFEST)

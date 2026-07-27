@@ -176,6 +176,7 @@ def read_csv(path: Path) -> tuple[list[str], list[dict[str, str]]]:
         Tuple of (fieldnames list, rows list). fieldnames preserves the original
         header order. Each row dict has the same keys as fieldnames.
     """
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         rows = [{key: (value or "").strip() for key, value in row.items()} for row in reader]
         return list(reader.fieldnames or []), rows

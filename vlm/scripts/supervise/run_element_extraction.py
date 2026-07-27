@@ -805,6 +805,7 @@ def main() -> None:
       extracted_elements.json        -- normalised extraction output (real run only)
       error.json                     -- error details if the sample failed
     """
+    args = parse_args()
     load_env_file(args.env_file)
     if not args.prompt_template.exists():
         raise SystemExit(f"Prompt template not found: {args.prompt_template}")
