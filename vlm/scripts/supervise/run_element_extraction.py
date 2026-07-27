@@ -34,22 +34,25 @@ the following key order:
 If none of these paths produces a list, raw_elements defaults to [] and an empty
 normalized output is written (allowing the run to complete without crashing).
 
---workers and DashScope QPS relationship
-------------------------------------------
-DashScope's Qwen VL API enforces a per-model queries-per-second (QPS) limit.
-The --workers flag controls how many concurrent HTTP requests the script makes.
-Setting --workers too high will cause HTTP 429 (rate limit) errors. Setting it
-too low will serialize processing unnecessarily.
+--workers and concurrency
+--------------------------
+The --workers flag controls how many concurrent HTTP requests the script makes
+to the model backend.
 
-Recommended guidance:
-  - Default --workers 6 is calibrated for the DashScope free-tier limit of ~6 QPS
-    for qwen3.7-plus. For paid tiers with higher limits, increase --workers.
-  - In dry-run mode (--dry-run), --workers is forced to 1 to avoid spamming
-    disk I/O and because there are no API calls to parallelize.
-  - Each worker sends one request at a time (synchronous HTTP via requests.post).
-    The effective throughput is: min(--workers, DashScope_QPS_limit).
-  - If you see HTTP 429 errors, reduce --workers. If all requests succeed and
-    you want higher throughput, increase --workers within your tier's QPS limit.
+For local Ollama:
+  - Concurrency is GPU-bound (VRAM and compute). The model server queues
+    requests internally; too many concurrent workers may cause timeouts.
+  - Default --workers 2 is a safe starting point for the local qwen36-vl
+    model on a single GPU. Increase if you have multiple GPUs or if the
+    model server handles concurrent requests well.
+  - Reduce --workers if you see request timeouts; increase if GPU utilization
+    is low and requests are completing quickly.
+
+For DashScope API:
+  - Concurrency is limited by the per-model QPS (queries-per-second) tier.
+  - If you see HTTP 429 errors, reduce --workers.
+
+In dry-run mode (--dry-run), --workers is forced to 1.
 
 Examples:
     python -m vlm.scripts.supervise.run_element_extraction --sample-id char_001 --dry-run
@@ -80,8 +83,9 @@ DEFAULT_DATA_ROOT = Path("vlm/data/SN_6期动漫数据标注")
 DEFAULT_OUTPUT_ROOT = Path("vlm/data/element_extraction_results")
 DEFAULT_PROMPT_TEMPLATE = Path("vlm/prompts/supervision/element_extraction_from_2d.txt")
 DEFAULT_ENV_FILE = API_ENV_FILE
-DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-DEFAULT_MODEL = "qwen3.7-plus"
+DEFAULT_QWEN_BASE_URL = "http://127.0.0.1:11434/v1"
+DEFAULT_MODEL = "qwen36-vl:latest"
+DEFAULT_MAX_TOKENS = 8000
 
 VALID_CATEGORIES = {
     "hair",
@@ -138,10 +142,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--qwen-base-url", default=DEFAULT_QWEN_BASE_URL)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--temperature", type=float, default=0.0)
-    parser.add_argument("--max-tokens", type=int, default=4000)
+    parser.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--dry-run", action="store_true", help="Write prompt/request preview without calling Qwen.")
-    parser.add_argument("--workers", type=int, default=6, help="Concurrent Qwen API calls (default 6).")
+    parser.add_argument("--workers", type=int, default=2, help="Concurrent model requests (default 2; use 6 for DashScope).")
     return parser.parse_args()
 
 
@@ -260,8 +264,15 @@ def extract_json_object(text: str) -> dict[str, Any]:
     """
     stripped = text.strip()
     if stripped.startswith("```"):
-        stripped = stripped.removeprefix("```json").removeprefix("```").strip()
-        stripped = stripped.removesuffix("```").strip()
+        # Strip leading ```json or ``` fence (py3.8-compatible — no removeprefix)
+        if stripped.startswith("```json"):
+            stripped = stripped[7:]
+        elif stripped.startswith("```"):
+            stripped = stripped[3:]
+        # Strip trailing ``` fence
+        if stripped.rstrip().endswith("```"):
+            stripped = stripped.rstrip()[:-3]
+        stripped = stripped.strip()
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
@@ -325,9 +336,29 @@ def discover_samples(data_root: Path, sample_id: str = "", limit: int = 0) -> li
         json_path = sample_dir / f"{sample_dir.name}.json"
         if not json_path.exists():
             raise SystemExit(f"Missing sample JSON: {json_path}")
-        sample = json.loads(json_path.read_text(encoding="utf-8-sig"))
+        # Handle empty/broken JSON files by deriving a minimal config from the
+        # directory contents (sample_id = dir name, source_image = first .png).
+        try:
+            sample = json.loads(json_path.read_text(encoding="utf-8-sig"))
+        except json.JSONDecodeError:
+            # Look for a .png source image in the directory
+            pngs = sorted(sample_dir.glob("*.png"))
+            source_candidate = pngs[0].name if pngs else ""
+            sample = {
+                "sample_id": sample_dir.name,
+                "source_image": source_candidate,
+                "elements": [],
+            }
         image_name = str(sample.get("source_image", "")).strip()
         image_path = sample_dir / image_name
+        # Auto-detect extension if source_image lacks one (e.g. "char_021" → "char_021.png")
+        if not image_path.exists() and image_name:
+            for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                candidate = sample_dir / (image_name + ext)
+                if candidate.exists():
+                    image_name = image_name + ext
+                    image_path = candidate
+                    break
         if sample.get("sample_id") != sample_dir.name:
             raise SystemExit(f"sample_id mismatch in {json_path}: {sample.get('sample_id')} != {sample_dir.name}")
         if not image_name or not image_path.exists():
@@ -421,18 +452,29 @@ def qwen_vl_chat(
         requests.HTTPError: If the API returns a non-2xx status code.
         RuntimeError: If the response is missing choices[0].message.content.
     """
-    payload = {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
-        "response_format": {"type": "json_object"},
     }
+    # Ollama's OpenAI-compatible endpoint does not support response_format; the
+    # model follows the JSON-only instruction in the system prompt instead.
+    if "dashscope" in base_url:
+        payload["response_format"] = {"type": "json_object"}
+
+    # Bypass HTTP proxy for localhost URLs (e.g. local Ollama). The corporate
+    # proxy blocks connections to 127.0.0.1, so we must route them directly.
+    proxies: dict[str, Any] | None = None
+    if "127.0.0.1" in base_url or "localhost" in base_url:
+        proxies = {"http": None, "https": None}
+
     response = requests.post(
         base_url.rstrip("/") + "/chat/completions",
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         data=json.dumps(payload, ensure_ascii=False),
         timeout=timeout,
+        proxies=proxies,
     )
     response.raise_for_status()
     result = response.json()
@@ -812,9 +854,15 @@ def main() -> None:
         raise SystemExit(f"Prompt template not found: {args.prompt_template}")
 
     samples = discover_samples(args.data_root, sample_id=args.sample_id, limit=args.limit)
-    api_key = "" if args.dry_run else require_value(args.qwen_api_key, "QWEN_API_KEY")
     base_url = require_value(args.qwen_base_url, "QWEN_BASE_URL", DEFAULT_QWEN_BASE_URL)
     model = require_value(args.model, "QWEN_VISION_MODEL", DEFAULT_MODEL)
+    # Local Ollama does not require an API key; DashScope does.
+    if args.dry_run or args.qwen_api_key:
+        api_key = args.qwen_api_key
+    elif "127.0.0.1" in base_url or "localhost" in base_url:
+        api_key = "ollama"  # Dummy key — Ollama ignores the Authorization header
+    else:
+        api_key = require_value(args.qwen_api_key, "QWEN_API_KEY")
 
     results = []
     failures = 0
