@@ -34,6 +34,7 @@ Environment / secrets are loaded from ``vlm/config/api.env`` automatically.
 
 from __future__ import annotations
 
+import argparse
 import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -218,6 +219,18 @@ def main() -> None:
     etc.) is caught, serialised as ``{status: failed, error: "<ExcType>: <message>"}``
     and appended to ``batch_results``.  The batch continues for all remaining samples.
     """
+    parser = argparse.ArgumentParser(description="Batch generate front-view images via RunningHub")
+    parser.add_argument("--source-root", type=Path, help="Source directory containing char_* folders")
+    parser.add_argument("--output-root", type=Path, help="Output directory for generated images")
+    args = parser.parse_args()
+
+    # Override defaults if CLI args provided
+    global SOURCE_ROOT, OUTPUT_ROOT
+    if args.source_root:
+        SOURCE_ROOT = args.source_root
+    if args.output_root:
+        OUTPUT_ROOT = args.output_root
+
     load_api_env(API_ENV_FILE)
     api_key = require_api_key()
 
