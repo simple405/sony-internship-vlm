@@ -99,7 +99,6 @@ vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt 
 核心脚本：
 
 ```text
-vlm/scripts/supervise/run_backpack_supervision_review.py
 vlm/scripts/supervise/run_multicategory_supervision_review.py
 vlm/scripts/supervise/validate_human_annotations.py
 vlm/scripts/supervise/create_human_annotation_templates.py
@@ -109,10 +108,20 @@ vlm/scripts/supervise/build_verified_evaluation_gold.py
 vlm/scripts/supervise/summarize_pre_gold_assets.py
 vlm/scripts/supervise/run_element_extraction.py
 vlm/scripts/supervise/evaluate_element_extraction.py
+vlm/scripts/supervise/evaluate_extraction_compound.py   # compound-aware GT matching 评估（server端主用）
 vlm/scripts/generate/runninghub_client.py         # RunningHub API 公共模块
 vlm/scripts/generate/batch_front_view.py           # 前视图 PVC 手办批量生成（4 并发，支持 resume）
 vlm/scripts/generate/smoke_test_front_view.py      # 单样本冒烟测试
 ```
+
+已归档/搁置脚本（保留代码但不在当前主流程中）：
+
+```text
+vlm/scripts/crawl_safebooru.py               # Safebooru 数据采集，pilot-20 数据集已采集完毕，暂无新批次计划
+vlm/scripts/data/assign_merchandise_categories.py  # 配合 crawl_safebooru 的品类分配，同上，随数据采集阶段一起搁置
+```
+
+本地 ComfyUI 生图链路（IC-Light、MOGE、depth 等本地渲染脚本）已于 2026-07-28 全部移除：当前不需要本地生图，如后续恢复该需求再重写。
 
 ## 4. 已知当前状态
 
