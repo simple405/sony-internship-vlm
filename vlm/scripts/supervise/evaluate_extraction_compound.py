@@ -13,7 +13,7 @@ Key design decisions:
   even if not selected by greedy matching (handles granularity mismatch)
 
 Usage:
-    PYTHONUNBUFFERED=1 /usr/bin/python3 vlm/experiment_vlm_analysis.py
+    PYTHONUNBUFFERED=1 python3 -m vlm.scripts.supervise.evaluate_extraction_compound
 """
 
 import os
