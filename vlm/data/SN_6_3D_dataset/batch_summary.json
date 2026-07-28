@@ -1,0 +1,25 @@
+{
+  "status": "batch_finished",
+  "total": 54,
+  "skipped": 52,
+  "pending": 2,
+  "completed": 2,
+  "failed": 0,
+  "no_results": 0,
+  "results": [
+    {
+      "sample_id": "char_054",
+      "task_id": "2081950489876303874",
+      "status": "completed",
+      "elapsed_s": 66.8,
+      "size": "1915x821"
+    },
+    {
+      "sample_id": "char_053",
+      "task_id": "2081950489897226241",
+      "status": "completed",
+      "elapsed_s": 117.9,
+      "size": "1915x821"
+    }
+  ]
+}
