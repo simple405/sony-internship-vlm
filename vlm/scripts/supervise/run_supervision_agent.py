@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV_FILE)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--temperature", type=float, default=0.0)
-    parser.add_argument("--max-tokens", type=int, default=8000)
+    parser.add_argument("--max-tokens", type=int, default=32000, help="Max tokens for supervision review step. qwen36-vl thinking mode needs large budget.")
     parser.add_argument("--timeout", type=int, default=300)
     parser.add_argument("--dry-run", action="store_true", help="Build prompts without calling the API.")
     return parser.parse_args()
@@ -174,7 +174,7 @@ def main() -> None:
         base_url=base_url,
         model=args.model,
         temperature=args.temperature,
-        max_tokens=4000,
+        max_tokens=32000,  # qwen36-vl thinking mode needs large token budget
         timeout=args.timeout,
         dry_run=args.dry_run,
     )

@@ -140,10 +140,35 @@ def encode_image_data_url(path: Path) -> str:
 
 
 def extract_json_object(text: str) -> dict[str, Any]:
+    """Parse the first JSON object from a raw model response string.
+
+    Handles two common model output patterns:
+      1. Bare JSON: the entire response is a JSON string.
+      2. Markdown code block: the JSON is wrapped in ```json ... ``` or ``` ... ```.
+
+    Falls back to searching for the outermost { ... } substring if standard
+    parsing fails (handles models that prefix JSON with explanation text).
+
+    Args:
+        text: Raw text response from the Qwen VL model.
+
+    Returns:
+        Parsed dict from the response.
+
+    Raises:
+        json.JSONDecodeError: If no valid JSON object is found.
+    """
     stripped = text.strip()
     if stripped.startswith("```"):
-        stripped = stripped.removeprefix("```json").removeprefix("```").strip()
-        stripped = stripped.removesuffix("```").strip()
+        # Strip leading ```json or ``` fence (py3.8-compatible — no removeprefix)
+        if stripped.startswith("```json"):
+            stripped = stripped[7:]
+        elif stripped.startswith("```"):
+            stripped = stripped[3:]
+        # Strip trailing ``` fence
+        if stripped.rstrip().endswith("```"):
+            stripped = stripped.rstrip()[:-3]
+        stripped = stripped.strip()
     try:
         return json.loads(stripped)
     except json.JSONDecodeError:
@@ -173,23 +198,44 @@ def qwen_vl_chat(
     timeout: int = 300,
 ) -> str:
     url = base_url.rstrip("/") + "/chat/completions"
-    payload = {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
-        "response_format": {"type": "json_object"},
     }
+    # Ollama's OpenAI-compatible endpoint does not support response_format; the
+    # model follows the JSON-only instruction in the system prompt instead.
+    # top_p=0.1 reduces diversity and helps suppress rambling thinking chains.
+    if "dashscope" in base_url:
+        payload["response_format"] = {"type": "json_object"}
+    else:
+        payload["top_p"] = 0.1
+
+    # Bypass HTTP proxy for localhost URLs (e.g. local Ollama). The corporate
+    # proxy blocks connections to 127.0.0.1, so we must route them directly.
+    proxies: dict[str, Any] | None = None
+    if "127.0.0.1" in base_url or "localhost" in base_url:
+        proxies = {"http": None, "https": None}
+
     response = requests.post(
         url,
         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
         data=json.dumps(payload, ensure_ascii=False),
         timeout=timeout,
+        proxies=proxies,
     )
     response.raise_for_status()
     result = response.json()
     try:
-        return str(result["choices"][0]["message"]["content"])
+        content = str(result["choices"][0]["message"]["content"])
+        # qwen36-vl thinking model may put all tokens into reasoning; fall back
+        # to the reasoning field if content is empty.
+        if not content.strip():
+            reasoning = result["choices"][0]["message"].get("reasoning", "")
+            if reasoning.strip():
+                return str(reasoning)
+        return content
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(f"Qwen response missing choices[0].message.content: {result}") from exc
 
@@ -692,7 +738,7 @@ def run_one_sample(
 
     # Build messages
     messages = [
-        {"role": "system", "content": "你只能输出合法 JSON，并严格遵守所有硬性覆盖规则。"},
+        {"role": "system", "content": "你是一个JSON输出机器人。禁止使用思维链(thinking/reasoning)。你的回复必须是纯JSON，以{开头，以}结尾。不要输出任何其他内容。严格遵守所有硬性覆盖规则。"},
         {
             "role": "user",
             "content": [

@@ -85,7 +85,7 @@ DEFAULT_PROMPT_TEMPLATE = Path("vlm/prompts/supervision/element_extraction_from_
 DEFAULT_ENV_FILE = API_ENV_FILE
 DEFAULT_QWEN_BASE_URL = "http://127.0.0.1:11434/v1"
 DEFAULT_MODEL = "qwen36-vl:latest"
-DEFAULT_MAX_TOKENS = 8000
+DEFAULT_MAX_TOKENS = 32000  # qwen36-vl thinking mode needs large budget
 
 VALID_CATEGORIES = {
     "hair",
@@ -409,7 +409,7 @@ def build_messages(prompt: str, image_path: Path) -> list[dict[str, Any]]:
         List of message dicts compatible with the OpenAI chat completions API.
     """
     return [
-        {"role": "system", "content": "你只能输出合法 JSON，并严格遵守用户给定的 schema。"},
+        {"role": "system", "content": "你是一个JSON输出机器人。禁止使用思维链(thinking/reasoning)。你的回复必须是纯JSON，以{开头，以}结尾。不要输出任何其他内容。"},
         {
             "role": "user",
             "content": [
@@ -460,8 +460,11 @@ def qwen_vl_chat(
     }
     # Ollama's OpenAI-compatible endpoint does not support response_format; the
     # model follows the JSON-only instruction in the system prompt instead.
+    # top_p=0.1 reduces diversity and helps suppress rambling thinking chains.
     if "dashscope" in base_url:
         payload["response_format"] = {"type": "json_object"}
+    else:
+        payload["top_p"] = 0.1
 
     # Bypass HTTP proxy for localhost URLs (e.g. local Ollama). The corporate
     # proxy blocks connections to 127.0.0.1, so we must route them directly.
@@ -479,7 +482,14 @@ def qwen_vl_chat(
     response.raise_for_status()
     result = response.json()
     try:
-        return str(result["choices"][0]["message"]["content"])
+        content = str(result["choices"][0]["message"]["content"])
+        # qwen36-vl thinking model may put all tokens into reasoning; fall back
+        # to the reasoning field if content is empty.
+        if not content.strip():
+            reasoning = result["choices"][0]["message"].get("reasoning", "")
+            if reasoning.strip():
+                return str(reasoning)
+        return content
     except (KeyError, IndexError, TypeError) as exc:
         raise RuntimeError(f"Qwen response missing choices[0].message.content: {result}") from exc
 
