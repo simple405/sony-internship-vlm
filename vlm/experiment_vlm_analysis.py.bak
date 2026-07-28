@@ -8,8 +8,11 @@ VLM Image Analysis Experiment
 """
 
 import os
+import sys
 import json
+import base64
 import time
+import re
 import math
 import numpy as np
 from pathlib import Path
@@ -18,57 +21,82 @@ from pathlib import Path
 for key in ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY']:
     os.environ.pop(key, None)
 
-import requests
+import ollama
 
 
 # === CONFIGURATION ===
-DATA_DIR = "/home/intern/jsy/vlm/data/SN_6_3D_dataset"
+DATA_DIR = "/home/intern/jsy/vlm/data/SN_6期动漫数据标注"
 OUTPUT_DIR = "/home/intern/jsy/vlm/experiment_results"
 MODEL_NAME = "qwen36-vl:latest"
 EMBED_MODEL_NAME = "bge-m3:latest"  # local ollama embedding model
-MIN_SIMILARITY = 0.5  # reject matches below this threshold (0.0 = no threshold)
+
+VLM_PROMPT = """请仔细观察这张动漫角色图片，列出该角色的所有关键视觉元素。对于每个元素，给出元素名称和详细的视觉描述。
+
+请严格按照以下JSON格式输出，只输出JSON，不要添加任何其他文字：
+{
+  "elements": [
+    {"name": "元素名称", "value": "该元素的详细视觉描述"},
+    {"name": "元素名称", "value": "该元素的详细视觉描述"}
+  ]
+}
+
+要求：
+- 必须包含：发型发色、眼睛颜色和形状、服装、配饰、特殊标志等
+- 每个元素描述要具体详细，包括颜色、形状、位置等信息
+- 至少列出5个元素
+"""
+
+
+def extract_json_from_response(text: str) -> dict:
+    """Extract JSON object from model response (may contain markdown code fences)."""
+    # Remove markdown code fences if present
+    text = text.strip()
+    # Try to find JSON between ```json and ``` markers
+    match = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
+    if match:
+        text = match.group(1)
+    # Try to parse as JSON
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        # Try to find a JSON object in the text
+        match = re.search(r'\{[\s\S]*"elements"[\s\S]*\}', text)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+        print(f"  WARNING: Could not parse JSON from response. Raw:\n{text[:500]}")
+        return {"elements": []}
+
 
 def load_ground_truth(char_dir: str) -> dict:
-    """Load ground truth JSON for a character.
-
-    Normalizes element dicts to always have 'name' and 'value' keys,
-    handling known data quirks (typos like 'value:', duplicate entries).
-    """
+    """Load ground truth JSON for a character."""
     char_name = os.path.basename(char_dir)
     json_path = os.path.join(char_dir, f"{char_name}.json")
     with open(json_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    # Normalize elements: ensure each has 'name' + 'value' keys
-    elements = data.get('elements', [])
-    if isinstance(elements, list):
-        normalized = []
-        seen = set()
-        for elem in elements:
-            name = elem.get('name', '')
-            # Handle typo key "value:" (with trailing colon)
-            val = elem.get('value') or elem.get('value:') or ''
-            dedup_key = f"{name}|{val}"
-            if dedup_key not in seen:
-                seen.add(dedup_key)
-                normalized.append({'name': name, 'value': val})
-        data['elements'] = normalized
-
-    return data
-
-
-def load_vlm_extraction(char_name: str) -> dict:
-    """Load pre-extracted VLM elements from supervision_agent_output.
-
-    Instead of re-running VLM inference (slow, deterministic), reads the
-    already-extracted elements from the batch supervision output.
-    """
-    extraction_path = (
-        f"/home/intern/jsy/vlm/tmp/supervision_agent_output/"
-        f"{char_name}/extraction/{char_name}/extracted_elements.json"
-    )
-    with open(extraction_path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def analyze_image(image_path: str) -> dict:
+    """Send image to VLM and get element analysis."""
+    with open(image_path, "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    response = ollama.chat(
+        model=MODEL_NAME,
+        messages=[{
+            'role': 'user',
+            'content': VLM_PROMPT,
+            'images': [image_path]  # Pass file path directly
+        }],
+        options={'temperature': 0.1, 'num_predict': 2048}
+    )
+
+    raw_output = response['message']['content']
+    parsed = extract_json_from_response(raw_output)
+    parsed['_raw_output'] = raw_output
+    return parsed
 
 
 class OllamaEmbedder:
@@ -79,42 +107,29 @@ class OllamaEmbedder:
         self._cache = {}
 
     def encode(self, texts: list) -> np.ndarray:
-        """Encode a list of texts and return embeddings as numpy array.
-
-        Uses Ollama's /api/embed batch endpoint for efficiency — one HTTP
-        round-trip per call instead of one per text.
-        """
-        results = [None] * len(texts)
+        """Encode a list of texts and return embeddings as numpy array."""
+        results = []
+        to_embed = []
         to_embed_indices = []
-        to_embed_texts = []
 
         # Check cache first
         for i, text in enumerate(texts):
             if text in self._cache:
-                results[i] = self._cache[text]
+                results.append((i, self._cache[text]))
             else:
+                to_embed.append(text)
                 to_embed_indices.append(i)
-                to_embed_texts.append(text)
+                results.append((i, None))
 
-        if not to_embed_texts:
-            return np.array(results, dtype=np.float32)
+        # Batch embed uncached texts one by one (ollama embed doesn't batch well)
+        for idx, text in zip(to_embed_indices, to_embed):
+            resp = ollama.embed(model=self.model_name, input=text)
+            emb = np.array(resp['embeddings'][0], dtype=np.float32)
+            self._cache[text] = emb
+            results[idx] = (idx, emb)
 
-        # Batch embed all uncached texts in one request
-        resp = requests.post(
-            "http://127.0.0.1:11434/api/embed",
-            json={"model": self.model_name, "input": to_embed_texts},
-            proxies={"http": None, "https": None},
-            timeout=120
-        )
-        resp.raise_for_status()
-        embeddings = resp.json()['embeddings']
-
-        for idx, emb in zip(to_embed_indices, embeddings):
-            arr = np.array(emb, dtype=np.float32)
-            self._cache[to_embed_texts[to_embed_indices.index(idx)]] = arr
-            results[idx] = arr
-
-        return np.array(results, dtype=np.float32)
+        # Return in original order
+        return np.array([emb for _, emb in results], dtype=np.float32)
 
     def encode_single(self, text: str) -> np.ndarray:
         """Encode a single text."""
@@ -175,13 +190,12 @@ def match_elements(pred_elements: list, gt_elements: list, embedder: OllamaEmbed
                 best_score = combined
                 best_gt_idx = j
 
-        if best_gt_idx >= 0 and best_score >= MIN_SIMILARITY:
+        if best_gt_idx >= 0:
             matched_gt_indices.add(best_gt_idx)
             matched_pred_indices.add(i)
             matches.append({
                 'pred_name': pred_elements[i]['name'],
                 'pred_value': pred_elements[i]['value'],
-                'pred_category': pred_elements[i].get('category', 'unknown'),
                 'gt_name': gt_elements[best_gt_idx]['name'],
                 'gt_value': gt_elements[best_gt_idx]['value'],
                 'similarity': round(best_score, 4)
@@ -240,11 +254,11 @@ def run_experiment():
         # Load ground truth
         gt = load_ground_truth(str(char_dir))
 
-        # Load pre-extracted VLM elements
+        # Analyze with VLM
         try:
-            pred = load_vlm_extraction(char_name)
+            pred = analyze_image(str(image_path))
         except Exception as e:
-            print(f"  ERROR loading VLM extraction: {e}")
+            print(f"  ERROR during VLM inference: {e}")
             pred = {"elements": [], "_raw_output": f"ERROR: {e}"}
 
         pred_elements = pred.get('elements', [])
@@ -278,9 +292,9 @@ def run_experiment():
             'coverage': coverage,
             'precision': precision,
             'matches': matches,
-            'unmatched_pred': [{'name': e['name'], 'value': e['value'], 'category': e.get('category', 'unknown')} for e in unmatched_pred],
+            'unmatched_pred': [{'name': e['name'], 'value': e['value']} for e in unmatched_pred],
             'unmatched_gt': [{'name': e['name'], 'value': e['value']} for e in unmatched_gt],
-            'pred_elements': [{'name': e['name'], 'value': e['value'], 'category': e.get('category', 'unknown')} for e in pred_elements],
+            'pred_elements': [{'name': e['name'], 'value': e['value']} for e in pred_elements],
             'gt_elements': gt_elements,
             '_raw_model_output': pred.get('_raw_output', ''),
             '_inference_time_s': round(time.time() - t_start, 1)
@@ -331,35 +345,6 @@ def run_experiment():
         'per_sample': all_results
     }
 
-    # === PER-CATEGORY METRICS ===
-    # Aggregate by VLM category (hair, face, clothing, accessory, headwear, etc.)
-    cat_matched = {}
-    cat_total = {}
-    cat_similarities = {}
-    for r in all_results:
-        for m in r['matches']:
-            cat = m.get('pred_category', 'unknown')
-            cat_matched[cat] = cat_matched.get(cat, 0) + 1
-            cat_similarities.setdefault(cat, []).append(m['similarity'])
-        for e in r['pred_elements']:
-            cat = e.get('category', 'unknown')
-            cat_total[cat] = cat_total.get(cat, 0) + 1
-
-    category_metrics = {}
-    for cat in sorted(set(list(cat_matched.keys()) + list(cat_total.keys()))):
-        matched = cat_matched.get(cat, 0)
-        total = cat_total.get(cat, 0)
-        sims = cat_similarities.get(cat, [])
-        category_metrics[cat] = {
-            'total_pred': total,
-            'matched': matched,
-            'unmatched': total - matched,
-            'precision': round(matched / total, 4) if total > 0 else 0,
-            'avg_similarity': round(sum(sims) / len(sims), 4) if sims else 0,
-        }
-
-    summary['category_metrics'] = category_metrics
-
     # Save detailed results
     output_path = os.path.join(OUTPUT_DIR, 'experiment_results.json')
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -384,11 +369,6 @@ def run_experiment():
     print(f"Total Pred elements: {total_pred}, Matched: {total_matched}")
     print(f"Unmatched predictions (model extra): {total_unmatched_pred}")
     print(f"Unmatched GT (model missed): {total_unmatched_gt}")
-    print(f"\nPer-Category Breakdown:")
-    for cat in sorted(category_metrics.keys()):
-        cm = category_metrics[cat]
-        print(f"  {cat}: precision={cm['precision']}, matched={cm['matched']}/{cm['total_pred']}, "
-              f"avg_sim={cm['avg_similarity']}")
 
     return summary
 
@@ -423,17 +403,6 @@ def generate_report(summary: dict, output_path: str):
     lines.append(f"| Overall Coverage | {m['overall_coverage']} |")
     lines.append(f"| Overall Precision | {m['overall_precision']} |")
     lines.append("")
-
-    # Per-Category Breakdown
-    if summary.get('category_metrics'):
-        lines.append("## Per-Category Breakdown")
-        lines.append("")
-        lines.append("| Category | Precision | Matched / Total | Avg Similarity |")
-        lines.append("|----------|-----------|-----------------|----------------|")
-        for cat in sorted(summary['category_metrics'].keys()):
-            cm = summary['category_metrics'][cat]
-            lines.append(f"| {cat} | {cm['precision']} | {cm['matched']}/{cm['total_pred']} | {cm['avg_similarity']} |")
-        lines.append("")
 
     lines.append("## Per-Sample Details")
     lines.append("")

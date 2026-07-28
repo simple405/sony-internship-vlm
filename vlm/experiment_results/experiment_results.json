@@ -2,101 +2,133 @@
   "experiment": "VLM Anime Character Element Extraction",
   "model": "qwen36-vl:latest",
   "embedding_model": "bge-m3:latest (via Ollama)",
-  "total_samples": 20,
-  "total_time_s": 432.6,
+  "total_samples": 34,
+  "total_time_s": 139.4,
   "aggregate_metrics": {
-    "avg_similarity_mean": 0.6818,
-    "avg_similarity_min": 0.6002,
-    "avg_similarity_max": 0.7928,
-    "coverage_mean": 0.9762,
-    "precision_mean": 0.9099,
-    "total_gt_elements": 111,
-    "total_pred_elements": 120,
-    "total_matched": 108,
-    "total_unmatched_pred": 12,
-    "total_unmatched_gt": 3,
-    "overall_coverage": 0.973,
-    "overall_precision": 0.9
+    "avg_similarity_mean": 0.6782,
+    "avg_similarity_min": 0.5619,
+    "avg_similarity_max": 0.8467,
+    "coverage_mean": 0.9568,
+    "precision_mean": 0.7385,
+    "total_gt_elements": 204,
+    "total_pred_elements": 272,
+    "total_matched": 194,
+    "total_unmatched_pred": 78,
+    "total_unmatched_gt": 10,
+    "overall_coverage": 0.951,
+    "overall_precision": 0.7132
   },
   "per_sample": [
     {
       "sample_id": "char_001",
       "gt_element_count": 5,
-      "pred_element_count": 6,
+      "pred_element_count": 8,
       "matched_count": 5,
-      "unmatched_pred_count": 1,
+      "unmatched_pred_count": 3,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6807,
+      "avg_similarity": 0.6729,
       "coverage": 1.0,
-      "precision": 0.8333,
+      "precision": 0.625,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "金色长发，带有自然的波浪卷曲，刘海略显凌乱地覆盖在额前，发梢延伸至肩部以下，整体呈现出蓬松的质感。",
+          "pred_name": "头发",
+          "pred_value": "金色长发，发梢带有明显的橙红色渐变。",
+          "pred_category": "hair",
           "gt_name": "金色长发与黑色蝴蝶结",
           "gt_value": "角色拥有飘逸的金色长发，头顶正中央系有一个大而明显的黑色蝴蝶结，是其标志性特征。",
-          "similarity": 0.6878
+          "similarity": 0.7056
+        },
+        {
+          "pred_name": "眼睛",
+          "pred_value": "红色瞳孔。",
+          "pred_category": "face",
+          "gt_name": "红色眼睛",
+          "gt_value": "眼睛为鲜艳的红色，眼神锐利，是角色的重要面部特征。",
+          "similarity": 0.7957
         },
         {
           "pred_name": "头饰",
-          "pred_value": "头顶正上方佩戴着一个巨大的黑色蝴蝶结发饰，位于两束头发之间，非常显眼。",
+          "pred_value": "头顶佩戴黑色大蝴蝶结。",
+          "pred_category": "headwear",
           "gt_name": "白色衬衫与蓝色宝石领饰",
           "gt_value": "穿着一件白色衬衫，领口处有黑色小领结和一枚镶嵌蓝色宝石的圆形领饰，细节需清晰绘制。",
-          "similarity": 0.6166
+          "similarity": 0.6032
         },
         {
-          "pred_name": "眼睛颜色和形状",
-          "pred_value": "红色的瞳孔，眼神看起来有些呆萌或惊讶（嘴巴微张），眼角微微下垂，睫毛浓密且清晰可见。",
-          "gt_name": "红色眼睛",
-          "gt_value": "眼睛为鲜艳的红色，眼神锐利，是角色的重要面部特征。",
-          "similarity": 0.7874
-        },
-        {
-          "pred_name": "上衣",
-          "pred_value": "穿着白色的立领外套（或衬衫），衣领竖起，外套敞开，露出内搭的深色装饰带和链条细节。",
+          "pred_name": "外套",
+          "pred_value": "白色长袖西装外套，开襟穿着。",
+          "pred_category": "clothing",
           "gt_name": "白色外套",
           "gt_value": "外穿一件宽松的白色外套，衣襟边缘有黑色纽扣，外套应自然垂落。",
-          "similarity": 0.718
+          "similarity": 0.7479
         },
         {
-          "pred_name": "颈部配饰",
-          "pred_value": "胸前佩戴着一枚醒目的蓝色圆形宝石胸针，下方连接着一条黑色的垂带（类似领结或装饰链），增加了服装的层次感。",
+          "pred_name": "衬衫",
+          "pred_value": "白色立领衬衫。",
+          "pred_category": "clothing",
           "gt_name": "黑色短裙与腰带",
           "gt_value": "下身搭配黑色短裙，腰部有两条平行的灰色横向装饰带，位置和宽度需准确。",
-          "similarity": 0.5937
+          "similarity": 0.5121
         }
       ],
       "unmatched_pred": [
         {
-          "name": "下装",
-          "value": "下身穿着深棕色或黑色的裙子（或裤裙），腰部有明显的束腰设计，颜色与上衣形成对比。"
+          "name": "领饰",
+          "value": "黑色领结及垂坠装饰，中央镶嵌醒目的蓝色圆形宝石，下方连接垂直排列的黑色装饰扣链。",
+          "category": "accessory"
+        },
+        {
+          "name": "裙子",
+          "value": "深棕色百褶裙。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "深色腰带，配有金属扣环。",
+          "category": "accessory"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "金色长发，带有自然的波浪卷曲，刘海略显凌乱地覆盖在额前，发梢延伸至肩部以下，整体呈现出蓬松的质感。"
+          "name": "头发",
+          "value": "金色长发，发梢带有明显的橙红色渐变。",
+          "category": "hair"
+        },
+        {
+          "name": "眼睛",
+          "value": "红色瞳孔。",
+          "category": "face"
         },
         {
           "name": "头饰",
-          "value": "头顶正上方佩戴着一个巨大的黑色蝴蝶结发饰，位于两束头发之间，非常显眼。"
+          "value": "头顶佩戴黑色大蝴蝶结。",
+          "category": "headwear"
         },
         {
-          "name": "眼睛颜色和形状",
-          "value": "红色的瞳孔，眼神看起来有些呆萌或惊讶（嘴巴微张），眼角微微下垂，睫毛浓密且清晰可见。"
+          "name": "外套",
+          "value": "白色长袖西装外套，开襟穿着。",
+          "category": "clothing"
         },
         {
-          "name": "上衣",
-          "value": "穿着白色的立领外套（或衬衫），衣领竖起，外套敞开，露出内搭的深色装饰带和链条细节。"
+          "name": "衬衫",
+          "value": "白色立领衬衫。",
+          "category": "clothing"
         },
         {
-          "name": "颈部配饰",
-          "value": "胸前佩戴着一枚醒目的蓝色圆形宝石胸针，下方连接着一条黑色的垂带（类似领结或装饰链），增加了服装的层次感。"
+          "name": "领饰",
+          "value": "黑色领结及垂坠装饰，中央镶嵌醒目的蓝色圆形宝石，下方连接垂直排列的黑色装饰扣链。",
+          "category": "accessory"
         },
         {
-          "name": "下装",
-          "value": "下身穿着深棕色或黑色的裙子（或裤裙），腰部有明显的束腰设计，颜色与上衣形成对比。"
+          "name": "裙子",
+          "value": "深棕色百褶裙。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "深色腰带，配有金属扣环。",
+          "category": "accessory"
         }
       ],
       "gt_elements": [
@@ -121,103 +153,149 @@
           "value": "外穿一件宽松的白色外套，衣襟边缘有黑色纽扣，外套应自然垂落。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"金色长发，带有自然的波浪卷曲，刘海略显凌乱地覆盖在额前，发梢延伸至肩部以下，整体呈现出蓬松的质感。\"\n    },\n    {\n      \"name\": \"头饰\",\n      \"value\": \"头顶正上方佩戴着一个巨大的黑色蝴蝶结发饰，位于两束头发之间，非常显眼。\"\n    },\n    {\n      \"name\": \"眼睛颜色和形状\",\n      \"value\": \"红色的瞳孔，眼神看起来有些呆萌或惊讶（嘴巴微张），眼角微微下垂，睫毛浓密且清晰可见。\"\n    },\n    {\n      \"name\": \"上衣\",\n      \"value\": \"穿着白色的立领外套（或衬衫），衣领竖起，外套敞开，露出内搭的深色装饰带和链条细节。\"\n    },\n    {\n      \"name\": \"颈部配饰\",\n      \"value\": \"胸前佩戴着一枚醒目的蓝色圆形宝石胸针，下方连接着一条黑色的垂带（类似领结或装饰链），增加了服装的层次感。\"\n    },\n    {\n      \"name\": \"下装\",\n      \"value\": \"下身穿着深棕色或黑色的裙子（或裤裙），腰部有明显的束腰设计，颜色与上衣形成对比。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 46.4
+      "_raw_model_output": "",
+      "_inference_time_s": 4.2
     },
     {
       "sample_id": "char_002",
       "gt_element_count": 5,
-      "pred_element_count": 8,
+      "pred_element_count": 11,
       "matched_count": 5,
-      "unmatched_pred_count": 3,
+      "unmatched_pred_count": 6,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6422,
+      "avg_similarity": 0.6111,
       "coverage": 1.0,
-      "precision": 0.625,
+      "precision": 0.4545,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "深棕色短发向上竖起，呈现凌乱刺状，左侧（观众视角右侧）有一撮明显的白色挑染",
+          "pred_name": "头发",
+          "pred_value": "深棕色短发，左侧（画面右侧）有一撮明显的白发",
+          "pred_category": "hair",
           "gt_name": "黑白相间的发型",
           "gt_value": "头发为深棕色，但左侧鬓角有一撮明显的白色头发，形成鲜明对比，是角色标志性特征。",
-          "similarity": 0.7431
+          "similarity": 0.7465
         },
         {
-          "pred_name": "面部特征",
-          "pred_value": "深色眼睛，眼神略显疲惫或凶狠，左眼下方有一条垂直的伤疤或纹路，右眉上方也有痕迹，下巴留着短胡须",
+          "pred_name": "眼镜",
+          "pred_value": "细框眼镜",
+          "pred_category": "accessory",
           "gt_name": "黑色手套",
           "gt_value": "双手佩戴黑色手套，覆盖至手腕以上，手指部分贴合手型，无多余装饰。",
-          "similarity": 0.5281
+          "similarity": 0.5088
         },
         {
-          "pred_name": "外套",
-          "pred_value": "红褐色长款开衫外套，衣摆及袖口处饰有金色的云纹图案装饰",
+          "pred_name": "面部纹路",
+          "pred_value": "左眼下方有一道垂直的深色线条（伤疤或纹身）",
+          "pred_category": "face",
           "gt_name": "红色长外套与金色火焰纹饰",
           "gt_value": "穿着一件红色长外套，下摆和肩部有金色的火焰状纹饰，纹饰边缘清晰，不能遗漏。",
-          "similarity": 0.7052
+          "similarity": 0.5024
         },
         {
-          "pred_name": "内搭衣物",
-          "pred_value": "白色高领护甲式上衣，具有层叠的褶皱设计，下方搭配米色/浅褐色的衣物",
-          "gt_name": "白色高领内衬与骷髅腰带",
-          "gt_value": "内穿白色高领衬衫，腰部系着一条黑色腰带，中央有一个银色骷髅头装饰，必须准确绘制。",
-          "similarity": 0.6899
-        },
-        {
-          "pred_name": "腰部配饰",
-          "pred_value": "黑色宽腰带或腹部护具，正中央印有醒目的白色骷髅头图案",
+          "pred_name": "红色长外套",
+          "pred_value": "红色开襟长袍，袖口和下摆处有金色云纹装饰",
+          "pred_category": "clothing",
           "gt_name": "蓝色灯笼裤与红色靴套",
           "gt_value": "下身穿着宽松的蓝色灯笼裤，脚踝处有红色布料包裹的靴套，与外套颜色呼应，靴套顶部有褶皱细节。",
-          "similarity": 0.5446
+          "similarity": 0.6002
+        },
+        {
+          "pred_name": "白色高领内搭",
+          "pred_value": "白色多层叠穿的高领上衣，下摆露出米色底层",
+          "pred_category": "clothing",
+          "gt_name": "白色高领内衬与骷髅腰带",
+          "gt_value": "内穿白色高领衬衫，腰部系着一条黑色腰带，中央有一个银色骷髅头装饰，必须准确绘制。",
+          "similarity": 0.6977
         }
       ],
       "unmatched_pred": [
         {
-          "name": "下装",
-          "value": "深蓝色宽松灯笼裤，裤脚处收紧"
-        },
-        {
-          "name": "鞋履",
-          "value": "红色短靴套搭配深灰色尖头鞋"
+          "name": "胡须",
+          "value": "下巴处有黑色山羊胡",
+          "category": "face"
         },
         {
           "name": "项链",
-          "value": "黑色细绳项链，悬挂一颗红色的水滴状吊坠"
+          "value": "黑色细绳，挂有红色吊坠",
+          "category": "accessory"
+        },
+        {
+          "name": "骷髅腰带",
+          "value": "黑色宽腰带/护腹，中央印有银色骷髅头图案",
+          "category": "clothing"
+        },
+        {
+          "name": "蓝色长裤",
+          "value": "深蓝色宽松灯笼裤，裤脚收紧",
+          "category": "clothing"
+        },
+        {
+          "name": "黑色手套",
+          "value": "黑色露指手套",
+          "category": "accessory"
+        },
+        {
+          "name": "红黑短靴",
+          "value": "脚踝处为红色包裹设计，鞋头及鞋底为深灰色/黑色",
+          "category": "footwear"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "深棕色短发向上竖起，呈现凌乱刺状，左侧（观众视角右侧）有一撮明显的白色挑染"
+          "name": "头发",
+          "value": "深棕色短发，左侧（画面右侧）有一撮明显的白发",
+          "category": "hair"
         },
         {
-          "name": "面部特征",
-          "value": "深色眼睛，眼神略显疲惫或凶狠，左眼下方有一条垂直的伤疤或纹路，右眉上方也有痕迹，下巴留着短胡须"
+          "name": "眼镜",
+          "value": "细框眼镜",
+          "category": "accessory"
         },
         {
-          "name": "外套",
-          "value": "红褐色长款开衫外套，衣摆及袖口处饰有金色的云纹图案装饰"
+          "name": "胡须",
+          "value": "下巴处有黑色山羊胡",
+          "category": "face"
         },
         {
-          "name": "内搭衣物",
-          "value": "白色高领护甲式上衣，具有层叠的褶皱设计，下方搭配米色/浅褐色的衣物"
+          "name": "面部纹路",
+          "value": "左眼下方有一道垂直的深色线条（伤疤或纹身）",
+          "category": "face"
         },
         {
-          "name": "腰部配饰",
-          "value": "黑色宽腰带或腹部护具，正中央印有醒目的白色骷髅头图案"
+          "name": "红色长外套",
+          "value": "红色开襟长袍，袖口和下摆处有金色云纹装饰",
+          "category": "clothing"
         },
         {
-          "name": "下装",
-          "value": "深蓝色宽松灯笼裤，裤脚处收紧"
-        },
-        {
-          "name": "鞋履",
-          "value": "红色短靴套搭配深灰色尖头鞋"
+          "name": "白色高领内搭",
+          "value": "白色多层叠穿的高领上衣，下摆露出米色底层",
+          "category": "clothing"
         },
         {
           "name": "项链",
-          "value": "黑色细绳项链，悬挂一颗红色的水滴状吊坠"
+          "value": "黑色细绳，挂有红色吊坠",
+          "category": "accessory"
+        },
+        {
+          "name": "骷髅腰带",
+          "value": "黑色宽腰带/护腹，中央印有银色骷髅头图案",
+          "category": "clothing"
+        },
+        {
+          "name": "蓝色长裤",
+          "value": "深蓝色宽松灯笼裤，裤脚收紧",
+          "category": "clothing"
+        },
+        {
+          "name": "黑色手套",
+          "value": "黑色露指手套",
+          "category": "accessory"
+        },
+        {
+          "name": "红黑短靴",
+          "value": "脚踝处为红色包裹设计，鞋头及鞋底为深灰色/黑色",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -242,76 +320,75 @@
           "value": "双手佩戴黑色手套，覆盖至手腕以上，手指部分贴合手型，无多余装饰。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"深棕色短发向上竖起，呈现凌乱刺状，左侧（观众视角右侧）有一撮明显的白色挑染\"\n    },\n    {\n      \"name\": \"面部特征\",\n      \"value\": \"深色眼睛，眼神略显疲惫或凶狠，左眼下方有一条垂直的伤疤或纹路，右眉上方也有痕迹，下巴留着短胡须\"\n    },\n    {\n      \"name\": \"外套\",\n      \"value\": \"红褐色长款开衫外套，衣摆及袖口处饰有金色的云纹图案装饰\"\n    },\n    {\n      \"name\": \"内搭衣物\",\n      \"value\": \"白色高领护甲式上衣，具有层叠的褶皱设计，下方搭配米色/浅褐色的衣物\"\n    },\n    {\n      \"name\": \"腰部配饰\",\n      \"value\": \"黑色宽腰带或腹部护具，正中央印有醒目的白色骷髅头图案\"\n    },\n    {\n      \"name\": \"下装\",\n      \"value\": \"深蓝色宽松灯笼裤，裤脚处收紧\"\n    },\n    {\n      \"name\": \"鞋履\",\n      \"value\": \"红色短靴套搭配深灰色尖头鞋\"\n    },\n    {\n      \"name\": \"项链\",\n      \"value\": \"黑色细绳项链，悬挂一颗红色的水滴状吊坠\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 21.1
+      "_raw_model_output": "",
+      "_inference_time_s": 5.6
     },
     {
       "sample_id": "char_003",
       "gt_element_count": 4,
-      "pred_element_count": 5,
+      "pred_element_count": 4,
       "matched_count": 4,
-      "unmatched_pred_count": 1,
+      "unmatched_pred_count": 0,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6342,
+      "avg_similarity": 0.8467,
       "coverage": 1.0,
-      "precision": 0.8,
+      "precision": 1.0,
       "matches": [
         {
           "pred_name": "发型与发色",
-          "pred_value": "浅棕色（或金棕色）头发，扎成高丸子头位于头顶后方。额前和脸颊两侧留有垂下的刘海碎发，头顶有一撮明显的翘起呆毛。",
+          "pred_value": "浅棕色高马尾（或丸子头），前额有刘海，两侧留有鬓角，头顶有一撮呆毛。",
+          "pred_category": "hair",
           "gt_name": "棕色高马尾",
           "gt_value": "头发为棕色，扎成一个高高的马尾辫，有头帘遮挡额头，发束蓬松自然。",
-          "similarity": 0.7373
+          "similarity": 0.7566
         },
         {
-          "pred_name": "眼睛特征",
-          "pred_value": "深褐色或黑色的大眼睛，形状为圆润的杏眼，眼角微微下垂，眼神显得温和且带有笑意，瞳孔中有明显的高光。",
-          "gt_name": "绿色百褶短裙",
-          "gt_value": "下身搭配一条绿色的百褶短裙，裙摆呈自然放射状褶皱，长度在膝盖以上。",
-          "similarity": 0.4791
-        },
-        {
-          "pred_name": "上衣设计",
-          "pred_value": "淡黄色圆领短袖T恤。胸前印有一个巨大的三角形饭团（Onigiri）图案，饭团主体为白色，中间有一条横向的黑色海苔带作为装饰。",
+          "pred_name": "黄色饭团图案T恤",
+          "pred_value": "黄色短袖圆领T恤，胸前印有巨大的白色三角形饭团图案（中间有黑色海苔条）。",
+          "pred_category": "clothing",
           "gt_name": "黄色T恤与饭团图案",
           "gt_value": "穿着一件纯黄色短袖T恤，胸前印有一个白色的饭团图案，饭团中间有一块黑色的海苔.",
-          "similarity": 0.7631
+          "similarity": 0.9371
         },
         {
-          "pred_name": "下装款式",
-          "pred_value": "草绿色的百褶短裙，裙长至大腿中部，面料看起来有自然的垂坠感和褶皱细节。",
+          "pred_name": "绿色短裙",
+          "pred_value": "草绿色百褶短裙（或运动短裤裙），长度在大腿中部。",
+          "pred_category": "clothing",
+          "gt_name": "绿色百褶短裙",
+          "gt_value": "下身搭配一条绿色的百褶短裙，裙摆呈自然放射状褶皱，长度在膝盖以上。",
+          "similarity": 0.8698
+        },
+        {
+          "pred_name": "运动鞋",
+          "pred_value": "白色为主色调的运动鞋，配有黄色鞋带和鞋底边缘装饰。",
+          "pred_category": "footwear",
           "gt_name": "黄绿配色运动鞋",
           "gt_value": "脚穿一双黄绿色调的运动鞋，鞋带为黄色，鞋底和侧面有深色装饰粗线条。",
-          "similarity": 0.5575
+          "similarity": 0.8233
         }
       ],
-      "unmatched_pred": [
-        {
-          "name": "鞋履",
-          "value": "白色为主色调的运动鞋或帆布鞋，配有黄色的鞋带（或装饰线条）以及黑色的鞋底边缘和侧面细节。"
-        }
-      ],
+      "unmatched_pred": [],
       "unmatched_gt": [],
       "pred_elements": [
         {
           "name": "发型与发色",
-          "value": "浅棕色（或金棕色）头发，扎成高丸子头位于头顶后方。额前和脸颊两侧留有垂下的刘海碎发，头顶有一撮明显的翘起呆毛。"
+          "value": "浅棕色高马尾（或丸子头），前额有刘海，两侧留有鬓角，头顶有一撮呆毛。",
+          "category": "hair"
         },
         {
-          "name": "眼睛特征",
-          "value": "深褐色或黑色的大眼睛，形状为圆润的杏眼，眼角微微下垂，眼神显得温和且带有笑意，瞳孔中有明显的高光。"
+          "name": "黄色饭团图案T恤",
+          "value": "黄色短袖圆领T恤，胸前印有巨大的白色三角形饭团图案（中间有黑色海苔条）。",
+          "category": "clothing"
         },
         {
-          "name": "上衣设计",
-          "value": "淡黄色圆领短袖T恤。胸前印有一个巨大的三角形饭团（Onigiri）图案，饭团主体为白色，中间有一条横向的黑色海苔带作为装饰。"
+          "name": "绿色短裙",
+          "value": "草绿色百褶短裙（或运动短裤裙），长度在大腿中部。",
+          "category": "clothing"
         },
         {
-          "name": "下装款式",
-          "value": "草绿色的百褶短裙，裙长至大腿中部，面料看起来有自然的垂坠感和褶皱细节。"
-        },
-        {
-          "name": "鞋履",
-          "value": "白色为主色调的运动鞋或帆布鞋，配有黄色的鞋带（或装饰线条）以及黑色的鞋底边缘和侧面细节。"
+          "name": "运动鞋",
+          "value": "白色为主色调的运动鞋，配有黄色鞋带和鞋底边缘装饰。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -332,83 +409,112 @@
           "value": "脚穿一双黄绿色调的运动鞋，鞋带为黄色，鞋底和侧面有深色装饰粗线条。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"浅棕色（或金棕色）头发，扎成高丸子头位于头顶后方。额前和脸颊两侧留有垂下的刘海碎发，头顶有一撮明显的翘起呆毛。\"\n    },\n    {\n      \"name\": \"眼睛特征\",\n      \"value\": \"深褐色或黑色的大眼睛，形状为圆润的杏眼，眼角微微下垂，眼神显得温和且带有笑意，瞳孔中有明显的高光。\"\n    },\n    {\n      \"name\": \"上衣设计\",\n      \"value\": \"淡黄色圆领短袖T恤。胸前印有一个巨大的三角形饭团（Onigiri）图案，饭团主体为白色，中间有一条横向的黑色海苔带作为装饰。\"\n    },\n    {\n      \"name\": \"下装款式\",\n      \"value\": \"草绿色的百褶短裙，裙长至大腿中部，面料看起来有自然的垂坠感和褶皱细节。\"\n    },\n    {\n      \"name\": \"鞋履\",\n      \"value\": \"白色为主色调的运动鞋或帆布鞋，配有黄色的鞋带（或装饰线条）以及黑色的鞋底边缘和侧面细节。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 21.1
+      "_raw_model_output": "",
+      "_inference_time_s": 5.3
     },
     {
       "sample_id": "char_004",
       "gt_element_count": 6,
-      "pred_element_count": 5,
-      "matched_count": 5,
-      "unmatched_pred_count": 0,
-      "unmatched_gt_count": 1,
-      "avg_similarity": 0.7928,
-      "coverage": 0.8333,
-      "precision": 1.0,
+      "pred_element_count": 7,
+      "matched_count": 6,
+      "unmatched_pred_count": 1,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.7915,
+      "coverage": 1.0,
+      "precision": 0.8571,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有一头蓬松的浅亚麻色（或米金色）长卷发，头发长度及腰。前额留有厚重的刘海，两侧有较长的鬓角垂落在脸颊旁，整体发丝带有明显的高光质感，显得柔顺且有光泽。",
+          "pred_name": "头发",
+          "pred_value": "浅棕色长发，带有刘海和侧边鬓角",
+          "pred_category": "hair",
           "gt_name": "浅棕色长发",
           "gt_value": "角色拥有蓬松的浅棕色长发，发丝带有自然光泽和层次感，刘海部分覆盖额头，发尾微卷。",
-          "similarity": 0.8021
-        },
-        {
-          "pred_name": "眼睛颜色与形状",
-          "pred_value": "角色拥有一双大而明亮的动漫风格眼睛，虹膜呈现深邃的蓝紫色（或深蓝色），瞳孔中有明显的白色高光反射，眼神看起来温柔且略带惊讶。眼型略微下垂，睫毛浓密。",
-          "gt_name": "蓝色眼睛",
-          "gt_value": "眼睛为深邃的蓝色，瞳孔较大，眼神明亮，眼白部分清晰，有高光点缀。",
-          "similarity": 0.7688
-        },
-        {
-          "pred_name": "外套",
-          "pred_value": "角色身穿一件浅粉色的西装式外套，外套处于敞开状态。袖口处有深蓝色或黑色的宽边滚饰，肩部线条柔和，整体风格偏向学院风或制服风。",
-          "gt_name": "粉色外套与黑色袖口",
-          "gt_value": "外穿一件浅粉色短款外套，袖口为黑色，边缘有滚边，外套下摆略高于裙摆。",
-          "similarity": 0.7536
-        },
-        {
-          "pred_name": "内搭连衣裙与领结",
-          "pred_value": "在外套里面穿着一件白色的连衣短裙（或背心裙）。领口正中央系着一个醒目的亮粉色大蝴蝶结。裙子腰部有收腰设计，下摆为百褶裙样式，裙边带有深色的格纹或条纹装饰细节。",
-          "gt_name": "白色连衣裙与绿色内衬",
-          "gt_value": "穿着一件白色百褶连衣裙，领口和袖口有淡绿色内衬装饰，裙摆呈A字形，层次分明。",
-          "similarity": 0.8022
+          "similarity": 0.795
         },
         {
           "pred_name": "发饰",
-          "pred_value": "在角色头部左侧（观众视角的右侧）头发上别着一个精致的发夹。该发饰主体为一个蓝色的圆形宝石或珠子，周围环绕着金色的金属边框，显得十分精致可爱。",
+          "pred_value": "右侧头发上佩戴的带有蓝色圆形宝石的金属发夹",
+          "pred_category": "accessory",
           "gt_name": "发饰（蓝色宝石发夹）",
           "gt_value": "左侧头发上佩戴一个镶嵌蓝色宝石的精致发夹，造型小巧，是角色标志性配饰，必须准确绘制。",
-          "similarity": 0.8374
-        }
-      ],
-      "unmatched_pred": [],
-      "unmatched_gt": [
+          "similarity": 0.8221
+        },
         {
-          "name": "粉色蝴蝶结领结",
-          "value": "胸前系有一个大而饱满的粉色蝴蝶结，位置居中，边缘有褶皱细节，颜色鲜艳。"
+          "pred_name": "眼睛",
+          "pred_value": "蓝紫色大眼睛，瞳孔中有明显高光",
+          "pred_category": "face",
+          "gt_name": "蓝色眼睛",
+          "gt_value": "眼睛为深邃的蓝色，瞳孔较大，眼神明亮，眼白部分清晰，有高光点缀。",
+          "similarity": 0.8243
+        },
+        {
+          "pred_name": "外套",
+          "pred_value": "粉色长袖外套，领口和袖口有深蓝色滚边",
+          "pred_category": "clothing",
+          "gt_name": "粉色外套与黑色袖口",
+          "gt_value": "外穿一件浅粉色短款外套，袖口为黑色，边缘有滚边，外套下摆略高于裙摆。",
+          "similarity": 0.7718
+        },
+        {
+          "pred_name": "领结",
+          "pred_value": "胸前佩戴的粉红色大蝴蝶结",
+          "pred_category": "accessory",
+          "gt_name": "粉色蝴蝶结领结",
+          "gt_value": "胸前系有一个大而饱满的粉色蝴蝶结，位置居中，边缘有褶皱细节，颜色鲜艳。",
+          "similarity": 0.7859
+        },
+        {
+          "pred_name": "裙子",
+          "pred_value": "白色百褶裙，裙摆边缘有深色滚边",
+          "pred_category": "clothing",
+          "gt_name": "白色连衣裙与绿色内衬",
+          "gt_value": "穿着一件白色百褶连衣裙，领口和袖口有淡绿色内衬装饰，裙摆呈A字形，层次分明。",
+          "similarity": 0.7502
         }
       ],
+      "unmatched_pred": [
+        {
+          "name": "腰带",
+          "value": "腰部系着的浅蓝灰色宽腰带",
+          "category": "accessory"
+        }
+      ],
+      "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有一头蓬松的浅亚麻色（或米金色）长卷发，头发长度及腰。前额留有厚重的刘海，两侧有较长的鬓角垂落在脸颊旁，整体发丝带有明显的高光质感，显得柔顺且有光泽。"
-        },
-        {
-          "name": "眼睛颜色与形状",
-          "value": "角色拥有一双大而明亮的动漫风格眼睛，虹膜呈现深邃的蓝紫色（或深蓝色），瞳孔中有明显的白色高光反射，眼神看起来温柔且略带惊讶。眼型略微下垂，睫毛浓密。"
-        },
-        {
-          "name": "外套",
-          "value": "角色身穿一件浅粉色的西装式外套，外套处于敞开状态。袖口处有深蓝色或黑色的宽边滚饰，肩部线条柔和，整体风格偏向学院风或制服风。"
-        },
-        {
-          "name": "内搭连衣裙与领结",
-          "value": "在外套里面穿着一件白色的连衣短裙（或背心裙）。领口正中央系着一个醒目的亮粉色大蝴蝶结。裙子腰部有收腰设计，下摆为百褶裙样式，裙边带有深色的格纹或条纹装饰细节。"
+          "name": "头发",
+          "value": "浅棕色长发，带有刘海和侧边鬓角",
+          "category": "hair"
         },
         {
           "name": "发饰",
-          "value": "在角色头部左侧（观众视角的右侧）头发上别着一个精致的发夹。该发饰主体为一个蓝色的圆形宝石或珠子，周围环绕着金色的金属边框，显得十分精致可爱。"
+          "value": "右侧头发上佩戴的带有蓝色圆形宝石的金属发夹",
+          "category": "accessory"
+        },
+        {
+          "name": "眼睛",
+          "value": "蓝紫色大眼睛，瞳孔中有明显高光",
+          "category": "face"
+        },
+        {
+          "name": "外套",
+          "value": "粉色长袖外套，领口和袖口有深蓝色滚边",
+          "category": "clothing"
+        },
+        {
+          "name": "领结",
+          "value": "胸前佩戴的粉红色大蝴蝶结",
+          "category": "accessory"
+        },
+        {
+          "name": "裙子",
+          "value": "白色百褶裙，裙摆边缘有深色滚边",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "腰部系着的浅蓝灰色宽腰带",
+          "category": "accessory"
         }
       ],
       "gt_elements": [
@@ -437,8 +543,8 @@
           "value": "外穿一件浅粉色短款外套，袖口为黑色，边缘有滚边，外套下摆略高于裙摆。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有一头蓬松的浅亚麻色（或米金色）长卷发，头发长度及腰。前额留有厚重的刘海，两侧有较长的鬓角垂落在脸颊旁，整体发丝带有明显的高光质感，显得柔顺且有光泽。\"\n    },\n    {\n      \"name\": \"眼睛颜色与形状\",\n      \"value\": \"角色拥有一双大而明亮的动漫风格眼睛，虹膜呈现深邃的蓝紫色（或深蓝色），瞳孔中有明显的白色高光反射，眼神看起来温柔且略带惊讶。眼型略微下垂，睫毛浓密。\"\n    },\n    {\n      \"name\": \"外套\",\n      \"value\": \"角色身穿一件浅粉色的西装式外套，外套处于敞开状态。袖口处有深蓝色或黑色的宽边滚饰，肩部线条柔和，整体风格偏向学院风或制服风。\"\n    },\n    {\n      \"name\": \"内搭连衣裙与领结\",\n      \"value\": \"在外套里面穿着一件白色的连衣短裙（或背心裙）。领口正中央系着一个醒目的亮粉色大蝴蝶结。裙子腰部有收腰设计，下摆为百褶裙样式，裙边带有深色的格纹或条纹装饰细节。\"\n    },\n    {\n      \"name\": \"发饰\",\n      \"value\": \"在角色头部左侧（观众视角的右侧）头发上别着一个精致的发夹。该发饰主体为一个蓝色的圆形宝石或珠子，周围环绕着金色的金属边框，显得十分精致可爱。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 19.8
+      "_raw_model_output": "",
+      "_inference_time_s": 3.4
     },
     {
       "sample_id": "char_005",
@@ -447,96 +553,112 @@
       "matched_count": 6,
       "unmatched_pred_count": 2,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6804,
+      "avg_similarity": 0.7381,
       "coverage": 1.0,
       "precision": 0.75,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "浅紫色（或淡薰衣草色）的短发，头发向后梳理呈现出背头的样式，额前留有少许刘海，整体造型显得干练且略带凌乱感。",
+          "pred_name": "头发",
+          "pred_value": "浅紫色/银白色短发，向后梳理的背头造型，刘海向一侧偏分。",
+          "pred_category": "hair",
           "gt_name": "银白色短发",
           "gt_value": "角色拥有银白色的短发，发型蓬松有层次感，发梢略微翘起，需注意发丝的走向和高光处理。",
-          "similarity": 0.7116
+          "similarity": 0.7542
         },
         {
-          "pred_name": "眼睛与眉毛",
-          "pred_value": "拥有深色的瞳孔，眼神锐利且带有一丝傲慢或自信的神情。眉毛细长且微微上扬，眼角略微下垂，增加了面部的立体感和冷峻气质。",
-          "gt_name": "黑色领结",
-          "gt_value": "颈部佩戴一个经典的黑色领结，位于高领正中央，形状对称，材质应体现丝绒质感。",
-          "similarity": 0.529
-        },
-        {
-          "pred_name": "白色长款燕尾服外套",
-          "pred_value": "一件纯白色的长款西装外套，设计为高立领（类似大翻领），下摆非常长且呈开叉状延伸至膝盖附近，袖口处有金色的装饰线条。",
+          "pred_name": "外套",
+          "pred_value": "白色长款燕尾服外套，高立领设计，衣摆呈燕尾状分开，袖口有金色线条装饰。",
+          "pred_category": "clothing",
           "gt_name": "白色长礼服与燕尾设计",
           "gt_value": "穿着一件纯白色长礼服，后摆呈燕尾状自然垂下，衣领为高立领，整体剪裁修身，边缘线条流畅。",
-          "similarity": 0.8599
+          "similarity": 0.7494
         },
         {
-          "pred_name": "浅灰蓝色马甲",
-          "pred_value": "外套内穿着一件浅灰蓝色的修身马甲，正面有一排黑色的纽扣，剪裁合身，勾勒出上半身的线条。",
+          "pred_name": "马甲",
+          "pred_value": "浅灰蓝色V领马甲，正面有一排纽扣。",
+          "pred_category": "clothing",
           "gt_name": "灰色马甲与金色链条",
           "gt_value": "内搭浅灰色马甲，前襟有三颗纽扣，胸前挂有一条细长的金色链条，链条末端连接在腰间。",
-          "similarity": 0.756
+          "similarity": 0.7629
         },
         {
-          "pred_name": "黑色蝴蝶结领结",
-          "pred_value": "颈部佩戴着一个纯黑色的蝴蝶结领结，位于白色衬衫领口处，与白色外套形成鲜明对比，增添正式感。",
-          "gt_name": "白色手套",
-          "gt_value": "双手佩戴白色手套，手套贴合手型，指关节处需绘制自然褶皱。",
-          "similarity": 0.5905
+          "pred_name": "领结",
+          "pred_value": "黑色蝴蝶结领结，佩戴在衬衫领口处。",
+          "pred_category": "accessory",
+          "gt_name": "黑色领结",
+          "gt_value": "颈部佩戴一个经典的黑色领结，位于高领正中央，形状对称，材质应体现丝绒质感。",
+          "similarity": 0.7738
         },
         {
-          "pred_name": "白色手套",
-          "pred_value": "双手佩戴着白色的长款手套，右手抬起置于胸前位置，左手自然下垂，手套覆盖了整个手掌和手腕部分。",
+          "pred_name": "裤子",
+          "pred_value": "浅灰色修身长裤，与马甲颜色相近。",
+          "pred_category": "clothing",
           "gt_name": "白色皮鞋",
           "gt_value": "脚穿一双简洁的白色皮鞋，鞋面光滑，鞋头圆润，鞋带为隐藏式或无鞋带设计。",
-          "similarity": 0.6354
+          "similarity": 0.5522
+        },
+        {
+          "pred_name": "手套",
+          "pred_value": "白色手套，覆盖手部及手腕部分。",
+          "pred_category": "accessory",
+          "gt_name": "白色手套",
+          "gt_value": "双手佩戴白色手套，手套贴合手型，指关节处需绘制自然褶皱。",
+          "similarity": 0.8359
         }
       ],
       "unmatched_pred": [
         {
-          "name": "金色腰链",
-          "value": "腰间系有一条细细的金色链条（类似怀表链），从马甲左侧腰部延伸出来，呈弧形垂落在身前，增加了细节装饰。"
+          "name": "鞋子",
+          "value": "白色尖头皮鞋。",
+          "category": "footwear"
         },
         {
-          "name": "浅灰色长裤与皮鞋",
-          "value": "下身穿着浅灰色的修身长裤，裤线笔直。脚踩一双白色的尖头皮鞋，整体色调与上衣保持一致，显得整洁优雅。"
+          "name": "腰间链条",
+          "value": "金色细链条，垂挂在腰部前方，连接在腰侧。",
+          "category": "accessory"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "浅紫色（或淡薰衣草色）的短发，头发向后梳理呈现出背头的样式，额前留有少许刘海，整体造型显得干练且略带凌乱感。"
+          "name": "头发",
+          "value": "浅紫色/银白色短发，向后梳理的背头造型，刘海向一侧偏分。",
+          "category": "hair"
         },
         {
-          "name": "眼睛与眉毛",
-          "value": "拥有深色的瞳孔，眼神锐利且带有一丝傲慢或自信的神情。眉毛细长且微微上扬，眼角略微下垂，增加了面部的立体感和冷峻气质。"
+          "name": "外套",
+          "value": "白色长款燕尾服外套，高立领设计，衣摆呈燕尾状分开，袖口有金色线条装饰。",
+          "category": "clothing"
         },
         {
-          "name": "白色长款燕尾服外套",
-          "value": "一件纯白色的长款西装外套，设计为高立领（类似大翻领），下摆非常长且呈开叉状延伸至膝盖附近，袖口处有金色的装饰线条。"
+          "name": "马甲",
+          "value": "浅灰蓝色V领马甲，正面有一排纽扣。",
+          "category": "clothing"
         },
         {
-          "name": "浅灰蓝色马甲",
-          "value": "外套内穿着一件浅灰蓝色的修身马甲，正面有一排黑色的纽扣，剪裁合身，勾勒出上半身的线条。"
+          "name": "领结",
+          "value": "黑色蝴蝶结领结，佩戴在衬衫领口处。",
+          "category": "accessory"
         },
         {
-          "name": "黑色蝴蝶结领结",
-          "value": "颈部佩戴着一个纯黑色的蝴蝶结领结，位于白色衬衫领口处，与白色外套形成鲜明对比，增添正式感。"
+          "name": "裤子",
+          "value": "浅灰色修身长裤，与马甲颜色相近。",
+          "category": "clothing"
         },
         {
-          "name": "白色手套",
-          "value": "双手佩戴着白色的长款手套，右手抬起置于胸前位置，左手自然下垂，手套覆盖了整个手掌和手腕部分。"
+          "name": "手套",
+          "value": "白色手套，覆盖手部及手腕部分。",
+          "category": "accessory"
         },
         {
-          "name": "金色腰链",
-          "value": "腰间系有一条细细的金色链条（类似怀表链），从马甲左侧腰部延伸出来，呈弧形垂落在身前，增加了细节装饰。"
+          "name": "鞋子",
+          "value": "白色尖头皮鞋。",
+          "category": "footwear"
         },
         {
-          "name": "浅灰色长裤与皮鞋",
-          "value": "下身穿着浅灰色的修身长裤，裤线笔直。脚踩一双白色的尖头皮鞋，整体色调与上衣保持一致，显得整洁优雅。"
+          "name": "腰间链条",
+          "value": "金色细链条，垂挂在腰部前方，连接在腰侧。",
+          "category": "accessory"
         }
       ],
       "gt_elements": [
@@ -565,89 +687,132 @@
           "value": "脚穿一双简洁的白色皮鞋，鞋面光滑，鞋头圆润，鞋带为隐藏式或无鞋带设计。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"浅紫色（或淡薰衣草色）的短发，头发向后梳理呈现出背头的样式，额前留有少许刘海，整体造型显得干练且略带凌乱感。\"\n    },\n    {\n      \"name\": \"眼睛与眉毛\",\n      \"value\": \"拥有深色的瞳孔，眼神锐利且带有一丝傲慢或自信的神情。眉毛细长且微微上扬，眼角略微下垂，增加了面部的立体感和冷峻气质。\"\n    },\n    {\n      \"name\": \"白色长款燕尾服外套\",\n      \"value\": \"一件纯白色的长款西装外套，设计为高立领（类似大翻领），下摆非常长且呈开叉状延伸至膝盖附近，袖口处有金色的装饰线条。\"\n    },\n    {\n      \"name\": \"浅灰蓝色马甲\",\n      \"value\": \"外套内穿着一件浅灰蓝色的修身马甲，正面有一排黑色的纽扣，剪裁合身，勾勒出上半身的线条。\"\n    },\n    {\n      \"name\": \"黑色蝴蝶结领结\",\n      \"value\": \"颈部佩戴着一个纯黑色的蝴蝶结领结，位于白色衬衫领口处，与白色外套形成鲜明对比，增添正式感。\"\n    },\n    {\n      \"name\": \"白色手套\",\n      \"value\": \"双手佩戴着白色的长款手套，右手抬起置于胸前位置，左手自然下垂，手套覆盖了整个手掌和手腕部分。\"\n    },\n    {\n      \"name\": \"金色腰链\",\n      \"value\": \"腰间系有一条细细的金色链条（类似怀表链），从马甲左侧腰部延伸出来，呈弧形垂落在身前，增加了细节装饰。\"\n    },\n    {\n      \"name\": \"浅灰色长裤与皮鞋\",\n      \"value\": \"下身穿着浅灰色的修身长裤，裤线笔直。脚踩一双白色的尖头皮鞋，整体色调与上衣保持一致，显得整洁优雅。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 22.4
+      "_raw_model_output": "",
+      "_inference_time_s": 5.8
     },
     {
       "sample_id": "char_006",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 9,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 3,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.721,
+      "avg_similarity": 0.6957,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.6667,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "深褐色或黑色的长卷发，头发长度及肩或稍过肩，带有自然的波浪卷曲。前额留有刘海，两侧有较长的鬓角垂下修饰脸型。",
+          "pred_name": "头发",
+          "pred_value": "深色长发，两侧有卷曲的发束垂在胸前",
+          "pred_category": "hair",
           "gt_name": "双麻花辫发型",
           "gt_value": "深色长发编成两撮对称的卷发，自然垂在胸前两侧，后面头发略显蓬松。",
-          "similarity": 0.7419
+          "similarity": 0.7363
         },
         {
           "pred_name": "帽子",
-          "pred_value": "戴着一顶米白色或浅黄色的宽檐软帽（类似渔夫帽款式），帽子边缘略微下垂，遮挡了部分额头和头顶。",
+          "pred_value": "米白色宽檐软帽，帽檐向下弯曲",
+          "pred_category": "headwear",
           "gt_name": "米色帽子与太阳镜",
           "gt_value": "头戴一顶米色宽檐帽，搭配深色圆形太阳镜，遮挡部分面部，增添神秘感。",
-          "similarity": 0.7835
+          "similarity": 0.7186
         },
         {
-          "pred_name": "墨镜",
-          "pred_value": "面部佩戴一副深色镜片的太阳镜，遮住了眼部区域，镜框看起来比较纤细，呈现出一种神秘或时尚的气质。",
-          "gt_name": "浅紫色手提包",
-          "gt_value": "左手挎着一个浅紫色的手提包，包型简约，肩带细长，颜色与服装形成柔和对比。",
-          "similarity": 0.5561
-        },
-        {
-          "pred_name": "服装（套装裙）",
-          "pred_value": "身穿一套淡紫色（或浅灰蓝色）的修身职业套装。上身是短袖V领设计，领口处露出白色的内衬边缘；下身是同色系的及膝直筒铅笔裙。腰部系有一条带有银色方形金属扣环的浅色腰带，勾勒出腰线。",
+          "pred_name": "上衣",
+          "pred_value": "淡紫色短袖西装外套，V领设计，修身剪裁",
+          "pred_category": "clothing",
           "gt_name": "浅紫色套装",
           "gt_value": "穿着一套浅紫色的短袖西装外套和及膝铅笔裙，整体剪裁修身，外套为V领交叉设计。",
-          "similarity": 0.7766
+          "similarity": 0.7363
         },
         {
-          "pred_name": "鞋子",
-          "pred_value": "脚穿一双白色的尖头高跟鞋（或浅口皮鞋），鞋跟高度适中，与整体淡雅的色调相协调。",
+          "pred_name": "内搭",
+          "pred_value": "白色高领打底衫（仅可见领口部分）",
+          "pred_category": "clothing",
           "gt_name": "白色高跟鞋",
           "gt_value": "脚穿一双纯白色尖头高跟鞋，鞋跟高度适中，线条流畅，与整体优雅风格匹配。",
-          "similarity": 0.852
+          "similarity": 0.5916
         },
         {
-          "pred_name": "配饰（手提包）",
-          "pred_value": "左肩背着一个淡紫色或白色的单肩手提包，配有细长的肩带，包身呈长方形，设计简约。",
+          "pred_name": "腰带",
+          "pred_value": "米色/浅金色宽腰带，配有方形金属扣",
+          "pred_category": "accessory",
           "gt_name": "白色宽腰带",
           "gt_value": "腰部系有一条白色的宽腰带，带有金属搭扣，是造型的视觉焦点之一。",
-          "similarity": 0.6162
+          "similarity": 0.7906
+        },
+        {
+          "pred_name": "裙子",
+          "pred_value": "淡紫色及膝铅笔裙（包臀裙），与上衣同色系",
+          "pred_category": "clothing",
+          "gt_name": "浅紫色手提包",
+          "gt_value": "左手挎着一个浅紫色的手提包，包型简约，肩带细长，颜色与服装形成柔和对比。",
+          "similarity": 0.6006
         }
       ],
-      "unmatched_pred": [],
-      "unmatched_gt": [],
-      "pred_elements": [
-        {
-          "name": "发型发色",
-          "value": "深褐色或黑色的长卷发，头发长度及肩或稍过肩，带有自然的波浪卷曲。前额留有刘海，两侧有较长的鬓角垂下修饰脸型。"
-        },
-        {
-          "name": "帽子",
-          "value": "戴着一顶米白色或浅黄色的宽檐软帽（类似渔夫帽款式），帽子边缘略微下垂，遮挡了部分额头和头顶。"
-        },
+      "unmatched_pred": [
         {
           "name": "墨镜",
-          "value": "面部佩戴一副深色镜片的太阳镜，遮住了眼部区域，镜框看起来比较纤细，呈现出一种神秘或时尚的气质。"
+          "value": "黑色大框太阳镜，遮挡眼部",
+          "category": "accessory"
         },
         {
-          "name": "服装（套装裙）",
-          "value": "身穿一套淡紫色（或浅灰蓝色）的修身职业套装。上身是短袖V领设计，领口处露出白色的内衬边缘；下身是同色系的及膝直筒铅笔裙。腰部系有一条带有银色方形金属扣环的浅色腰带，勾勒出腰线。"
+          "name": "手提包",
+          "value": "淡紫色单肩手提包，配有细肩带",
+          "category": "prop"
         },
         {
           "name": "鞋子",
-          "value": "脚穿一双白色的尖头高跟鞋（或浅口皮鞋），鞋跟高度适中，与整体淡雅的色调相协调。"
+          "value": "白色浅口高跟鞋",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "深色长发，两侧有卷曲的发束垂在胸前",
+          "category": "hair"
         },
         {
-          "name": "配饰（手提包）",
-          "value": "左肩背着一个淡紫色或白色的单肩手提包，配有细长的肩带，包身呈长方形，设计简约。"
+          "name": "帽子",
+          "value": "米白色宽檐软帽，帽檐向下弯曲",
+          "category": "headwear"
+        },
+        {
+          "name": "墨镜",
+          "value": "黑色大框太阳镜，遮挡眼部",
+          "category": "accessory"
+        },
+        {
+          "name": "上衣",
+          "value": "淡紫色短袖西装外套，V领设计，修身剪裁",
+          "category": "clothing"
+        },
+        {
+          "name": "内搭",
+          "value": "白色高领打底衫（仅可见领口部分）",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "米色/浅金色宽腰带，配有方形金属扣",
+          "category": "accessory"
+        },
+        {
+          "name": "裙子",
+          "value": "淡紫色及膝铅笔裙（包臀裙），与上衣同色系",
+          "category": "clothing"
+        },
+        {
+          "name": "手提包",
+          "value": "淡紫色单肩手提包，配有细肩带",
+          "category": "prop"
+        },
+        {
+          "name": "鞋子",
+          "value": "白色浅口高跟鞋",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -676,78 +841,109 @@
           "value": "脚穿一双纯白色尖头高跟鞋，鞋跟高度适中，线条流畅，与整体优雅风格匹配。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"深褐色或黑色的长卷发，头发长度及肩或稍过肩，带有自然的波浪卷曲。前额留有刘海，两侧有较长的鬓角垂下修饰脸型。\"\n    },\n    {\n      \"name\": \"帽子\",\n      \"value\": \"戴着一顶米白色或浅黄色的宽檐软帽（类似渔夫帽款式），帽子边缘略微下垂，遮挡了部分额头和头顶。\"\n    },\n    {\n      \"name\": \"墨镜\",\n      \"value\": \"面部佩戴一副深色镜片的太阳镜，遮住了眼部区域，镜框看起来比较纤细，呈现出一种神秘或时尚的气质。\"\n    },\n    {\n      \"name\": \"服装（套装裙）\",\n      \"value\": \"身穿一套淡紫色（或浅灰蓝色）的修身职业套装。上身是短袖V领设计，领口处露出白色的内衬边缘；下身是同色系的及膝直筒铅笔裙。腰部系有一条带有银色方形金属扣环的浅色腰带，勾勒出腰线。\"\n    },\n    {\n      \"name\": \"鞋子\",\n      \"value\": \"脚穿一双白色的尖头高跟鞋（或浅口皮鞋），鞋跟高度适中，与整体淡雅的色调相协调。\"\n    },\n    {\n      \"name\": \"配饰（手提包）\",\n      \"value\": \"左肩背着一个淡紫色或白色的单肩手提包，配有细长的肩带，包身呈长方形，设计简约。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 23.8
+      "_raw_model_output": "",
+      "_inference_time_s": 3.2
     },
     {
       "sample_id": "char_007",
       "gt_element_count": 5,
-      "pred_element_count": 5,
+      "pred_element_count": 7,
       "matched_count": 5,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 2,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.7416,
+      "avg_similarity": 0.7584,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.7143,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有浅棕色（或亚麻色）的长发，头发被梳理成侧边的麻花辫，垂落在右肩前方。前额留有偏分的刘海，鬓角处有少许碎发修饰脸型。",
+          "pred_name": "发型",
+          "pred_value": "浅棕色长发，右侧编有一条侧边麻花辫垂于胸前。",
+          "pred_category": "hair",
           "gt_name": "棕色长发与侧边辫子",
           "gt_value": "角色拥有棕色长发，右侧头发编成一条侧边辫子，垂在肩前，发丝需表现自然光泽。",
-          "similarity": 0.7634
+          "similarity": 0.7673
         },
         {
-          "pred_name": "眼镜与眼睛",
-          "pred_value": "佩戴一副细金属边框的圆形眼镜。透过镜片可以看到一双大而明亮的深褐色眼睛，瞳孔中有明显的高光反射，眼神显得温和且自信。",
+          "pred_name": "眼镜",
+          "pred_value": "佩戴一副深色细边框圆形眼镜。",
+          "pred_category": "accessory",
           "gt_name": "圆形眼镜",
           "gt_value": "佩戴一副圆形镜框的眼镜，镜片透明，镜框为浅色金属材质，需准确绘制镜框轮廓和反光细节。",
-          "similarity": 0.7667
+          "similarity": 0.8048
         },
         {
-          "pred_name": "上身制服",
-          "pred_value": "穿着一件浅蓝色的西装外套（Blazer），左胸口处缝有一个金色的盾形校徽。内搭白色翻领衬衫，领口系着一个鲜艳的红色蝴蝶结领巾。外套正面有两颗黑色的纽扣。",
+          "pred_name": "西装外套",
+          "pred_value": "浅蓝色翻领西装外套，正面有三颗黑色纽扣，左胸处有金色校徽。",
+          "pred_category": "clothing",
           "gt_name": "蓝色西装外套与红色领结",
           "gt_value": "穿着一件浅蓝色西装外套，内搭白色衬衫并系着红色领结，领结需呈对称蝴蝶结形状，位于衣领正中。",
-          "similarity": 0.664
+          "similarity": 0.6908
         },
         {
-          "pred_name": "下身裙装",
-          "pred_value": "穿着一条灰色的百褶短裙，裙摆长度在大腿中部至膝盖上方，呈现出典型的日式学生制服风格。",
+          "pred_name": "短裙",
+          "pred_value": "灰色百褶短裙，长度至大腿中部。",
+          "pred_category": "clothing",
           "gt_name": "灰色百褶短裙",
           "gt_value": "下身穿着灰色百褶短裙，裙摆整齐，褶皱均匀分布，长度在膝盖以上。",
-          "similarity": 0.7628
+          "similarity": 0.848
         },
         {
-          "pred_name": "鞋袜配饰",
-          "pred_value": "腿部穿着深灰色（或蓝灰色）的中筒袜，高度及膝。脚上穿着一双棕色的皮质乐福鞋（Loafers），这是标准的学院风皮鞋款式。",
+          "pred_name": "中筒袜",
+          "pred_value": "深灰色中筒袜，长度至小腿肚。",
+          "pred_category": "footwear",
           "gt_name": "灰色长袜与棕色皮鞋",
           "gt_value": "穿着灰色长袜，袜口平整贴合小腿，搭配棕色皮鞋，鞋面有轻微光泽，鞋带需系紧并呈现自然褶皱。",
-          "similarity": 0.751
+          "similarity": 0.6811
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "领结",
+          "value": "红色大蝴蝶结，系于白色衬衫领口。",
+          "category": "clothing"
+        },
+        {
+          "name": "皮鞋",
+          "value": "棕色圆头乐福鞋（制服鞋）。",
+          "category": "footwear"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有浅棕色（或亚麻色）的长发，头发被梳理成侧边的麻花辫，垂落在右肩前方。前额留有偏分的刘海，鬓角处有少许碎发修饰脸型。"
+          "name": "发型",
+          "value": "浅棕色长发，右侧编有一条侧边麻花辫垂于胸前。",
+          "category": "hair"
         },
         {
-          "name": "眼镜与眼睛",
-          "value": "佩戴一副细金属边框的圆形眼镜。透过镜片可以看到一双大而明亮的深褐色眼睛，瞳孔中有明显的高光反射，眼神显得温和且自信。"
+          "name": "眼镜",
+          "value": "佩戴一副深色细边框圆形眼镜。",
+          "category": "accessory"
         },
         {
-          "name": "上身制服",
-          "value": "穿着一件浅蓝色的西装外套（Blazer），左胸口处缝有一个金色的盾形校徽。内搭白色翻领衬衫，领口系着一个鲜艳的红色蝴蝶结领巾。外套正面有两颗黑色的纽扣。"
+          "name": "西装外套",
+          "value": "浅蓝色翻领西装外套，正面有三颗黑色纽扣，左胸处有金色校徽。",
+          "category": "clothing"
         },
         {
-          "name": "下身裙装",
-          "value": "穿着一条灰色的百褶短裙，裙摆长度在大腿中部至膝盖上方，呈现出典型的日式学生制服风格。"
+          "name": "领结",
+          "value": "红色大蝴蝶结，系于白色衬衫领口。",
+          "category": "clothing"
         },
         {
-          "name": "鞋袜配饰",
-          "value": "腿部穿着深灰色（或蓝灰色）的中筒袜，高度及膝。脚上穿着一双棕色的皮质乐福鞋（Loafers），这是标准的学院风皮鞋款式。"
+          "name": "短裙",
+          "value": "灰色百褶短裙，长度至大腿中部。",
+          "category": "clothing"
+        },
+        {
+          "name": "中筒袜",
+          "value": "深灰色中筒袜，长度至小腿肚。",
+          "category": "footwear"
+        },
+        {
+          "name": "皮鞋",
+          "value": "棕色圆头乐福鞋（制服鞋）。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -772,89 +968,152 @@
           "value": "穿着灰色长袜，袜口平整贴合小腿，搭配棕色皮鞋，鞋面有轻微光泽，鞋带需系紧并呈现自然褶皱。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有浅棕色（或亚麻色）的长发，头发被梳理成侧边的麻花辫，垂落在右肩前方。前额留有偏分的刘海，鬓角处有少许碎发修饰脸型。\"\n    },\n    {\n      \"name\": \"眼镜与眼睛\",\n      \"value\": \"佩戴一副细金属边框的圆形眼镜。透过镜片可以看到一双大而明亮的深褐色眼睛，瞳孔中有明显的高光反射，眼神显得温和且自信。\"\n    },\n    {\n      \"name\": \"上身制服\",\n      \"value\": \"穿着一件浅蓝色的西装外套（Blazer），左胸口处缝有一个金色的盾形校徽。内搭白色翻领衬衫，领口系着一个鲜艳的红色蝴蝶结领巾。外套正面有两颗黑色的纽扣。\"\n    },\n    {\n      \"name\": \"下身裙装\",\n      \"value\": \"穿着一条灰色的百褶短裙，裙摆长度在大腿中部至膝盖上方，呈现出典型的日式学生制服风格。\"\n    },\n    {\n      \"name\": \"鞋袜配饰\",\n      \"value\": \"腿部穿着深灰色（或蓝灰色）的中筒袜，高度及膝。脚上穿着一双棕色的皮质乐福鞋（Loafers），这是标准的学院风皮鞋款式。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 16.3
+      "_raw_model_output": "",
+      "_inference_time_s": 5.5
     },
     {
       "sample_id": "char_008",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 11,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 5,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6177,
+      "avg_similarity": 0.6558,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.5455,
       "matches": [
         {
-          "pred_name": "头部头饰",
-          "pred_value": "白色的动物造型头套（类似兔子），拥有两只竖立的长耳朵，额头正中央有一个深蓝色的椭圆形图案。",
+          "pred_name": "白色动物造型面具",
+          "pred_value": "覆盖全头的白色面具，顶部有两只尖耳，面部中央有深蓝色椭圆形图案，嘴部为黑色区域配红色圆鼻。",
+          "pred_category": "headwear",
           "gt_name": "白色小丑面具与红色鼻子",
           "gt_value": "角色佩戴一个白色的小丑面具，面具上有黑色眼罩和红色圆形鼻子，是其标志性面部特征。",
-          "similarity": 0.6424
+          "similarity": 0.7602
         },
         {
-          "pred_name": "面部特征",
-          "pred_value": "脸部大部分被涂成黑色，佩戴着鲜红色的圆球鼻子，嘴巴也是红色的夸张笑容形状，面具两侧垂下红色的头发。",
+          "pred_name": "红色鬓发",
+          "pred_value": "从面具两侧垂下的红色长发。",
+          "pred_category": "hair",
           "gt_name": "红黑相间的头发",
           "gt_value": "面具下露出红色长发，部分被黑色阴影覆盖，发丝需清晰绘制以体现层次感。",
-          "similarity": 0.6506
+          "similarity": 0.7206
         },
         {
-          "pred_name": "颈部装饰",
-          "pred_value": "围着厚实的黄色毛绒领子，领子上有两个黑色的圆形纽扣状装饰物。",
+          "pred_name": "黄色毛绒领饰",
+          "pred_value": "颈部佩戴的黄色蓬松毛领，上有两颗深色圆形装饰扣。",
+          "pred_category": "accessory",
           "gt_name": "黄色毛领与紫色条纹服装",
           "gt_value": "穿着紫白竖条纹的上衣和裤子，配有蓬松的黄色毛领，毛领上右两颗银色扣子作为装饰。",
-          "similarity": 0.657
+          "similarity": 0.778
         },
         {
-          "pred_name": "上衣",
-          "pred_value": "穿着紫白相间的竖条纹长袖外套，胸前有一条黄色的垂直装饰条，袖口处有白色的荷叶边褶饰。",
-          "gt_name": "红色腰带与飘带",
-          "gt_value": "腰部系着一条宽大的红色腰带，两侧延伸出两条飘逸的红色布带，需注意飘带的动态曲线。",
-          "similarity": 0.565
-        },
-        {
-          "pred_name": "腰部配饰",
-          "pred_value": "腰间系着一条红色的长布带，从身后垂下两条长长的红色飘带，类似尾巴的形状。",
+          "pred_name": "蓝白竖条纹上衣",
+          "pred_value": "蓝白相间的竖条纹长袖上衣，前中部分为黄色拼接设计。",
+          "pred_category": "clothing",
           "gt_name": "蓝色手套",
           "gt_value": "双手戴蓝色长手套，手套表面有褶皱和光泽表现，体现手指修长，指节分明。",
-          "similarity": 0.5232
+          "similarity": 0.5898
         },
         {
-          "pred_name": "手部与腿部装备",
-          "pred_value": "双手戴着深蓝色的长手套，脚穿深蓝色的高筒靴，鞋头尖锐且微微上翘。",
+          "pred_name": "白色荷叶边袖口",
+          "pred_value": "手腕处的白色褶皱状袖口装饰，类似羽毛或蕾丝。",
+          "pred_category": "accessory",
+          "gt_name": "红色腰带与飘带",
+          "gt_value": "腰部系着一条宽大的红色腰带，两侧延伸出两条飘逸的红色布带，需注意飘带的动态曲线。",
+          "similarity": 0.5585
+        },
+        {
+          "pred_name": "红色宽腰带",
+          "pred_value": "腰间系着的宽大红色腰带，呈缠绕状。",
+          "pred_category": "accessory",
           "gt_name": "蓝色长靴",
           "gt_value": "脚穿蓝色高跟靴，靴子表面有褶皱，鞋的最前面有向上翘的鞋尖。",
-          "similarity": 0.6681
+          "similarity": 0.5278
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "红色长飘带",
+          "value": "从腰部后方垂下的两条红色长条状飘带，末端呈不规则撕裂状。",
+          "category": "prop"
+        },
+        {
+          "name": "蓝白竖条纹长裤",
+          "value": "与上衣同色系的蓝白竖条纹宽松长裤，裤脚收紧。",
+          "category": "clothing"
+        },
+        {
+          "name": "蓝色长手套",
+          "value": "覆盖双手及前臂的深蓝色手套。",
+          "category": "accessory"
+        },
+        {
+          "name": "深蓝色长筒袜",
+          "value": "覆盖小腿至脚踝的深蓝色长筒袜（或紧身裤延伸）。",
+          "category": "clothing"
+        },
+        {
+          "name": "深蓝色尖头靴",
+          "value": "深蓝色的尖头短靴，鞋尖向上弯曲。",
+          "category": "footwear"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "头部头饰",
-          "value": "白色的动物造型头套（类似兔子），拥有两只竖立的长耳朵，额头正中央有一个深蓝色的椭圆形图案。"
+          "name": "白色动物造型面具",
+          "value": "覆盖全头的白色面具，顶部有两只尖耳，面部中央有深蓝色椭圆形图案，嘴部为黑色区域配红色圆鼻。",
+          "category": "headwear"
         },
         {
-          "name": "面部特征",
-          "value": "脸部大部分被涂成黑色，佩戴着鲜红色的圆球鼻子，嘴巴也是红色的夸张笑容形状，面具两侧垂下红色的头发。"
+          "name": "红色鬓发",
+          "value": "从面具两侧垂下的红色长发。",
+          "category": "hair"
         },
         {
-          "name": "颈部装饰",
-          "value": "围着厚实的黄色毛绒领子，领子上有两个黑色的圆形纽扣状装饰物。"
+          "name": "黄色毛绒领饰",
+          "value": "颈部佩戴的黄色蓬松毛领，上有两颗深色圆形装饰扣。",
+          "category": "accessory"
         },
         {
-          "name": "上衣",
-          "value": "穿着紫白相间的竖条纹长袖外套，胸前有一条黄色的垂直装饰条，袖口处有白色的荷叶边褶饰。"
+          "name": "蓝白竖条纹上衣",
+          "value": "蓝白相间的竖条纹长袖上衣，前中部分为黄色拼接设计。",
+          "category": "clothing"
         },
         {
-          "name": "腰部配饰",
-          "value": "腰间系着一条红色的长布带，从身后垂下两条长长的红色飘带，类似尾巴的形状。"
+          "name": "白色荷叶边袖口",
+          "value": "手腕处的白色褶皱状袖口装饰，类似羽毛或蕾丝。",
+          "category": "accessory"
         },
         {
-          "name": "手部与腿部装备",
-          "value": "双手戴着深蓝色的长手套，脚穿深蓝色的高筒靴，鞋头尖锐且微微上翘。"
+          "name": "红色宽腰带",
+          "value": "腰间系着的宽大红色腰带，呈缠绕状。",
+          "category": "accessory"
+        },
+        {
+          "name": "红色长飘带",
+          "value": "从腰部后方垂下的两条红色长条状飘带，末端呈不规则撕裂状。",
+          "category": "prop"
+        },
+        {
+          "name": "蓝白竖条纹长裤",
+          "value": "与上衣同色系的蓝白竖条纹宽松长裤，裤脚收紧。",
+          "category": "clothing"
+        },
+        {
+          "name": "蓝色长手套",
+          "value": "覆盖双手及前臂的深蓝色手套。",
+          "category": "accessory"
+        },
+        {
+          "name": "深蓝色长筒袜",
+          "value": "覆盖小腿至脚踝的深蓝色长筒袜（或紧身裤延伸）。",
+          "category": "clothing"
+        },
+        {
+          "name": "深蓝色尖头靴",
+          "value": "深蓝色的尖头短靴，鞋尖向上弯曲。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -883,83 +1142,101 @@
           "value": "脚穿蓝色高跟靴，靴子表面有褶皱，鞋的最前面有向上翘的鞋尖。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"头部头饰\",\n      \"value\": \"白色的动物造型头套（类似兔子），拥有两只竖立的长耳朵，额头正中央有一个深蓝色的椭圆形图案。\"\n    },\n    {\n      \"name\": \"面部特征\",\n      \"value\": \"脸部大部分被涂成黑色，佩戴着鲜红色的圆球鼻子，嘴巴也是红色的夸张笑容形状，面具两侧垂下红色的头发。\"\n    },\n    {\n      \"name\": \"颈部装饰\",\n      \"value\": \"围着厚实的黄色毛绒领子，领子上有两个黑色的圆形纽扣状装饰物。\"\n    },\n    {\n      \"name\": \"上衣\",\n      \"value\": \"穿着紫白相间的竖条纹长袖外套，胸前有一条黄色的垂直装饰条，袖口处有白色的荷叶边褶饰。\"\n    },\n    {\n      \"name\": \"腰部配饰\",\n      \"value\": \"腰间系着一条红色的长布带，从身后垂下两条长长的红色飘带，类似尾巴的形状。\"\n    },\n    {\n      \"name\": \"手部与腿部装备\",\n      \"value\": \"双手戴着深蓝色的长手套，脚穿深蓝色的高筒靴，鞋头尖锐且微微上翘。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 23.3
+      "_raw_model_output": "",
+      "_inference_time_s": 6.0
     },
     {
       "sample_id": "char_009",
       "gt_element_count": 6,
-      "pred_element_count": 5,
-      "matched_count": 5,
+      "pred_element_count": 6,
+      "matched_count": 6,
       "unmatched_pred_count": 0,
-      "unmatched_gt_count": 1,
-      "avg_similarity": 0.7269,
-      "coverage": 0.8333,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.64,
+      "coverage": 1.0,
       "precision": 1.0,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有一头紫色的长直发，头顶两侧竖立着一对尖尖的紫色兽耳（类似猫耳或狐耳），刘海自然垂落在额前，部分遮挡眉毛。",
+          "pred_name": "头发",
+          "pred_value": "紫色长发，发梢微卷，垂至背部下方。",
+          "pred_category": "hair",
           "gt_name": "紫色猫耳与长发",
           "gt_value": "角色拥有紫色的猫耳和长发，猫耳尖端有深色轮廓，发丝柔顺自然，部分头发垂在肩前。",
-          "similarity": 0.8042
+          "similarity": 0.7328
         },
         {
-          "pred_name": "眼睛特征",
-          "pred_value": "眼睛较大，瞳孔呈现明亮的金黄色或琥珀色，眼神看起来平静且略带慵懒，眼型为典型的动漫风格。",
+          "pred_name": "猫耳",
+          "pred_value": "头顶一对竖立的紫色猫耳，与发色一致。",
+          "pred_category": "other",
           "gt_name": "黄色眼睛",
           "gt_value": "眼睛为明亮的黄色，眼神略带忧郁，眼影和高光需细致描绘以体现神韵。",
-          "similarity": 0.7173
+          "similarity": 0.5339
         },
         {
-          "pred_name": "服装 (和服)",
-          "pred_value": "身穿一套紫色的日式传统和服，外罩的紫色羽织上印有浅色的花朵图案（疑似樱花）。腰间系着一条宽大的深红褐色腰带（Obi），腰带中央有一条金色的横向装饰带。下半身覆盖着深红褐色的布料，类似袴的设计。",
+          "pred_name": "眼睛",
+          "pred_value": "黄色/琥珀色瞳孔，眼神平静。",
+          "pred_category": "face",
           "gt_name": "和服",
           "gt_value": "穿着带有淡蓝色花卉图案的和服，内衬裙为紫色，外裙是红色，袖口，下摆和胸口处有花纹装饰，颜色过渡柔和。",
-          "similarity": 0.8295
+          "similarity": 0.5284
         },
         {
-          "pred_name": "袖口细节",
-          "pred_value": "和服的宽大袖口内侧露出蓝紫色的底色，上面印有白色的花朵图案，与外衣的紫色形成层次感。",
+          "pred_name": "和服上衣",
+          "pred_value": "紫色长袖和服，领口露出黄色内衬（半襟），袖口处有白色花纹图案。",
+          "pred_category": "clothing",
+          "gt_name": "红色长裙",
+          "gt_value": "外穿红色长裙，裙摆覆盖至小腿，需注意层次感。",
+          "similarity": 0.5679
+        },
+        {
+          "pred_name": "腰带",
+          "pred_value": "宽大的棕红色腰带（Obi），腰部有一条金色细带装饰，垂下的部分很长。",
+          "pred_category": "clothing",
           "gt_name": "棕色腰带与金色绳结",
           "gt_value": "腰部系着一条宽大的棕色腰带，中央用金色绳结固定，绳结细节清晰可见。",
-          "similarity": 0.5911
+          "similarity": 0.7994
         },
         {
-          "pred_name": "鞋子与足部",
-          "pred_value": "脚上穿着传统的日式木屐（或草履），搭配白色的分趾袜（足袋），鞋带为红色，系在脚踝处。",
+          "pred_name": "鞋子",
+          "pred_value": "紫色带子的木屐（或草履），搭配白色足袋。",
+          "pred_category": "footwear",
           "gt_name": "红棕木屐和白色袜子",
           "gt_value": "屐身底板为红棕色的一双木屐，有深紫红色的横跨脚背的绊带，贴合白色分趾袜的前趾分叉处。",
-          "similarity": 0.6922
+          "similarity": 0.6777
         }
       ],
       "unmatched_pred": [],
-      "unmatched_gt": [
-        {
-          "name": "红色长裙",
-          "value": "外穿红色长裙，裙摆覆盖至小腿，需注意层次感。"
-        }
-      ],
+      "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有一头紫色的长直发，头顶两侧竖立着一对尖尖的紫色兽耳（类似猫耳或狐耳），刘海自然垂落在额前，部分遮挡眉毛。"
+          "name": "头发",
+          "value": "紫色长发，发梢微卷，垂至背部下方。",
+          "category": "hair"
         },
         {
-          "name": "眼睛特征",
-          "value": "眼睛较大，瞳孔呈现明亮的金黄色或琥珀色，眼神看起来平静且略带慵懒，眼型为典型的动漫风格。"
+          "name": "猫耳",
+          "value": "头顶一对竖立的紫色猫耳，与发色一致。",
+          "category": "other"
         },
         {
-          "name": "服装 (和服)",
-          "value": "身穿一套紫色的日式传统和服，外罩的紫色羽织上印有浅色的花朵图案（疑似樱花）。腰间系着一条宽大的深红褐色腰带（Obi），腰带中央有一条金色的横向装饰带。下半身覆盖着深红褐色的布料，类似袴的设计。"
+          "name": "眼睛",
+          "value": "黄色/琥珀色瞳孔，眼神平静。",
+          "category": "face"
         },
         {
-          "name": "袖口细节",
-          "value": "和服的宽大袖口内侧露出蓝紫色的底色，上面印有白色的花朵图案，与外衣的紫色形成层次感。"
+          "name": "和服上衣",
+          "value": "紫色长袖和服，领口露出黄色内衬（半襟），袖口处有白色花纹图案。",
+          "category": "clothing"
         },
         {
-          "name": "鞋子与足部",
-          "value": "脚上穿着传统的日式木屐（或草履），搭配白色的分趾袜（足袋），鞋带为红色，系在脚踝处。"
+          "name": "腰带",
+          "value": "宽大的棕红色腰带（Obi），腰部有一条金色细带装饰，垂下的部分很长。",
+          "category": "clothing"
+        },
+        {
+          "name": "鞋子",
+          "value": "紫色带子的木屐（或草履），搭配白色足袋。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -988,89 +1265,105 @@
           "value": "屐身底板为红棕色的一双木屐，有深紫红色的横跨脚背的绊带，贴合白色分趾袜的前趾分叉处。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有一头紫色的长直发，头顶两侧竖立着一对尖尖的紫色兽耳（类似猫耳或狐耳），刘海自然垂落在额前，部分遮挡眉毛。\"\n    },\n    {\n      \"name\": \"眼睛特征\",\n      \"value\": \"眼睛较大，瞳孔呈现明亮的金黄色或琥珀色，眼神看起来平静且略带慵懒，眼型为典型的动漫风格。\"\n    },\n    {\n      \"name\": \"服装 (和服)\",\n      \"value\": \"身穿一套紫色的日式传统和服，外罩的紫色羽织上印有浅色的花朵图案（疑似樱花）。腰间系着一条宽大的深红褐色腰带（Obi），腰带中央有一条金色的横向装饰带。下半身覆盖着深红褐色的布料，类似袴的设计。\"\n    },\n    {\n      \"name\": \"袖口细节\",\n      \"value\": \"和服的宽大袖口内侧露出蓝紫色的底色，上面印有白色的花朵图案，与外衣的紫色形成层次感。\"\n    },\n    {\n      \"name\": \"鞋子与足部\",\n      \"value\": \"脚上穿着传统的日式木屐（或草履），搭配白色的分趾袜（足袋），鞋带为红色，系在脚踝处。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 18.0
+      "_raw_model_output": "",
+      "_inference_time_s": 3.6
     },
     {
       "sample_id": "char_010",
       "gt_element_count": 6,
       "pred_element_count": 6,
-      "matched_count": 6,
-      "unmatched_pred_count": 0,
-      "unmatched_gt_count": 0,
-      "avg_similarity": 0.6682,
-      "coverage": 1.0,
-      "precision": 1.0,
+      "matched_count": 4,
+      "unmatched_pred_count": 2,
+      "unmatched_gt_count": 2,
+      "avg_similarity": 0.6872,
+      "coverage": 0.6667,
+      "precision": 0.6667,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有一头深紫色（靛蓝色）的长直发，头发长度及腰。发梢部分呈现出明显的渐变效果，过渡为亮粉色或紫红色。头顶正上方有一个粉红色的小角状装饰物，类似小恶魔角或独特的发饰。",
+          "pred_name": "长发",
+          "pred_value": "深紫色渐变至粉紫色的长直发，发尾颜色较亮，两侧有鬓角垂下。",
+          "pred_category": "hair",
           "gt_name": "紫色渐变长发",
           "gt_value": "角色拥有深紫色长发，发梢部分呈现明显的紫红色渐变，发丝柔顺且有光泽。",
-          "similarity": 0.7921
+          "similarity": 0.7956
         },
         {
-          "pred_name": "眼睛颜色与形状",
-          "pred_value": "拥有一双典型动漫风格的大眼睛，虹膜呈现明亮的天蓝色（青色），瞳孔清晰且有高光点缀，眼神看起来平静而略带惊讶。眼型圆润，睫毛较长。",
-          "gt_name": "蓝色眼睛",
-          "gt_value": "眼睛为明亮的蓝色，瞳孔清晰，眼神中带有淡淡的高光，显得灵动有神。",
-          "similarity": 0.7793
-        },
-        {
-          "pred_name": "头部配饰",
-          "pred_value": "额头处佩戴着一个白色的头饰或发箍，上面装饰有类似白色花瓣、圆球或宝石的图案，环绕在头顶周围，与深紫色的头发形成鲜明对比。",
+          "pred_name": "头巾发饰",
+          "pred_value": "深紫色头巾状发饰，边缘有白色褶边装饰，头顶正上方有一个粉红色尖角状突起。",
+          "pred_category": "headwear",
           "gt_name": "头饰（带粉色尖角的头箍）",
           "gt_value": "头上佩戴一个带有白色装饰和类似于粉色呆毛的头箍，是角色标志性配饰，必须准确绘制其形状和颜色。",
-          "similarity": 0.7946
+          "similarity": 0.7661
         },
         {
-          "pred_name": "上身服装",
-          "pred_value": "穿着一件深紫色为主色调的连体衣或制服。最显著的特征是宽大的喇叭袖（蝙蝠袖），袖口边缘有白色条纹装饰。胸前覆盖着白色的围裙状布料，领口处系有一个黑色的蝴蝶结或交叉带设计。",
+          "pred_name": "短披肩",
+          "pred_value": "深紫色无袖短斗篷（或披肩），边缘有白色宽滚边，下摆呈波浪状覆盖在肩部。",
+          "pred_category": "clothing",
           "gt_name": "蓝白相间的连衣裙",
           "gt_value": "穿着一件以深蓝色为主、白色为辅的连衣裙，裙摆有多层荷叶边设计，胸前有交叉绑带设计。",
-          "similarity": 0.6088
+          "similarity": 0.568
         },
         {
-          "pred_name": "下身裙摆",
-          "pred_value": "裙子采用多层荷叶边设计，极具层次感。最内层是深紫色的短百褶裙，中间露出一圈白色的衬裙边缘，最外层则是宽大的浅蓝紫色（或淡紫色）荷叶边裙摆，向四周散开。",
+          "pred_name": "连衣裙",
+          "pred_value": "深紫色与白色拼接的连衣裙。胸部为白色紧身设计并配有深色交叉绑带，裙摆下层为宽大的白色荷叶边。",
+          "pred_category": "clothing",
           "gt_name": "紫色长筒袜",
           "gt_value": "腿部穿着与头发颜色相近的紫色长筒袜，袜口有白色条纹装饰，需注意袜子与裙子的衔接。",
-          "similarity": 0.5647
-        },
-        {
-          "pred_name": "腿部与鞋袜",
-          "pred_value": "穿着深紫色的过膝长筒袜（或连裤袜），颜色与上衣主色调一致。袜子顶部边缘有白色的花边或装饰带。脚上穿着同色系的深色靴子，整体显得修长。",
-          "gt_name": "领饰",
-          "gt_value": "白色蝴蝶结领结",
-          "similarity": 0.4694
+          "similarity": 0.6189
         }
       ],
-      "unmatched_pred": [],
-      "unmatched_gt": [],
+      "unmatched_pred": [
+        {
+          "name": "过膝袜",
+          "value": "深紫色过膝长袜，脚踝处有白色V形开口或装饰细节。",
+          "category": "footwear"
+        },
+        {
+          "name": "短靴",
+          "value": "深紫色短靴，与过膝袜颜色一致，脚踝处有白色细节装饰。",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [
+        {
+          "name": "蓝色眼睛",
+          "value": "眼睛为明亮的蓝色，瞳孔清晰，眼神中带有淡淡的高光，显得灵动有神。"
+        },
+        {
+          "name": "领饰",
+          "value": "白色蝴蝶结领结"
+        }
+      ],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有一头深紫色（靛蓝色）的长直发，头发长度及腰。发梢部分呈现出明显的渐变效果，过渡为亮粉色或紫红色。头顶正上方有一个粉红色的小角状装饰物，类似小恶魔角或独特的发饰。"
+          "name": "长发",
+          "value": "深紫色渐变至粉紫色的长直发，发尾颜色较亮，两侧有鬓角垂下。",
+          "category": "hair"
         },
         {
-          "name": "眼睛颜色与形状",
-          "value": "拥有一双典型动漫风格的大眼睛，虹膜呈现明亮的天蓝色（青色），瞳孔清晰且有高光点缀，眼神看起来平静而略带惊讶。眼型圆润，睫毛较长。"
+          "name": "头巾发饰",
+          "value": "深紫色头巾状发饰，边缘有白色褶边装饰，头顶正上方有一个粉红色尖角状突起。",
+          "category": "headwear"
         },
         {
-          "name": "头部配饰",
-          "value": "额头处佩戴着一个白色的头饰或发箍，上面装饰有类似白色花瓣、圆球或宝石的图案，环绕在头顶周围，与深紫色的头发形成鲜明对比。"
+          "name": "短披肩",
+          "value": "深紫色无袖短斗篷（或披肩），边缘有白色宽滚边，下摆呈波浪状覆盖在肩部。",
+          "category": "clothing"
         },
         {
-          "name": "上身服装",
-          "value": "穿着一件深紫色为主色调的连体衣或制服。最显著的特征是宽大的喇叭袖（蝙蝠袖），袖口边缘有白色条纹装饰。胸前覆盖着白色的围裙状布料，领口处系有一个黑色的蝴蝶结或交叉带设计。"
+          "name": "连衣裙",
+          "value": "深紫色与白色拼接的连衣裙。胸部为白色紧身设计并配有深色交叉绑带，裙摆下层为宽大的白色荷叶边。",
+          "category": "clothing"
         },
         {
-          "name": "下身裙摆",
-          "value": "裙子采用多层荷叶边设计，极具层次感。最内层是深紫色的短百褶裙，中间露出一圈白色的衬裙边缘，最外层则是宽大的浅蓝紫色（或淡紫色）荷叶边裙摆，向四周散开。"
+          "name": "过膝袜",
+          "value": "深紫色过膝长袜，脚踝处有白色V形开口或装饰细节。",
+          "category": "footwear"
         },
         {
-          "name": "腿部与鞋袜",
-          "value": "穿着深紫色的过膝长筒袜（或连裤袜），颜色与上衣主色调一致。袜子顶部边缘有白色的花边或装饰带。脚上穿着同色系的深色靴子，整体显得修长。"
+          "name": "短靴",
+          "value": "深紫色短靴，与过膝袜颜色一致，脚踝处有白色细节装饰。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1099,89 +1392,132 @@
           "value": "腿部穿着与头发颜色相近的紫色长筒袜，袜口有白色条纹装饰，需注意袜子与裙子的衔接。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有一头深紫色（靛蓝色）的长直发，头发长度及腰。发梢部分呈现出明显的渐变效果，过渡为亮粉色或紫红色。头顶正上方有一个粉红色的小角状装饰物，类似小恶魔角或独特的发饰。\"\n    },\n    {\n      \"name\": \"眼睛颜色与形状\",\n      \"value\": \"拥有一双典型动漫风格的大眼睛，虹膜呈现明亮的天蓝色（青色），瞳孔清晰且有高光点缀，眼神看起来平静而略带惊讶。眼型圆润，睫毛较长。\"\n    },\n    {\n      \"name\": \"头部配饰\",\n      \"value\": \"额头处佩戴着一个白色的头饰或发箍，上面装饰有类似白色花瓣、圆球或宝石的图案，环绕在头顶周围，与深紫色的头发形成鲜明对比。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"穿着一件深紫色为主色调的连体衣或制服。最显著的特征是宽大的喇叭袖（蝙蝠袖），袖口边缘有白色条纹装饰。胸前覆盖着白色的围裙状布料，领口处系有一个黑色的蝴蝶结或交叉带设计。\"\n    },\n    {\n      \"name\": \"下身裙摆\",\n      \"value\": \"裙子采用多层荷叶边设计，极具层次感。最内层是深紫色的短百褶裙，中间露出一圈白色的衬裙边缘，最外层则是宽大的浅蓝紫色（或淡紫色）荷叶边裙摆，向四周散开。\"\n    },\n    {\n      \"name\": \"腿部与鞋袜\",\n      \"value\": \"穿着深紫色的过膝长筒袜（或连裤袜），颜色与上衣主色调一致。袜子顶部边缘有白色的花边或装饰带。脚上穿着同色系的深色靴子，整体显得修长。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 20.7
+      "_raw_model_output": "",
+      "_inference_time_s": 6.5
     },
     {
       "sample_id": "char_011",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 9,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 3,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6394,
+      "avg_similarity": 0.5916,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.6667,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "拥有浅粉色的长卷发，头发呈波浪状自然垂落在肩膀两侧及背部。头顶有一对毛茸茸的粉色兽耳（类似狐狸或猫），耳朵内部颜色较浅，呈现淡粉色。",
-          "gt_name": "粉色长卷发与发饰",
-          "gt_value": "拥有柔顺的粉色长卷发，头顶系有一个粉色蝴蝶结发饰，发丝层次分明，需注意卷曲弧度自然。",
-          "similarity": 0.7426
-        },
-        {
-          "pred_name": "眼睛",
-          "pred_value": "拥有一双明亮的蓝绿色（青色）大眼睛，瞳孔清澈，眼神显得温柔且充满笑意，眼角微微下垂，给人一种亲切感。",
+          "pred_name": "兽耳",
+          "pred_value": "头顶一对粉色尖耳，颜色与头发一致。",
+          "pred_category": "other",
           "gt_name": "粉色猫耳与猫尾",
           "gt_value": "角色头上有粉色的猫耳，耳朵内侧也是粉色，尾巴蓬松且末端为浅粉色，是角色标志性特征。",
-          "similarity": 0.5399
-        },
-        {
-          "pred_name": "服装 (和服)",
-          "pred_value": "身穿一套日式和服。上半身是浅粉色的长袖上衣，袖口处有淡蓝色的线条勾勒出的花纹装饰。腰部系着一条深红褐色（栗色）的宽腰带，正中间有一个巨大的黄色蝴蝶结。下半身裙摆主要为深红褐色，最底端有一圈装饰带，印有粉色花朵和彩色几何图案。",
-          "gt_name": "淡紫色和服上衣与花卉图案",
-          "gt_value": "穿着淡紫色和服上衣，袖口和衣摆处有蓝色、粉色等彩色花卉图案装饰，图案分布需对称且清晰。",
-          "similarity": 0.7585
+          "similarity": 0.6785
         },
         {
           "pred_name": "尾巴",
-          "pred_value": "身后有一条非常蓬松、巨大的粉色长尾巴，毛发看起来柔软厚实，尾尖部分颜色较浅，接近白色或淡粉色，自然垂在身体一侧。",
+          "pred_value": "身后一条蓬松的大尾巴，颜色为粉色渐变至深色尖端。",
+          "pred_category": "other",
+          "gt_name": "粉色长卷发与发饰",
+          "gt_value": "拥有柔顺的粉色长卷发，头顶系有一个粉色蝴蝶结发饰，发丝层次分明，需注意卷曲弧度自然。",
+          "similarity": 0.6051
+        },
+        {
+          "pred_name": "头发",
+          "pred_value": "粉色长卷发，长度及腰。",
+          "pred_category": "hair",
           "gt_name": "棕色腰带与黄色大蝴蝶结",
           "gt_value": "腰部系有宽大的棕色腰带，右侧装饰一个醒目的黄色大蝴蝶结，蝴蝶结褶皱需表现立体感。",
-          "similarity": 0.5648
+          "similarity": 0.5722
         },
         {
-          "pred_name": "头饰",
-          "pred_value": "头顶的兽耳根部系着一个粉色的蝴蝶结发带，与头发的颜色相呼应，增加了可爱感。",
+          "pred_name": "蝴蝶结发饰",
+          "pred_value": "额头上方佩戴一个粉色蝴蝶结。",
+          "pred_category": "accessory",
+          "gt_name": "淡紫色和服上衣与花卉图案",
+          "gt_value": "穿着淡紫色和服上衣，袖口和衣摆处有蓝色、粉色等彩色花卉图案装饰，图案分布需对称且清晰。",
+          "similarity": 0.559
+        },
+        {
+          "pred_name": "和服上衣",
+          "pred_value": "浅粉色长袖外套，袖口处有蓝色线条纹样。",
+          "pred_category": "clothing",
           "gt_name": "深棕色下裙与底部花纹",
           "gt_value": "下身为深棕色长裙，裙摆边缘有彩色几何与花卉图案拼接设计，图案需完整且色彩鲜明。",
-          "similarity": 0.498
+          "similarity": 0.6052
         },
         {
-          "pred_name": "鞋子",
-          "pred_value": "脚穿传统的日式木屐（Zori），鞋面为深紫色或黑色的交叉带子，鞋底为浅棕色的木质结构。",
+          "pred_name": "腰带",
+          "pred_value": "深棕色宽腰带，中间系有一个显眼的黄色大蝴蝶结。",
+          "pred_category": "clothing",
           "gt_name": "白色袜子与木屐",
           "gt_value": "脚穿白色短袜搭配传统日式木屐，木屐带为深紫色，鞋底为浅棕色，需注意木屐结构比例。",
-          "similarity": 0.7326
+          "similarity": 0.5293
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "眼睛",
+          "value": "蓝色瞳孔。",
+          "category": "face"
+        },
+        {
+          "name": "下身裙装",
+          "value": "深红褐色长裙，底部露出带有彩色花卉图案的粉色内衬。",
+          "category": "clothing"
+        },
+        {
+          "name": "木屐",
+          "value": "白色带子的传统木屐。",
+          "category": "footwear"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "拥有浅粉色的长卷发，头发呈波浪状自然垂落在肩膀两侧及背部。头顶有一对毛茸茸的粉色兽耳（类似狐狸或猫），耳朵内部颜色较浅，呈现淡粉色。"
-        },
-        {
-          "name": "眼睛",
-          "value": "拥有一双明亮的蓝绿色（青色）大眼睛，瞳孔清澈，眼神显得温柔且充满笑意，眼角微微下垂，给人一种亲切感。"
-        },
-        {
-          "name": "服装 (和服)",
-          "value": "身穿一套日式和服。上半身是浅粉色的长袖上衣，袖口处有淡蓝色的线条勾勒出的花纹装饰。腰部系着一条深红褐色（栗色）的宽腰带，正中间有一个巨大的黄色蝴蝶结。下半身裙摆主要为深红褐色，最底端有一圈装饰带，印有粉色花朵和彩色几何图案。"
+          "name": "兽耳",
+          "value": "头顶一对粉色尖耳，颜色与头发一致。",
+          "category": "other"
         },
         {
           "name": "尾巴",
-          "value": "身后有一条非常蓬松、巨大的粉色长尾巴，毛发看起来柔软厚实，尾尖部分颜色较浅，接近白色或淡粉色，自然垂在身体一侧。"
+          "value": "身后一条蓬松的大尾巴，颜色为粉色渐变至深色尖端。",
+          "category": "other"
         },
         {
-          "name": "头饰",
-          "value": "头顶的兽耳根部系着一个粉色的蝴蝶结发带，与头发的颜色相呼应，增加了可爱感。"
+          "name": "头发",
+          "value": "粉色长卷发，长度及腰。",
+          "category": "hair"
         },
         {
-          "name": "鞋子",
-          "value": "脚穿传统的日式木屐（Zori），鞋面为深紫色或黑色的交叉带子，鞋底为浅棕色的木质结构。"
+          "name": "蝴蝶结发饰",
+          "value": "额头上方佩戴一个粉色蝴蝶结。",
+          "category": "accessory"
+        },
+        {
+          "name": "眼睛",
+          "value": "蓝色瞳孔。",
+          "category": "face"
+        },
+        {
+          "name": "和服上衣",
+          "value": "浅粉色长袖外套，袖口处有蓝色线条纹样。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "深棕色宽腰带，中间系有一个显眼的黄色大蝴蝶结。",
+          "category": "clothing"
+        },
+        {
+          "name": "下身裙装",
+          "value": "深红褐色长裙，底部露出带有彩色花卉图案的粉色内衬。",
+          "category": "clothing"
+        },
+        {
+          "name": "木屐",
+          "value": "白色带子的传统木屐。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1210,8 +1546,8 @@
           "value": "脚穿白色短袜搭配传统日式木屐，木屐带为深紫色，鞋底为浅棕色，需注意木屐结构比例。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"拥有浅粉色的长卷发，头发呈波浪状自然垂落在肩膀两侧及背部。头顶有一对毛茸茸的粉色兽耳（类似狐狸或猫），耳朵内部颜色较浅，呈现淡粉色。\"\n    },\n    {\n      \"name\": \"眼睛\",\n      \"value\": \"拥有一双明亮的蓝绿色（青色）大眼睛，瞳孔清澈，眼神显得温柔且充满笑意，眼角微微下垂，给人一种亲切感。\"\n    },\n    {\n      \"name\": \"服装 (和服)\",\n      \"value\": \"身穿一套日式和服。上半身是浅粉色的长袖上衣，袖口处有淡蓝色的线条勾勒出的花纹装饰。腰部系着一条深红褐色（栗色）的宽腰带，正中间有一个巨大的黄色蝴蝶结。下半身裙摆主要为深红褐色，最底端有一圈装饰带，印有粉色花朵和彩色几何图案。\"\n    },\n    {\n      \"name\": \"尾巴\",\n      \"value\": \"身后有一条非常蓬松、巨大的粉色长尾巴，毛发看起来柔软厚实，尾尖部分颜色较浅，接近白色或淡粉色，自然垂在身体一侧。\"\n    },\n    {\n      \"name\": \"头饰\",\n      \"value\": \"头顶的兽耳根部系着一个粉色的蝴蝶结发带，与头发的颜色相呼应，增加了可爱感。\"\n    },\n    {\n      \"name\": \"鞋子\",\n      \"value\": \"脚穿传统的日式木屐（Zori），鞋面为深紫色或黑色的交叉带子，鞋底为浅棕色的木质结构。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 21.0
+      "_raw_model_output": "",
+      "_inference_time_s": 6.4
     },
     {
       "sample_id": "char_012",
@@ -1220,99 +1556,115 @@
       "matched_count": 7,
       "unmatched_pred_count": 1,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6113,
+      "avg_similarity": 0.6284,
       "coverage": 1.0,
       "precision": 0.875,
       "matches": [
         {
-          "pred_name": "头部特征",
-          "pred_value": "拥有明显的绿色皮肤，长着尖尖的兽耳（类似哥布林或半兽人），头顶缠绕着红色的头巾，露出少许凌乱的白色短发。",
-          "gt_name": "绿色皮肤",
-          "gt_value": "角色全身为绿色皮肤，肤色均匀，是其种族特征，必须准确绘制。",
-          "similarity": 0.6002
-        },
-        {
-          "pred_name": "面部细节",
-          "pred_value": "眼睛较大且圆，瞳孔呈深色，眼神看起来有些呆滞或惊讶，嘴巴微张，表情略显滑稽。",
+          "pred_name": "发型",
+          "pred_value": "白色短发，发梢略显凌乱",
+          "pred_category": "hair",
           "gt_name": "棕色头巾",
           "gt_value": "头上戴着一块棕色头巾，包裹住部分头发和额头，边缘有自然褶皱。",
-          "similarity": 0.5464
+          "similarity": 0.6058
         },
         {
-          "pred_name": "上身外套",
-          "pred_value": "穿着一件深棕色的短款外套或披肩，衣领、袖口以及下摆边缘都装饰有厚实的米白色毛皮。",
+          "pred_name": "头巾",
+          "pred_value": "红色布质头巾包裹头部顶部",
+          "pred_category": "headwear",
           "gt_name": "卡其色毛皮装饰的棕色外衣",
           "gt_value": "穿着一件棕色长外套，领口、袖口和下摆均饰有厚实的毛皮，毛皮质感蓬松。",
-          "similarity": 0.7483
+          "similarity": 0.5533
         },
         {
-          "pred_name": "内搭衣物",
-          "pred_value": "外套里面穿了一件宽松的白色长袖上衣，材质看起来比较柔软朴素。",
-          "gt_name": "白色内衬与棕色腰带",
-          "gt_value": "内穿白色衬衫，腰部系有一条棕色腰带，腰带颜色与外套深浅不一致，需注意层次关系。",
-          "similarity": 0.6648
+          "pred_name": "肤色",
+          "pred_value": "全身呈现明显的绿色皮肤",
+          "pred_category": "skin_body",
+          "gt_name": "绿色皮肤",
+          "gt_value": "角色全身为绿色皮肤，肤色均匀，是其种族特征，必须准确绘制。",
+          "similarity": 0.7587
         },
         {
-          "pred_name": "腰部装饰",
-          "pred_value": "腰间系着一条红色的布质腰带，起到束腰和装饰作用，颜色与头巾呼应。",
+          "pred_name": "毛皮外套",
+          "pred_value": "棕色开襟外套，领口及下摆边缘饰有厚实的米白色毛皮",
+          "pred_category": "clothing",
           "gt_name": "白色裤子与毛皮裤脚",
           "gt_value": "穿着白色长裤，裤脚处有毛皮包边，与上衣毛皮装饰风格统一。",
-          "similarity": 0.5943
+          "similarity": 0.6712
         },
         {
-          "pred_name": "下身围裙/下摆",
-          "pred_value": "身前垂下一块深棕色的布料（类似短围裙或外套的前襟），长度及大腿中部，边缘同样装饰有米白色毛皮。",
+          "pred_name": "毛边长裤",
+          "pred_value": "白色长裤，裤脚处饰有米白色厚毛皮",
+          "pred_category": "clothing",
           "gt_name": "浅棕色绑腿与靴子",
           "gt_value": "小腿处缠绕着浅棕色绑腿，脚穿深棕色短靴，绑腿与靴子衔接自然，细节清晰。",
-          "similarity": 0.5927
+          "similarity": 0.5612
         },
         {
-          "pred_name": "裤装与鞋履",
-          "pred_value": "穿着白色的宽松灯笼裤，裤脚处收紧并带有米白色毛边；脚上穿着棕色的短靴。",
+          "pred_name": "四肢绑带",
+          "pred_value": "双臂及小腿处缠绕着土黄色布质绑带",
+          "pred_category": "accessory",
           "gt_name": "手臂上的浅棕色护腕",
           "gt_value": "双手臂佩戴上的浅棕色护腕，护腕上有横向绑带设计，与腿部绑腿风格一致。",
-          "similarity": 0.5325
+          "similarity": 0.6138
+        },
+        {
+          "pred_name": "红色腰封",
+          "pred_value": "腰部系有一条宽大的红色布质腰封",
+          "pred_category": "accessory",
+          "gt_name": "白色内衬与棕色腰带",
+          "gt_value": "内穿白色衬衫，腰部系有一条棕色腰带，腰带颜色与外套深浅不一致，需注意层次关系。",
+          "similarity": 0.635
         }
       ],
       "unmatched_pred": [
         {
-          "name": "四肢护具",
-          "value": "双臂的小臂部分以及双腿的小腿部分都缠绕着黄褐色的绷带或布条，作为护腕和护胫使用。"
+          "name": "兽耳",
+          "value": "头部两侧长有尖长的绿色兽耳",
+          "category": "skin_body"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "头部特征",
-          "value": "拥有明显的绿色皮肤，长着尖尖的兽耳（类似哥布林或半兽人），头顶缠绕着红色的头巾，露出少许凌乱的白色短发。"
+          "name": "发型",
+          "value": "白色短发，发梢略显凌乱",
+          "category": "hair"
         },
         {
-          "name": "面部细节",
-          "value": "眼睛较大且圆，瞳孔呈深色，眼神看起来有些呆滞或惊讶，嘴巴微张，表情略显滑稽。"
+          "name": "头巾",
+          "value": "红色布质头巾包裹头部顶部",
+          "category": "headwear"
         },
         {
-          "name": "上身外套",
-          "value": "穿着一件深棕色的短款外套或披肩，衣领、袖口以及下摆边缘都装饰有厚实的米白色毛皮。"
+          "name": "肤色",
+          "value": "全身呈现明显的绿色皮肤",
+          "category": "skin_body"
         },
         {
-          "name": "内搭衣物",
-          "value": "外套里面穿了一件宽松的白色长袖上衣，材质看起来比较柔软朴素。"
+          "name": "兽耳",
+          "value": "头部两侧长有尖长的绿色兽耳",
+          "category": "skin_body"
         },
         {
-          "name": "腰部装饰",
-          "value": "腰间系着一条红色的布质腰带，起到束腰和装饰作用，颜色与头巾呼应。"
+          "name": "毛皮外套",
+          "value": "棕色开襟外套，领口及下摆边缘饰有厚实的米白色毛皮",
+          "category": "clothing"
         },
         {
-          "name": "下身围裙/下摆",
-          "value": "身前垂下一块深棕色的布料（类似短围裙或外套的前襟），长度及大腿中部，边缘同样装饰有米白色毛皮。"
+          "name": "毛边长裤",
+          "value": "白色长裤，裤脚处饰有米白色厚毛皮",
+          "category": "clothing"
         },
         {
-          "name": "裤装与鞋履",
-          "value": "穿着白色的宽松灯笼裤，裤脚处收紧并带有米白色毛边；脚上穿着棕色的短靴。"
+          "name": "四肢绑带",
+          "value": "双臂及小腿处缠绕着土黄色布质绑带",
+          "category": "accessory"
         },
         {
-          "name": "四肢护具",
-          "value": "双臂的小臂部分以及双腿的小腿部分都缠绕着黄褐色的绷带或布条，作为护腕和护胫使用。"
+          "name": "红色腰封",
+          "value": "腰部系有一条宽大的红色布质腰封",
+          "category": "accessory"
         }
       ],
       "gt_elements": [
@@ -1345,89 +1697,122 @@
           "value": "双手臂佩戴上的浅棕色护腕，护腕上有横向绑带设计，与腿部绑腿风格一致。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"头部特征\",\n      \"value\": \"拥有明显的绿色皮肤，长着尖尖的兽耳（类似哥布林或半兽人），头顶缠绕着红色的头巾，露出少许凌乱的白色短发。\"\n    },\n    {\n      \"name\": \"面部细节\",\n      \"value\": \"眼睛较大且圆，瞳孔呈深色，眼神看起来有些呆滞或惊讶，嘴巴微张，表情略显滑稽。\"\n    },\n    {\n      \"name\": \"上身外套\",\n      \"value\": \"穿着一件深棕色的短款外套或披肩，衣领、袖口以及下摆边缘都装饰有厚实的米白色毛皮。\"\n    },\n    {\n      \"name\": \"内搭衣物\",\n      \"value\": \"外套里面穿了一件宽松的白色长袖上衣，材质看起来比较柔软朴素。\"\n    },\n    {\n      \"name\": \"腰部装饰\",\n      \"value\": \"腰间系着一条红色的布质腰带，起到束腰和装饰作用，颜色与头巾呼应。\"\n    },\n    {\n      \"name\": \"下身围裙/下摆\",\n      \"value\": \"身前垂下一块深棕色的布料（类似短围裙或外套的前襟），长度及大腿中部，边缘同样装饰有米白色毛皮。\"\n    },\n    {\n      \"name\": \"裤装与鞋履\",\n      \"value\": \"穿着白色的宽松灯笼裤，裤脚处收紧并带有米白色毛边；脚上穿着棕色的短靴。\"\n    },\n    {\n      \"name\": \"四肢护具\",\n      \"value\": \"双臂的小臂部分以及双腿的小腿部分都缠绕着黄褐色的绷带或布条，作为护腕和护胫使用。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 29.3
+      "_raw_model_output": "",
+      "_inference_time_s": 6.1
     },
     {
       "sample_id": "char_013",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 8,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 2,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.633,
+      "avg_similarity": 0.6693,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.75,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有金棕色（或浅亚麻色）的中长发，刘海向两侧分开露出额头，鬓角较长垂在脸颊旁，下巴处留有一小撮山羊胡。",
+          "pred_name": "头发",
+          "pred_value": "金色及肩直发，带有刘海",
+          "pred_category": "hair",
           "gt_name": "金色短发与胡须",
           "gt_value": "角色拥有金色的中长发，长度不及肩，发梢略微内扣；下巴处有黑色胡须，面部轮廓清晰。",
-          "similarity": 0.791
+          "similarity": 0.7501
         },
         {
-          "pred_name": "面部特征",
-          "pred_value": "眼睛呈深色（黑色或深褐色），眼神锐利且严肃，眉毛较粗，鼻梁挺直，整体表情显得沉稳。",
+          "pred_name": "内搭上衣",
+          "pred_value": "黄色V领衬衫，胸前有交叉缝线装饰",
+          "pred_category": "clothing",
           "gt_name": "黑色外衣与黄色内衬",
           "gt_value": "外穿黑色长袖外套，胳膊处有黄色镶边；内搭土黄色V领衬衫，胸前有交叉缝线设计。",
-          "similarity": 0.5235
+          "similarity": 0.8068
         },
         {
-          "pred_name": "上身服装",
-          "pred_value": "外穿一件黑色的短款外套，袖口处有两条黄色的横向条纹装饰；内搭一件土黄色（芥末黄）的上衣，领口处设计有交叉的深色绑带。",
+          "pred_name": "外套",
+          "pred_value": "黑色短款夹克，袖口上方有黄色条纹装饰",
+          "pred_category": "clothing",
           "gt_name": "毛边围裙与裤脚毛饰",
           "gt_value": "腰部围着一条棕色毛边围裙，下摆不规则；裤子为浅灰色，腰部和小腿部分有白色毛绒装饰，层次分明。",
-          "similarity": 0.612
+          "similarity": 0.5618
         },
         {
-          "pred_name": "下身服装",
-          "pred_value": "腰部系着一条棕色的围裙状衣物，边缘饰有厚实的白色毛皮，下摆带有流苏；下身穿着灰白色的宽松长裤，裤脚处同样装饰有白色毛皮，并搭配深灰色的长袜。",
-          "gt_name": "棕色靴子与深色袜子",
-          "gt_value": "脚穿棕色厚底短靴，鞋面简洁无过多装饰；靴子上方露出深灰色长袜，与裤脚毛饰自然衔接。",
-          "similarity": 0.6681
-        },
-        {
-          "pred_name": "鞋履",
-          "pred_value": "脚穿一双棕色的短靴，款式简洁实用。",
-          "gt_name": "棕色皮质腰带与斜挎剑鞘",
-          "gt_value": "腰间斜跨系有宽大的棕色皮质腰带，带扣为金属材质；背后斜挎一把剑，剑鞘为木质，有白色绑带装饰。",
-          "similarity": 0.5276
-        },
-        {
-          "pred_name": "装备与配饰",
-          "pred_value": "左肩佩戴银灰色的金属护肩；背后背负一把剑，仅露出白色的剑柄和缠绕的绳索；身上斜挎着一条带有金属扣环的棕色皮带；双手戴着灰白色的手套或袖套。",
+          "pred_name": "肩甲",
+          "pred_value": "右肩佩戴大型银灰色金属护肩",
+          "pred_category": "accessory",
           "gt_name": "左肩金属护甲",
           "gt_value": "左肩佩戴银灰色金属护甲，边缘有铆钉装饰，形状为半圆形，覆盖肩部至上臂。",
-          "similarity": 0.676
+          "similarity": 0.7952
+        },
+        {
+          "pred_name": "下裙",
+          "pred_value": "棕色短裙，腰部有白色毛皮装饰，下摆有流苏",
+          "pred_category": "clothing",
+          "gt_name": "棕色皮质腰带与斜挎剑鞘",
+          "gt_value": "腰间斜跨系有宽大的棕色皮质腰带，带扣为金属材质；背后斜挎一把剑，剑鞘为木质，有白色绑带装饰。",
+          "similarity": 0.5918
+        },
+        {
+          "pred_name": "肩带",
+          "pred_value": "棕色皮革宽肩带，斜跨胸前并带有金属扣",
+          "pred_category": "accessory",
+          "gt_name": "棕色靴子与深色袜子",
+          "gt_value": "脚穿棕色厚底短靴，鞋面简洁无过多装饰；靴子上方露出深灰色长袜，与裤脚毛饰自然衔接。",
+          "similarity": 0.5099
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "胡须",
+          "value": "下巴处有深色山羊胡",
+          "category": "face"
+        },
+        {
+          "name": "靴子",
+          "value": "棕色短靴",
+          "category": "footwear"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有金棕色（或浅亚麻色）的中长发，刘海向两侧分开露出额头，鬓角较长垂在脸颊旁，下巴处留有一小撮山羊胡。"
+          "name": "头发",
+          "value": "金色及肩直发，带有刘海",
+          "category": "hair"
         },
         {
-          "name": "面部特征",
-          "value": "眼睛呈深色（黑色或深褐色），眼神锐利且严肃，眉毛较粗，鼻梁挺直，整体表情显得沉稳。"
+          "name": "胡须",
+          "value": "下巴处有深色山羊胡",
+          "category": "face"
         },
         {
-          "name": "上身服装",
-          "value": "外穿一件黑色的短款外套，袖口处有两条黄色的横向条纹装饰；内搭一件土黄色（芥末黄）的上衣，领口处设计有交叉的深色绑带。"
+          "name": "内搭上衣",
+          "value": "黄色V领衬衫，胸前有交叉缝线装饰",
+          "category": "clothing"
         },
         {
-          "name": "下身服装",
-          "value": "腰部系着一条棕色的围裙状衣物，边缘饰有厚实的白色毛皮，下摆带有流苏；下身穿着灰白色的宽松长裤，裤脚处同样装饰有白色毛皮，并搭配深灰色的长袜。"
+          "name": "外套",
+          "value": "黑色短款夹克，袖口上方有黄色条纹装饰",
+          "category": "clothing"
         },
         {
-          "name": "鞋履",
-          "value": "脚穿一双棕色的短靴，款式简洁实用。"
+          "name": "肩甲",
+          "value": "右肩佩戴大型银灰色金属护肩",
+          "category": "accessory"
         },
         {
-          "name": "装备与配饰",
-          "value": "左肩佩戴银灰色的金属护肩；背后背负一把剑，仅露出白色的剑柄和缠绕的绳索；身上斜挎着一条带有金属扣环的棕色皮带；双手戴着灰白色的手套或袖套。"
+          "name": "下裙",
+          "value": "棕色短裙，腰部有白色毛皮装饰，下摆有流苏",
+          "category": "clothing"
+        },
+        {
+          "name": "肩带",
+          "value": "棕色皮革宽肩带，斜跨胸前并带有金属扣",
+          "category": "accessory"
+        },
+        {
+          "name": "靴子",
+          "value": "棕色短靴",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1456,89 +1841,132 @@
           "value": "脚穿棕色厚底短靴，鞋面简洁无过多装饰；靴子上方露出深灰色长袜，与裤脚毛饰自然衔接。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有金棕色（或浅亚麻色）的中长发，刘海向两侧分开露出额头，鬓角较长垂在脸颊旁，下巴处留有一小撮山羊胡。\"\n    },\n    {\n      \"name\": \"面部特征\",\n      \"value\": \"眼睛呈深色（黑色或深褐色），眼神锐利且严肃，眉毛较粗，鼻梁挺直，整体表情显得沉稳。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"外穿一件黑色的短款外套，袖口处有两条黄色的横向条纹装饰；内搭一件土黄色（芥末黄）的上衣，领口处设计有交叉的深色绑带。\"\n    },\n    {\n      \"name\": \"下身服装\",\n      \"value\": \"腰部系着一条棕色的围裙状衣物，边缘饰有厚实的白色毛皮，下摆带有流苏；下身穿着灰白色的宽松长裤，裤脚处同样装饰有白色毛皮，并搭配深灰色的长袜。\"\n    },\n    {\n      \"name\": \"鞋履\",\n      \"value\": \"脚穿一双棕色的短靴，款式简洁实用。\"\n    },\n    {\n      \"name\": \"装备与配饰\",\n      \"value\": \"左肩佩戴银灰色的金属护肩；背后背负一把剑，仅露出白色的剑柄和缠绕的绳索；身上斜挎着一条带有金属扣环的棕色皮带；双手戴着灰白色的手套或袖套。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 18.4
+      "_raw_model_output": "",
+      "_inference_time_s": 11.6
     },
     {
       "sample_id": "char_014",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 9,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 3,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.7408,
+      "avg_similarity": 0.7367,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.6667,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "银白色短发，发丝呈现蓬松且略带凌乱的刺猬状，刘海较长，遮盖了部分额头和左眼区域。",
+          "pred_name": "头发",
+          "pred_value": "白色短发，发梢向上竖起，略显凌乱",
+          "pred_category": "hair",
           "gt_name": "白色短发",
           "gt_value": "角色拥有蓬松的白色短发，发丝凌乱但有层次感，需注意发丝的走向和高光处理。",
-          "similarity": 0.723
+          "similarity": 0.785
         },
         {
-          "pred_name": "眼睛特征",
-          "pred_value": "右眼佩戴黑色眼罩完全遮挡；左眼露出，瞳孔呈鲜艳的红色，眼神显得冷峻锐利。",
-          "gt_name": "红色右眼",
-          "gt_value": "右眼为醒目的红色，瞳孔细节清晰，眼神锐利，是角色的重要特征。",
-          "similarity": 0.7455
-        },
-        {
-          "pred_name": "服装",
-          "pred_value": "身穿深黑色制服外套，衣领和袖口处有醒目的红色滚边装饰；内搭灰色双排扣马甲，系着深色领带。",
-          "gt_name": "黑红配色服装",
-          "gt_value": "穿着以黑色为主、红色线条点缀的战斗服，右手肩部和袖口有银灰色护甲，服装结构复杂，需注意各部分拼接和阴影。",
-          "similarity": 0.6879
-        },
-        {
-          "pred_name": "机械义肢",
-          "pred_value": "左前臂为银灰色的金属质感机械义肢，表面光滑反光，具有明显的关节和机械结构细节。",
-          "gt_name": "机械义肢",
-          "gt_value": "右手装备有红色装饰的机械风格手臂，指节分明，具有金属光泽和细节纹理。",
-          "similarity": 0.8797
-        },
-        {
-          "pred_name": "武器",
-          "pred_value": "双手持握两把黑色手枪交叉于胸前，枪身设计厚重，带有红色的发光纹路或装饰部件。",
-          "gt_name": "双枪武器",
-          "gt_value": "双手持握两把造型独特的枪械，枪身主体为黑色，配有红色装饰条纹，枪管部分有金属质感。",
-          "similarity": 0.8244
-        },
-        {
-          "pred_name": "手部装备",
-          "pred_value": "右手佩戴黑色的战术手套或护手，手指部分有分节设计，指关节处带有红色条纹装饰。",
+          "pred_name": "眼罩",
+          "pred_value": "覆盖左眼的黑色单片眼罩",
+          "pred_category": "accessory",
           "gt_name": "黑色眼罩",
           "gt_value": "左眼佩戴黑色眼罩，覆盖整个左眼区域，边缘清晰，与面部轮廓贴合。",
-          "similarity": 0.5843
+          "similarity": 0.8454
+        },
+        {
+          "pred_name": "右眼",
+          "pred_value": "可见的红色瞳孔",
+          "pred_category": "face",
+          "gt_name": "红色右眼",
+          "gt_value": "右眼为醒目的红色，瞳孔细节清晰，眼神锐利，是角色的重要特征。",
+          "similarity": 0.7863
+        },
+        {
+          "pred_name": "西装外套",
+          "pred_value": "深灰色/黑色长款外套，衣领及边缘有红色线条装饰",
+          "pred_category": "clothing",
+          "gt_name": "黑红配色服装",
+          "gt_value": "穿着以黑色为主、红色线条点缀的战斗服，右手肩部和袖口有银灰色护甲，服装结构复杂，需注意各部分拼接和阴影。",
+          "similarity": 0.615
+        },
+        {
+          "pred_name": "领带",
+          "pred_value": "深色领带，系于领口处",
+          "pred_category": "accessory",
+          "gt_name": "双枪武器",
+          "gt_value": "双手持握两把造型独特的枪械，枪身主体为黑色，配有红色装饰条纹，枪管部分有金属质感。",
+          "similarity": 0.5151
+        },
+        {
+          "pred_name": "机械义肢手套",
+          "pred_value": "右手佩戴的银色金属机械手套，指关节处有红色条纹装饰",
+          "pred_category": "accessory",
+          "gt_name": "机械义肢",
+          "gt_value": "右手装备有红色装饰的机械风格手臂，指节分明，具有金属光泽和细节纹理。",
+          "similarity": 0.8732
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "内搭",
+          "value": "灰色衣物，正面可见一排黑色纽扣",
+          "category": "clothing"
+        },
+        {
+          "name": "右臂金属护具",
+          "value": "右前臂佩戴的银色光滑金属护臂，连接机械手套",
+          "category": "accessory"
+        },
+        {
+          "name": "双持枪械",
+          "value": "双手各持一把黑色左轮手枪，枪身带有红色装饰纹路",
+          "category": "prop"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "银白色短发，发丝呈现蓬松且略带凌乱的刺猬状，刘海较长，遮盖了部分额头和左眼区域。"
+          "name": "头发",
+          "value": "白色短发，发梢向上竖起，略显凌乱",
+          "category": "hair"
         },
         {
-          "name": "眼睛特征",
-          "value": "右眼佩戴黑色眼罩完全遮挡；左眼露出，瞳孔呈鲜艳的红色，眼神显得冷峻锐利。"
+          "name": "眼罩",
+          "value": "覆盖左眼的黑色单片眼罩",
+          "category": "accessory"
         },
         {
-          "name": "服装",
-          "value": "身穿深黑色制服外套，衣领和袖口处有醒目的红色滚边装饰；内搭灰色双排扣马甲，系着深色领带。"
+          "name": "右眼",
+          "value": "可见的红色瞳孔",
+          "category": "face"
         },
         {
-          "name": "机械义肢",
-          "value": "左前臂为银灰色的金属质感机械义肢，表面光滑反光，具有明显的关节和机械结构细节。"
+          "name": "西装外套",
+          "value": "深灰色/黑色长款外套，衣领及边缘有红色线条装饰",
+          "category": "clothing"
         },
         {
-          "name": "武器",
-          "value": "双手持握两把黑色手枪交叉于胸前，枪身设计厚重，带有红色的发光纹路或装饰部件。"
+          "name": "内搭",
+          "value": "灰色衣物，正面可见一排黑色纽扣",
+          "category": "clothing"
         },
         {
-          "name": "手部装备",
-          "value": "右手佩戴黑色的战术手套或护手，手指部分有分节设计，指关节处带有红色条纹装饰。"
+          "name": "领带",
+          "value": "深色领带，系于领口处",
+          "category": "accessory"
+        },
+        {
+          "name": "机械义肢手套",
+          "value": "右手佩戴的银色金属机械手套，指关节处有红色条纹装饰",
+          "category": "accessory"
+        },
+        {
+          "name": "右臂金属护具",
+          "value": "右前臂佩戴的银色光滑金属护臂，连接机械手套",
+          "category": "accessory"
+        },
+        {
+          "name": "双持枪械",
+          "value": "双手各持一把黑色左轮手枪，枪身带有红色装饰纹路",
+          "category": "prop"
         }
       ],
       "gt_elements": [
@@ -1567,95 +1995,129 @@
           "value": "右手装备有红色装饰的机械风格手臂，指节分明，具有金属光泽和细节纹理。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"银白色短发，发丝呈现蓬松且略带凌乱的刺猬状，刘海较长，遮盖了部分额头和左眼区域。\"\n    },\n    {\n      \"name\": \"眼睛特征\",\n      \"value\": \"右眼佩戴黑色眼罩完全遮挡；左眼露出，瞳孔呈鲜艳的红色，眼神显得冷峻锐利。\"\n    },\n    {\n      \"name\": \"服装\",\n      \"value\": \"身穿深黑色制服外套，衣领和袖口处有醒目的红色滚边装饰；内搭灰色双排扣马甲，系着深色领带。\"\n    },\n    {\n      \"name\": \"机械义肢\",\n      \"value\": \"左前臂为银灰色的金属质感机械义肢，表面光滑反光，具有明显的关节和机械结构细节。\"\n    },\n    {\n      \"name\": \"武器\",\n      \"value\": \"双手持握两把黑色手枪交叉于胸前，枪身设计厚重，带有红色的发光纹路或装饰部件。\"\n    },\n    {\n      \"name\": \"手部装备\",\n      \"value\": \"右手佩戴黑色的战术手套或护手，手指部分有分节设计，指关节处带有红色条纹装饰。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 17.8
+      "_raw_model_output": "",
+      "_inference_time_s": 6.5
     },
     {
       "sample_id": "char_015",
       "gt_element_count": 5,
-      "pred_element_count": 7,
+      "pred_element_count": 9,
       "matched_count": 5,
-      "unmatched_pred_count": 2,
+      "unmatched_pred_count": 4,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6365,
+      "avg_similarity": 0.608,
       "coverage": 1.0,
-      "precision": 0.7143,
+      "precision": 0.5556,
       "matches": [
         {
-          "pred_name": "发型与发色",
-          "pred_value": "角色拥有深灰色的短发，刘海整齐地覆盖在额头上，两侧留有较长的鬓角垂至脸颊下方，整体发型显得干练且带有未来感。",
+          "pred_name": "头发",
+          "pred_value": "黑色短发，刘海遮盖额头，两侧有鬓角垂下",
+          "pred_category": "hair",
           "gt_name": "深灰色短发与紫色尖角头饰",
           "gt_value": "角色拥有齐肩的深灰色短发，头部左右两侧各有一个尖锐的紫色角状装饰，是其标志性特征，必须准确绘制。",
-          "similarity": 0.6951
+          "similarity": 0.6369
         },
         {
-          "pred_name": "头部机械装饰",
-          "pred_value": "头顶两侧佩戴着巨大的紫色尖刺状装置，呈水平向两侧延伸，看起来像是某种天线或机械传感器，增加了角色的科幻风格。",
-          "gt_name": "紫色与黑色相间的紧身战斗服",
-          "gt_value": "穿着一件以紫色为主、黑色为辅的紧身战斗服，胸前有交叉绑带设计，腰部有黑色束带，服装边缘有银色金属质感装饰。",
-          "similarity": 0.5413
-        },
-        {
-          "pred_name": "眼睛特征",
-          "pred_value": "拥有一双大而明亮的眼睛，瞳孔呈现深紫红色（洋红色），眼神显得冷静且略带严肃，眼型细长。",
-          "gt_name": "发红色眼睛",
-          "gt_value": "眼睛为鲜艳的红色，眼神锐利，是角色表情和性格的重要体现。",
-          "similarity": 0.7783
-        },
-        {
-          "pred_name": "上身服装",
-          "pred_value": "穿着一件紫色的无袖高领连体衣或上衣。胸前有交叉的布料设计，类似绷带缠绕的效果。腹部位置有一个倒三角形的镂空剪裁，露出了部分肌肤。腰部系有一条黑色的细腰带。",
+          "pred_name": "头饰",
+          "pred_value": "紫色耳机状装置，两侧有尖刺延伸",
+          "pred_category": "headwear",
           "gt_name": "紫色长袖",
           "gt_value": "左右两边是紫色的长袖，袖口末端呈尖角状，随身体自然垂落，需注意其飘逸感和层次。",
-          "similarity": 0.6248
+          "similarity": 0.555
         },
         {
-          "pred_name": "长披风",
-          "pred_value": "背部连接着一件极长的紫色披风（或斗篷），从肩部一直垂落至脚踝附近，披风两侧开叉较大，随着身体动作飘动。",
+          "pred_name": "眼睛",
+          "pred_value": "紫色瞳孔",
+          "pred_category": "face",
+          "gt_name": "发红色眼睛",
+          "gt_value": "眼睛为鲜艳的红色，眼神锐利，是角色表情和性格的重要体现。",
+          "similarity": 0.6681
+        },
+        {
+          "pred_name": "上衣",
+          "pred_value": "紫色无袖交叉设计上衣，胸前镂空",
+          "pred_category": "clothing",
+          "gt_name": "紫色与黑色相间的紧身战斗服",
+          "gt_value": "穿着一件以紫色为主、黑色为辅的紧身战斗服，胸前有交叉绑带设计，腰部有黑色束带，服装边缘有银色金属质感装饰。",
+          "similarity": 0.6178
+        },
+        {
+          "pred_name": "披风",
+          "pred_value": "长款紫色披风，边缘有黑色装饰",
+          "pred_category": "clothing",
           "gt_name": "黑色长筒袜与紫色高跟靴",
           "gt_value": "腿部穿着黑色长筒袜，脚上是带有紫色和银色装饰的高跟靴，鞋跟较高，设计未来感十足。",
-          "similarity": 0.5429
+          "similarity": 0.5621
         }
       ],
       "unmatched_pred": [
         {
-          "name": "腿部与鞋履",
-          "value": "下身穿着深灰色的过膝长筒袜（或连裤袜），大腿部分有类似腿环的紫色装饰细节。脚踩一双尖头高跟鞋，鞋面主要为黑色和紫色，鞋底和鞋跟尖端为白色。"
+          "name": "手臂护具",
+          "value": "银色与紫色相间的臂环/护腕",
+          "category": "accessory"
         },
         {
-          "name": "手臂护具",
-          "value": "双臂佩戴着黑白相间的机械风格护臂（或手套），护臂上有紫色的发光细节装饰，看起来像是某种高科技装备的一部分。"
+          "name": "腿部服饰",
+          "value": "黑色过膝长筒袜，大腿处有镂空设计",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色细腰带",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋子",
+          "value": "紫银配色高跟鞋",
+          "category": "footwear"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型与发色",
-          "value": "角色拥有深灰色的短发，刘海整齐地覆盖在额头上，两侧留有较长的鬓角垂至脸颊下方，整体发型显得干练且带有未来感。"
+          "name": "头发",
+          "value": "黑色短发，刘海遮盖额头，两侧有鬓角垂下",
+          "category": "hair"
         },
         {
-          "name": "头部机械装饰",
-          "value": "头顶两侧佩戴着巨大的紫色尖刺状装置，呈水平向两侧延伸，看起来像是某种天线或机械传感器，增加了角色的科幻风格。"
+          "name": "头饰",
+          "value": "紫色耳机状装置，两侧有尖刺延伸",
+          "category": "headwear"
         },
         {
-          "name": "眼睛特征",
-          "value": "拥有一双大而明亮的眼睛，瞳孔呈现深紫红色（洋红色），眼神显得冷静且略带严肃，眼型细长。"
+          "name": "眼睛",
+          "value": "紫色瞳孔",
+          "category": "face"
         },
         {
-          "name": "上身服装",
-          "value": "穿着一件紫色的无袖高领连体衣或上衣。胸前有交叉的布料设计，类似绷带缠绕的效果。腹部位置有一个倒三角形的镂空剪裁，露出了部分肌肤。腰部系有一条黑色的细腰带。"
+          "name": "上衣",
+          "value": "紫色无袖交叉设计上衣，胸前镂空",
+          "category": "clothing"
         },
         {
-          "name": "长披风",
-          "value": "背部连接着一件极长的紫色披风（或斗篷），从肩部一直垂落至脚踝附近，披风两侧开叉较大，随着身体动作飘动。"
-        },
-        {
-          "name": "腿部与鞋履",
-          "value": "下身穿着深灰色的过膝长筒袜（或连裤袜），大腿部分有类似腿环的紫色装饰细节。脚踩一双尖头高跟鞋，鞋面主要为黑色和紫色，鞋底和鞋跟尖端为白色。"
+          "name": "披风",
+          "value": "长款紫色披风，边缘有黑色装饰",
+          "category": "clothing"
         },
         {
           "name": "手臂护具",
-          "value": "双臂佩戴着黑白相间的机械风格护臂（或手套），护臂上有紫色的发光细节装饰，看起来像是某种高科技装备的一部分。"
+          "value": "银色与紫色相间的臂环/护腕",
+          "category": "accessory"
+        },
+        {
+          "name": "腿部服饰",
+          "value": "黑色过膝长筒袜，大腿处有镂空设计",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色细腰带",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋子",
+          "value": "紫银配色高跟鞋",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1680,78 +2142,99 @@
           "value": "腿部穿着黑色长筒袜，脚上是带有紫色和银色装饰的高跟靴，鞋跟较高，设计未来感十足。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型与发色\",\n      \"value\": \"角色拥有深灰色的短发，刘海整齐地覆盖在额头上，两侧留有较长的鬓角垂至脸颊下方，整体发型显得干练且带有未来感。\"\n    },\n    {\n      \"name\": \"头部机械装饰\",\n      \"value\": \"头顶两侧佩戴着巨大的紫色尖刺状装置，呈水平向两侧延伸，看起来像是某种天线或机械传感器，增加了角色的科幻风格。\"\n    },\n    {\n      \"name\": \"眼睛特征\",\n      \"value\": \"拥有一双大而明亮的眼睛，瞳孔呈现深紫红色（洋红色），眼神显得冷静且略带严肃，眼型细长。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"穿着一件紫色的无袖高领连体衣或上衣。胸前有交叉的布料设计，类似绷带缠绕的效果。腹部位置有一个倒三角形的镂空剪裁，露出了部分肌肤。腰部系有一条黑色的细腰带。\"\n    },\n    {\n      \"name\": \"长披风\",\n      \"value\": \"背部连接着一件极长的紫色披风（或斗篷），从肩部一直垂落至脚踝附近，披风两侧开叉较大，随着身体动作飘动。\"\n    },\n    {\n      \"name\": \"腿部与鞋履\",\n      \"value\": \"下身穿着深灰色的过膝长筒袜（或连裤袜），大腿部分有类似腿环的紫色装饰细节。脚踩一双尖头高跟鞋，鞋面主要为黑色和紫色，鞋底和鞋跟尖端为白色。\"\n    },\n    {\n      \"name\": \"手臂护具\",\n      \"value\": \"双臂佩戴着黑白相间的机械风格护臂（或手套），护臂上有紫色的发光细节装饰，看起来像是某种高科技装备的一部分。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 21.1
+      "_raw_model_output": "",
+      "_inference_time_s": 3.8
     },
     {
       "sample_id": "char_016",
       "gt_element_count": 5,
-      "pred_element_count": 5,
+      "pred_element_count": 6,
       "matched_count": 5,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 1,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.7822,
+      "avg_similarity": 0.794,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.8333,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "深棕色或黑色的短发，长度大约及肩（波波头），前额留有整齐的刘海，两侧有鬓角垂下修饰脸型。",
+          "pred_name": "头发",
+          "pred_value": "深棕色齐肩短发，前额有刘海。",
+          "pred_category": "hair",
           "gt_name": "黑色短发",
           "gt_value": "角色拥有齐肩的黑色短发，发尾略微内扣，刘海整齐覆盖额头。",
-          "similarity": 0.7474
+          "similarity": 0.7652
         },
         {
-          "pred_name": "眼睛颜色和形状",
-          "pred_value": "拥有典型的动漫风格大眼睛，虹膜呈现鲜艳的绿色，眼神看起来温和且平静。",
+          "pred_name": "眼睛",
+          "pred_value": "绿色瞳孔。",
+          "pred_category": "face",
           "gt_name": "绿色眼睛",
           "gt_value": "眼睛为明亮的绿色，眼神温和，眼型为标准的动漫风格大眼。",
-          "similarity": 0.8484
+          "similarity": 0.7896
         },
         {
-          "pred_name": "上衣服装",
-          "pred_value": "穿着一件黄色的短袖运动Polo衫。领口为V领设计，边缘饰有黑白相间的条纹；袖口也有同样的黑白条纹装饰。衣服侧面有大面积的黑色拼接块，并有一条白色的竖线条纹从腋下延伸至腰部，增加了运动感。",
+          "pred_name": "上衣",
+          "pred_value": "黄色短袖运动衫，领口和袖口有黑白条纹装饰，侧面有黑色拼接块及白色线条。",
+          "pred_category": "clothing",
           "gt_name": "黄色运动上衣",
           "gt_value": "穿着一件黄色短袖运动上衣，领口和袖口有白色与黑色镶边，胸前有V形白色和黑色条纹装饰。",
-          "similarity": 0.7954
+          "similarity": 0.8424
         },
         {
-          "pred_name": "下装服装",
-          "pred_value": "穿着一条黑色的运动短裤。短裤的两侧大腿位置各有一条醒目的白色弧形条纹装饰，呈现出流线型的设计。",
+          "pred_name": "短裤",
+          "pred_value": "黑色运动短裤，两侧有白色弧形条纹装饰。",
+          "pred_category": "clothing",
           "gt_name": "黑色运动短裤",
           "gt_value": "搭配黑色运动短裤，两侧有白色竖条纹装饰，裤子中部有轻微褶皱细节。",
-          "similarity": 0.7655
+          "similarity": 0.8858
         },
         {
-          "pred_name": "鞋袜",
-          "pred_value": "脚穿一双白底黑边的运动鞋（板鞋风格），鞋带孔附近或侧面有橙色的细节点缀。搭配了白色的短棉袜，刚好露出脚踝上方。",
+          "pred_name": "袜子",
+          "pred_value": "白色短袜。",
+          "pred_category": "footwear",
           "gt_name": "白色运动鞋",
           "gt_value": "脚穿白色运动鞋，鞋带为黑色，鞋子中间有橙色小装饰，鞋底为棕色。",
-          "similarity": 0.7543
+          "similarity": 0.687
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "鞋子",
+          "value": "黑白配色运动鞋，鞋带孔或标志处有橙色点缀。",
+          "category": "footwear"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "深棕色或黑色的短发，长度大约及肩（波波头），前额留有整齐的刘海，两侧有鬓角垂下修饰脸型。"
+          "name": "头发",
+          "value": "深棕色齐肩短发，前额有刘海。",
+          "category": "hair"
         },
         {
-          "name": "眼睛颜色和形状",
-          "value": "拥有典型的动漫风格大眼睛，虹膜呈现鲜艳的绿色，眼神看起来温和且平静。"
+          "name": "眼睛",
+          "value": "绿色瞳孔。",
+          "category": "face"
         },
         {
-          "name": "上衣服装",
-          "value": "穿着一件黄色的短袖运动Polo衫。领口为V领设计，边缘饰有黑白相间的条纹；袖口也有同样的黑白条纹装饰。衣服侧面有大面积的黑色拼接块，并有一条白色的竖线条纹从腋下延伸至腰部，增加了运动感。"
+          "name": "上衣",
+          "value": "黄色短袖运动衫，领口和袖口有黑白条纹装饰，侧面有黑色拼接块及白色线条。",
+          "category": "clothing"
         },
         {
-          "name": "下装服装",
-          "value": "穿着一条黑色的运动短裤。短裤的两侧大腿位置各有一条醒目的白色弧形条纹装饰，呈现出流线型的设计。"
+          "name": "短裤",
+          "value": "黑色运动短裤，两侧有白色弧形条纹装饰。",
+          "category": "clothing"
         },
         {
-          "name": "鞋袜",
-          "value": "脚穿一双白底黑边的运动鞋（板鞋风格），鞋带孔附近或侧面有橙色的细节点缀。搭配了白色的短棉袜，刚好露出脚踝上方。"
+          "name": "袜子",
+          "value": "白色短袜。",
+          "category": "footwear"
+        },
+        {
+          "name": "鞋子",
+          "value": "黑白配色运动鞋，鞋带孔或标志处有橙色点缀。",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1776,94 +2259,125 @@
           "value": "脚穿白色运动鞋，鞋带为黑色，鞋子中间有橙色小装饰，鞋底为棕色。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"深棕色或黑色的短发，长度大约及肩（波波头），前额留有整齐的刘海，两侧有鬓角垂下修饰脸型。\"\n    },\n    {\n      \"name\": \"眼睛颜色和形状\",\n      \"value\": \"拥有典型的动漫风格大眼睛，虹膜呈现鲜艳的绿色，眼神看起来温和且平静。\"\n    },\n    {\n      \"name\": \"上衣服装\",\n      \"value\": \"穿着一件黄色的短袖运动Polo衫。领口为V领设计，边缘饰有黑白相间的条纹；袖口也有同样的黑白条纹装饰。衣服侧面有大面积的黑色拼接块，并有一条白色的竖线条纹从腋下延伸至腰部，增加了运动感。\"\n    },\n    {\n      \"name\": \"下装服装\",\n      \"value\": \"穿着一条黑色的运动短裤。短裤的两侧大腿位置各有一条醒目的白色弧形条纹装饰，呈现出流线型的设计。\"\n    },\n    {\n      \"name\": \"鞋袜\",\n      \"value\": \"脚穿一双白底黑边的运动鞋（板鞋风格），鞋带孔附近或侧面有橙色的细节点缀。搭配了白色的短棉袜，刚好露出脚踝上方。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 16.2
+      "_raw_model_output": "",
+      "_inference_time_s": 3.3
     },
     {
       "sample_id": "char_017",
       "gt_element_count": 7,
-      "pred_element_count": 6,
-      "matched_count": 6,
-      "unmatched_pred_count": 0,
-      "unmatched_gt_count": 1,
-      "avg_similarity": 0.6699,
-      "coverage": 0.8571,
-      "precision": 1.0,
+      "pred_element_count": 8,
+      "matched_count": 7,
+      "unmatched_pred_count": 1,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6339,
+      "coverage": 1.0,
+      "precision": 0.875,
       "matches": [
         {
-          "pred_name": "头部特征",
-          "pred_value": "蓝绿色的爬行动物风格头部，拥有突出的吻部和露出的尖锐牙齿。眼睛呈黄色或琥珀色，瞳孔为垂直的细缝状，眼神锐利。",
-          "gt_name": "蓝绿色皮肤与黄色眼睛",
-          "gt_value": "角色拥有独特的蓝绿色皮肤，面部和身体颜色均匀；眼睛为醒目的黄色，是其标志性特征。",
-          "similarity": 0.6603
-        },
-        {
-          "pred_name": "发型与头饰",
-          "pred_value": "拥有一头巨大的白色长发（或羽毛状结构），从头顶向后飘扬，发梢渐变为鲜艳的红色。头部佩戴着装饰有红色宝石和黄色三角形图案的头带及白色羽毛饰品。",
+          "pred_name": "羽毛头饰/羽冠",
+          "pred_value": "大型白色羽毛状头饰，发梢渐变为红色，从头顶向后下方延伸至腰部高度。",
+          "pred_category": "headwear",
           "gt_name": "白色羽毛头饰与红色尖端",
           "gt_value": "头顶佩戴大型白色羽毛头饰，羽毛末端带有鲜明的红色渐变，形状蓬松且层次分明，需注意羽毛排列方向。",
-          "similarity": 0.7797
+          "similarity": 0.831
         },
         {
-          "pred_name": "上身服装",
-          "pred_value": "穿着一件米色或浅褐色的无袖上衣/披肩，衣领和下摆处装饰有密集的流苏。内部可见深紫红色的衣物或绑带结构。",
+          "pred_name": "面部特征与肤色",
+          "pred_value": "青蓝色皮肤，吻部突出呈龙形，头顶有小型突起角，双眼为金黄色。",
+          "pred_category": "face",
+          "gt_name": "蓝绿色皮肤与黄色眼睛",
+          "gt_value": "角色拥有独特的蓝绿色皮肤，面部和身体颜色均匀；眼睛为醒目的黄色，是其标志性特征。",
+          "similarity": 0.6791
+        },
+        {
+          "pred_name": "躯干上衣",
+          "pred_value": "米色无袖短款外衣，下摆带有流苏装饰，肩部可见深紫色内搭或披肩边缘。",
+          "pred_category": "clothing",
           "gt_name": "毛皮披肩与棕色绑带",
           "gt_value": "肩部覆盖着厚实的米色毛皮披肩，边缘自然垂落；腰间和腿部配有深棕色皮革绑带，用于固定装备。",
-          "similarity": 0.6686
+          "similarity": 0.6556
         },
         {
-          "pred_name": "下身服装与腿部",
-          "pred_value": "穿着宽松的米色长裤，裤脚处同样带有流苏装饰。左大腿（画面右侧）缠绕着宽大的棕色皮革护具或绑带。",
-          "gt_name": "脚爪与趾甲",
-          "gt_value": "双脚为兽类爪足，脚趾清晰，趾甲为浅灰色，需表现其非人类的结构特征。",
-          "similarity": 0.5455
-        },
-        {
-          "pred_name": "尾巴",
-          "pred_value": "一条巨大的蓝绿色长尾从身后延伸出来，表面分布着深蓝色的斑点。尾巴末端呈弯曲的钩状或尖刺状，根部包裹着棕色的护甲/绑带。",
+          "pred_name": "腰部束带",
+          "pred_value": "宽幅深紫色织物腰带，在腹部前方打结并垂下飘带。",
+          "pred_category": "clothing",
           "gt_name": "长尾与尾尖弯钩",
           "gt_value": "身后拖着一条粗壮的蓝绿色长尾，尾尖呈弯钩状，表面有深蓝色斑点，尾部肌肉线条明显。",
-          "similarity": 0.7687
+          "similarity": 0.5563
         },
         {
-          "pred_name": "皮肤与肤色",
-          "pred_value": "角色的皮肤呈现明显的蓝绿色（青色），在手臂、腿部和尾巴上可见较深的蓝色斑点纹理。",
+          "pred_name": "腰侧裙片/下装",
+          "pred_value": "覆盖于大腿上部的下装，主体为米色，正面拼接有黄色与红色相间的三角形几何图案。",
+          "pred_category": "clothing",
+          "gt_name": "几何图案装饰（黄红相间）",
+          "gt_value": "头部、腰部及腿部护具上有黄红相间的三角形几何图案，需准确绘制图案排列与颜色分界。",
+          "similarity": 0.606
+        },
+        {
+          "pred_name": "侧挂流苏布条",
+          "pred_value": "从左侧腰带下方悬挂的长条形棕色织物，边缘带有磨损流苏效果。",
+          "pred_category": "accessory",
           "gt_name": "兽角与银白色的羽毛装饰",
           "gt_value": "头部右侧有尖锐的兽角，跟身体一样都是蓝绿色；头部右侧还有一个银白色的羽毛装饰。",
-          "similarity": 0.5968
-        }
-      ],
-      "unmatched_pred": [],
-      "unmatched_gt": [
+          "similarity": 0.5005
+        },
         {
-          "name": "几何图案装饰（黄红相间）",
-          "value": "头部、腰部及腿部护具上有黄红相间的三角形几何图案，需准确绘制图案排列与颜色分界。"
+          "pred_name": "尾巴与体表特征",
+          "pred_value": "覆盖全身、四肢及长尾的青蓝色皮肤，表面分布有深青色不规则斑点；尾部末端带有棕色环状装饰。",
+          "pred_category": "skin_body",
+          "gt_name": "脚爪与趾甲",
+          "gt_value": "双脚为兽类爪足，脚趾清晰，趾甲为浅灰色，需表现其非人类的结构特征。",
+          "similarity": 0.609
         }
       ],
+      "unmatched_pred": [
+        {
+          "name": "腿部绑带",
+          "value": "深紫色宽边腿环，紧密缠绕于左侧大腿中段。",
+          "category": "accessory"
+        }
+      ],
+      "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "头部特征",
-          "value": "蓝绿色的爬行动物风格头部，拥有突出的吻部和露出的尖锐牙齿。眼睛呈黄色或琥珀色，瞳孔为垂直的细缝状，眼神锐利。"
+          "name": "羽毛头饰/羽冠",
+          "value": "大型白色羽毛状头饰，发梢渐变为红色，从头顶向后下方延伸至腰部高度。",
+          "category": "headwear"
         },
         {
-          "name": "发型与头饰",
-          "value": "拥有一头巨大的白色长发（或羽毛状结构），从头顶向后飘扬，发梢渐变为鲜艳的红色。头部佩戴着装饰有红色宝石和黄色三角形图案的头带及白色羽毛饰品。"
+          "name": "面部特征与肤色",
+          "value": "青蓝色皮肤，吻部突出呈龙形，头顶有小型突起角，双眼为金黄色。",
+          "category": "face"
         },
         {
-          "name": "上身服装",
-          "value": "穿着一件米色或浅褐色的无袖上衣/披肩，衣领和下摆处装饰有密集的流苏。内部可见深紫红色的衣物或绑带结构。"
+          "name": "躯干上衣",
+          "value": "米色无袖短款外衣，下摆带有流苏装饰，肩部可见深紫色内搭或披肩边缘。",
+          "category": "clothing"
         },
         {
-          "name": "下身服装与腿部",
-          "value": "穿着宽松的米色长裤，裤脚处同样带有流苏装饰。左大腿（画面右侧）缠绕着宽大的棕色皮革护具或绑带。"
+          "name": "腰部束带",
+          "value": "宽幅深紫色织物腰带，在腹部前方打结并垂下飘带。",
+          "category": "clothing"
         },
         {
-          "name": "尾巴",
-          "value": "一条巨大的蓝绿色长尾从身后延伸出来，表面分布着深蓝色的斑点。尾巴末端呈弯曲的钩状或尖刺状，根部包裹着棕色的护甲/绑带。"
+          "name": "腰侧裙片/下装",
+          "value": "覆盖于大腿上部的下装，主体为米色，正面拼接有黄色与红色相间的三角形几何图案。",
+          "category": "clothing"
         },
         {
-          "name": "皮肤与肤色",
-          "value": "角色的皮肤呈现明显的蓝绿色（青色），在手臂、腿部和尾巴上可见较深的蓝色斑点纹理。"
+          "name": "腿部绑带",
+          "value": "深紫色宽边腿环，紧密缠绕于左侧大腿中段。",
+          "category": "accessory"
+        },
+        {
+          "name": "侧挂流苏布条",
+          "value": "从左侧腰带下方悬挂的长条形棕色织物，边缘带有磨损流苏效果。",
+          "category": "accessory"
+        },
+        {
+          "name": "尾巴与体表特征",
+          "value": "覆盖全身、四肢及长尾的青蓝色皮肤，表面分布有深青色不规则斑点；尾部末端带有棕色环状装饰。",
+          "category": "skin_body"
         }
       ],
       "gt_elements": [
@@ -1896,76 +2410,96 @@
           "value": "双脚为兽类爪足，脚趾清晰，趾甲为浅灰色，需表现其非人类的结构特征。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"头部特征\",\n      \"value\": \"蓝绿色的爬行动物风格头部，拥有突出的吻部和露出的尖锐牙齿。眼睛呈黄色或琥珀色，瞳孔为垂直的细缝状，眼神锐利。\"\n    },\n    {\n      \"name\": \"发型与头饰\",\n      \"value\": \"拥有一头巨大的白色长发（或羽毛状结构），从头顶向后飘扬，发梢渐变为鲜艳的红色。头部佩戴着装饰有红色宝石和黄色三角形图案的头带及白色羽毛饰品。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"穿着一件米色或浅褐色的无袖上衣/披肩，衣领和下摆处装饰有密集的流苏。内部可见深紫红色的衣物或绑带结构。\"\n    },\n    {\n      \"name\": \"下身服装与腿部\",\n      \"value\": \"穿着宽松的米色长裤，裤脚处同样带有流苏装饰。左大腿（画面右侧）缠绕着宽大的棕色皮革护具或绑带。\"\n    },\n    {\n      \"name\": \"尾巴\",\n      \"value\": \"一条巨大的蓝绿色长尾从身后延伸出来，表面分布着深蓝色的斑点。尾巴末端呈弯曲的钩状或尖刺状，根部包裹着棕色的护甲/绑带。\"\n    },\n    {\n      \"name\": \"皮肤与肤色\",\n      \"value\": \"角色的皮肤呈现明显的蓝绿色（青色），在手臂、腿部和尾巴上可见较深的蓝色斑点纹理。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 27.5
+      "_raw_model_output": "",
+      "_inference_time_s": 3.9
     },
     {
       "sample_id": "char_018",
       "gt_element_count": 4,
-      "pred_element_count": 5,
+      "pred_element_count": 6,
       "matched_count": 4,
-      "unmatched_pred_count": 1,
+      "unmatched_pred_count": 2,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.7702,
+      "avg_similarity": 0.7378,
       "coverage": 1.0,
-      "precision": 0.8,
+      "precision": 0.6667,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "深棕色短发，头发略显蓬松凌乱，刘海自然垂下遮住部分额头，两侧鬓角较短。",
+          "pred_name": "发型",
+          "pred_value": "深棕色短发，刘海遮盖额头，发梢略显凌乱",
+          "pred_category": "hair",
           "gt_name": "棕色短发",
           "gt_value": "角色拥有蓬松的棕色短发，发丝略显凌乱，刘海自然垂落至眉间。",
-          "similarity": 0.8129
+          "similarity": 0.7888
         },
         {
-          "pred_name": "眼睛颜色和形状",
-          "pred_value": "红褐色（或橙红色）瞳孔，眼型细长，眼神看起来自信且带有一丝狡黠的笑意。",
+          "pred_name": "眼睛颜色",
+          "pred_value": "红褐色瞳孔，眼神明亮",
+          "pred_category": "face",
           "gt_name": "橙色眼睛",
           "gt_value": "眼睛为明亮的橙色，眼神温和，略微带笑，是角色表情的核心特征。",
-          "similarity": 0.7624
+          "similarity": 0.7201
         },
         {
-          "pred_name": "上衣服装",
-          "pred_value": "白色立领长袖制服外套，设计简洁干练。最显著的特征是胸前有一条蓝色的绳结装饰（类似中国结或盘扣），绳结下方垂下一条蓝色的流苏状饰物，衣服下摆处可见纽扣细节。",
+          "pred_name": "外套",
+          "pred_value": "白色立领长袖外套，前襟有纽扣设计，款式类似中山装或制服",
+          "pred_category": "clothing",
           "gt_name": "白色制服外套与蓝色绳结",
           "gt_value": "穿着一套纯白色制服外套，胸前有一个独特的蓝色绳结装饰，绳结右端自然下垂，必须准确绘制其位置和形状。",
-          "similarity": 0.7601
+          "similarity": 0.6957
         },
         {
-          "pred_name": "裤子服装",
-          "pred_value": "纯白色的长裤，剪裁合身，与上衣颜色一致，形成完整的白色套装效果。",
+          "pred_name": "长裤",
+          "pred_value": "白色直筒长裤，与上衣同色系",
+          "pred_category": "clothing",
           "gt_name": "白色长裤与黑色皮鞋",
           "gt_value": "搭配同色系白色长裤和简洁的黑色皮鞋，裤线笔直，鞋子设计简约无多余装饰。",
-          "similarity": 0.7454
+          "similarity": 0.7467
         }
       ],
       "unmatched_pred": [
         {
+          "name": "胸前绳结",
+          "value": "蓝色编织绳结装饰，横向系于胸前，右侧带有流苏垂下",
+          "category": "accessory"
+        },
+        {
           "name": "鞋子",
-          "value": "深灰色或黑色的低帮皮鞋（类似乐福鞋），款式简洁。"
+          "value": "深灰色低帮皮鞋，款式简洁",
+          "category": "footwear"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "深棕色短发，头发略显蓬松凌乱，刘海自然垂下遮住部分额头，两侧鬓角较短。"
+          "name": "发型",
+          "value": "深棕色短发，刘海遮盖额头，发梢略显凌乱",
+          "category": "hair"
         },
         {
-          "name": "眼睛颜色和形状",
-          "value": "红褐色（或橙红色）瞳孔，眼型细长，眼神看起来自信且带有一丝狡黠的笑意。"
+          "name": "眼睛颜色",
+          "value": "红褐色瞳孔，眼神明亮",
+          "category": "face"
         },
         {
-          "name": "上衣服装",
-          "value": "白色立领长袖制服外套，设计简洁干练。最显著的特征是胸前有一条蓝色的绳结装饰（类似中国结或盘扣），绳结下方垂下一条蓝色的流苏状饰物，衣服下摆处可见纽扣细节。"
+          "name": "外套",
+          "value": "白色立领长袖外套，前襟有纽扣设计，款式类似中山装或制服",
+          "category": "clothing"
         },
         {
-          "name": "裤子服装",
-          "value": "纯白色的长裤，剪裁合身，与上衣颜色一致，形成完整的白色套装效果。"
+          "name": "胸前绳结",
+          "value": "蓝色编织绳结装饰，横向系于胸前，右侧带有流苏垂下",
+          "category": "accessory"
+        },
+        {
+          "name": "长裤",
+          "value": "白色直筒长裤，与上衣同色系",
+          "category": "clothing"
         },
         {
           "name": "鞋子",
-          "value": "深灰色或黑色的低帮皮鞋（类似乐福鞋），款式简洁。"
+          "value": "深灰色低帮皮鞋，款式简洁",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -1986,89 +2520,142 @@
           "value": "搭配同色系白色长裤和简洁的黑色皮鞋，裤线笔直，鞋子设计简约无多余装饰。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"深棕色短发，头发略显蓬松凌乱，刘海自然垂下遮住部分额头，两侧鬓角较短。\"\n    },\n    {\n      \"name\": \"眼睛颜色和形状\",\n      \"value\": \"红褐色（或橙红色）瞳孔，眼型细长，眼神看起来自信且带有一丝狡黠的笑意。\"\n    },\n    {\n      \"name\": \"上衣服装\",\n      \"value\": \"白色立领长袖制服外套，设计简洁干练。最显著的特征是胸前有一条蓝色的绳结装饰（类似中国结或盘扣），绳结下方垂下一条蓝色的流苏状饰物，衣服下摆处可见纽扣细节。\"\n    },\n    {\n      \"name\": \"裤子服装\",\n      \"value\": \"纯白色的长裤，剪裁合身，与上衣颜色一致，形成完整的白色套装效果。\"\n    },\n    {\n      \"name\": \"鞋子\",\n      \"value\": \"深灰色或黑色的低帮皮鞋（类似乐福鞋），款式简洁。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 15.4
+      "_raw_model_output": "",
+      "_inference_time_s": 2.9
     },
     {
       "sample_id": "char_019",
       "gt_element_count": 6,
-      "pred_element_count": 6,
+      "pred_element_count": 10,
       "matched_count": 6,
-      "unmatched_pred_count": 0,
+      "unmatched_pred_count": 4,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6002,
+      "avg_similarity": 0.5847,
       "coverage": 1.0,
-      "precision": 1.0,
+      "precision": 0.6,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "角色拥有一头亮蓝色的长发，梳成高马尾发型，额前留有刘海垂下，发丝线条流畅。",
+          "pred_name": "头发",
+          "pred_value": "深蓝色高马尾发型，刘海向两侧分开",
+          "pred_category": "hair",
           "gt_name": "蓝色高马尾",
           "gt_value": "角色拥有亮蓝色的长发，扎成高马尾，发梢自然垂落，发根处有白色发带固定。",
-          "similarity": 0.7774
+          "similarity": 0.719
         },
         {
-          "pred_name": "眼睛特征",
-          "pred_value": "眼睛呈深褐色或黑色，眼型狭长且略微上挑，眼神显得自信且锐利。",
+          "pred_name": "头部发饰",
+          "pred_value": "头顶佩戴白色发带或发圈装饰",
+          "pred_category": "accessory",
+          "gt_name": "银色手环",
+          "gt_value": "双手手腕各佩戴一个银色金属手环，表面光滑，是角色标志性配饰之一。",
+          "similarity": 0.5851
+        },
+        {
+          "pred_name": "领饰",
+          "pred_value": "红色尖角状立领或披肩尖端，位于肩部上方",
+          "pred_category": "clothing",
           "gt_name": "紫色与红色相间的上衣",
           "gt_value": "穿着一件紫色长袖上衣，领口和肩部有鲜明的红色装饰，胸前为白色紧身胸衣设计，带有褶皱细节。",
-          "similarity": 0.4848
+          "similarity": 0.598
         },
         {
-          "pred_name": "上身服装",
-          "pred_value": "穿着一件紫色的长袖外套，领口处有醒目的红色尖角翻领设计；内搭一件黑色的紧身胸衣（corset），胸前和腰部装饰有白色的褶皱布料。",
+          "pred_name": "上身外套",
+          "pred_value": "紫色宽袖长款外套，袖口宽大呈灯笼状",
+          "pred_category": "clothing",
           "gt_name": "粉色短裙与黑色短裤",
           "gt_value": "下身搭配粉色多层短裙，裙摆蓬松，内衬为黑色短裤，边缘露出，层次分明。",
-          "similarity": 0.595
+          "similarity": 0.5327
+        },
+        {
+          "pred_name": "紧身胸衣",
+          "pred_value": "黑色紧身胸衣，胸前有白色褶皱装饰",
+          "pred_category": "clothing",
+          "gt_name": "黑色过膝袜与棕色靴子",
+          "gt_value": "左脚穿着黑色过膝袜，脚穿棕色系带长靴，靴筒有褶皱设计。",
+          "similarity": 0.5236
         },
         {
           "pred_name": "下身裙装",
-          "pred_value": "腰间系着粉红色的层叠布料，呈不规则的围裙状或前短后长设计，下方露出黑色的短裤或打底裤。",
-          "gt_name": "黑色过膝袜与棕色靴子",
-          "gt_value": "左脚穿着黑色过膝袜，脚穿棕色系带长靴，靴筒有褶皱设计。",
-          "similarity": 0.5827
-        },
-        {
-          "pred_name": "腿部装饰与袜饰",
-          "pred_value": "画面右侧的腿上佩戴着一个带有白色褶边的腿环；画面左侧的腿穿着黑色的过膝长袜（绝对领域）。",
+          "pred_value": "粉色前短后长围裙式短裙，腰部有蝴蝶结装饰",
+          "pred_category": "clothing",
           "gt_name": "棕色靴子与蕾丝边装饰",
           "gt_value": "右脚大腿处有白色蕾丝边装饰，脚穿棕色系带长靴，靴筒有褶皱设计。",
-          "similarity": 0.704
-        },
-        {
-          "pred_name": "鞋履",
-          "pred_value": "脚穿棕色的短靴，靴筒顶部有翻折的设计细节。",
-          "gt_name": "银色手环",
-          "gt_value": "双手手腕各佩戴一个银色金属手环，表面光滑，是角色标志性配饰之一。",
-          "similarity": 0.4571
+          "similarity": 0.5501
         }
       ],
-      "unmatched_pred": [],
+      "unmatched_pred": [
+        {
+          "name": "右腿袜类",
+          "value": "黑色过膝长袜（画面左侧腿部）",
+          "category": "clothing"
+        },
+        {
+          "name": "左腿绑带",
+          "value": "白色大腿绑带/腿环，带有黑色扣饰（画面右侧腿部）",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋靴",
+          "value": "棕色翻边短靴，材质看似皮革或绒面",
+          "category": "footwear"
+        },
+        {
+          "name": "手部护腕",
+          "value": "左手佩戴银色金属环状护腕",
+          "category": "accessory"
+        }
+      ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "角色拥有一头亮蓝色的长发，梳成高马尾发型，额前留有刘海垂下，发丝线条流畅。"
+          "name": "头发",
+          "value": "深蓝色高马尾发型，刘海向两侧分开",
+          "category": "hair"
         },
         {
-          "name": "眼睛特征",
-          "value": "眼睛呈深褐色或黑色，眼型狭长且略微上挑，眼神显得自信且锐利。"
+          "name": "头部发饰",
+          "value": "头顶佩戴白色发带或发圈装饰",
+          "category": "accessory"
         },
         {
-          "name": "上身服装",
-          "value": "穿着一件紫色的长袖外套，领口处有醒目的红色尖角翻领设计；内搭一件黑色的紧身胸衣（corset），胸前和腰部装饰有白色的褶皱布料。"
+          "name": "领饰",
+          "value": "红色尖角状立领或披肩尖端，位于肩部上方",
+          "category": "clothing"
+        },
+        {
+          "name": "上身外套",
+          "value": "紫色宽袖长款外套，袖口宽大呈灯笼状",
+          "category": "clothing"
+        },
+        {
+          "name": "紧身胸衣",
+          "value": "黑色紧身胸衣，胸前有白色褶皱装饰",
+          "category": "clothing"
         },
         {
           "name": "下身裙装",
-          "value": "腰间系着粉红色的层叠布料，呈不规则的围裙状或前短后长设计，下方露出黑色的短裤或打底裤。"
+          "value": "粉色前短后长围裙式短裙，腰部有蝴蝶结装饰",
+          "category": "clothing"
         },
         {
-          "name": "腿部装饰与袜饰",
-          "value": "画面右侧的腿上佩戴着一个带有白色褶边的腿环；画面左侧的腿穿着黑色的过膝长袜（绝对领域）。"
+          "name": "右腿袜类",
+          "value": "黑色过膝长袜（画面左侧腿部）",
+          "category": "clothing"
         },
         {
-          "name": "鞋履",
-          "value": "脚穿棕色的短靴，靴筒顶部有翻折的设计细节。"
+          "name": "左腿绑带",
+          "value": "白色大腿绑带/腿环，带有黑色扣饰（画面右侧腿部）",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋靴",
+          "value": "棕色翻边短靴，材质看似皮革或绒面",
+          "category": "footwear"
+        },
+        {
+          "name": "手部护腕",
+          "value": "左手佩戴银色金属环状护腕",
+          "category": "accessory"
         }
       ],
       "gt_elements": [
@@ -2097,8 +2684,8 @@
           "value": "右脚大腿处有白色蕾丝边装饰，脚穿棕色系带长靴，靴筒有褶皱设计。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"角色拥有一头亮蓝色的长发，梳成高马尾发型，额前留有刘海垂下，发丝线条流畅。\"\n    },\n    {\n      \"name\": \"眼睛特征\",\n      \"value\": \"眼睛呈深褐色或黑色，眼型狭长且略微上挑，眼神显得自信且锐利。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"穿着一件紫色的长袖外套，领口处有醒目的红色尖角翻领设计；内搭一件黑色的紧身胸衣（corset），胸前和腰部装饰有白色的褶皱布料。\"\n    },\n    {\n      \"name\": \"下身裙装\",\n      \"value\": \"腰间系着粉红色的层叠布料，呈不规则的围裙状或前短后长设计，下方露出黑色的短裤或打底裤。\"\n    },\n    {\n      \"name\": \"腿部装饰与袜饰\",\n      \"value\": \"画面右侧的腿上佩戴着一个带有白色褶边的腿环；画面左侧的腿穿着黑色的过膝长袜（绝对领域）。\"\n    },\n    {\n      \"name\": \"鞋履\",\n      \"value\": \"脚穿棕色的短靴，靴筒顶部有翻折的设计细节。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 18.6
+      "_raw_model_output": "",
+      "_inference_time_s": 3.2
     },
     {
       "sample_id": "char_020",
@@ -2107,66 +2694,76 @@
       "matched_count": 4,
       "unmatched_pred_count": 1,
       "unmatched_gt_count": 0,
-      "avg_similarity": 0.6467,
+      "avg_similarity": 0.6705,
       "coverage": 1.0,
       "precision": 0.8,
       "matches": [
         {
-          "pred_name": "发型发色",
-          "pred_value": "深紫色或黑色的长直发，采用中分设计，两侧留有较长的刘海垂在脸颊旁修饰脸型，头发顺滑地披散在背部，长度及腰。",
+          "pred_name": "头发",
+          "pred_value": "深紫色长直发，中分，披散在双肩",
+          "pred_category": "hair",
           "gt_name": "黑色长直发",
           "gt_value": "角色拥有顺滑的黑色长直发，长度及腰，发丝整齐无卷曲，发梢略微内扣。",
-          "similarity": 0.7183
+          "similarity": 0.6829
         },
         {
-          "pred_name": "眼睛颜色和形状",
-          "pred_value": "细长的杏仁眼型，瞳孔颜色为深色（深蓝或黑色），眼神显得冷静、锐利且略带严肃感，眉毛细长平直。",
-          "gt_name": "白色内搭",
-          "gt_value": "西装内搭配一件白色圆领内搭，领口简洁，与西装颜色形成层次对比。",
-          "similarity": 0.5052
-        },
-        {
-          "pred_name": "上身服装",
-          "pred_value": "穿着一件深灰色的修身西装外套，采用单排扣设计，翻领样式；内搭一件浅灰白色的圆领打底衫或背心，袖口微微卷起露出手腕部分。",
+          "pred_name": "西装外套",
+          "pred_value": "深灰色翻领长袖外套，袖口有卷边设计",
+          "pred_category": "clothing",
           "gt_name": "灰色西装套装",
           "gt_value": "穿着一套合身的灰色西装，包括单排扣西装外套和修身西裤，外套有翻领设计，纽扣为深黑色。",
-          "similarity": 0.7722
+          "similarity": 0.7281
         },
         {
-          "pred_name": "下身服装",
-          "pred_value": "穿着与上衣同色系的深灰色修身西装长裤，剪裁贴合身形，显得腿部修长笔直，裤脚长度刚好在脚踝上方。",
+          "pred_name": "内搭上衣",
+          "pred_value": "浅灰色圆领打底衫，仅露出领口和胸口部分",
+          "pred_category": "clothing",
+          "gt_name": "白色内搭",
+          "gt_value": "西装内搭配一件白色圆领内搭，领口简洁，与西装颜色形成层次对比。",
+          "similarity": 0.7193
+        },
+        {
+          "pred_name": "长裤",
+          "pred_value": "深灰色修身直筒长裤，与外套同色系",
+          "pred_category": "clothing",
           "gt_name": "灰色高跟鞋",
           "gt_value": "脚穿一双简约的灰色尖头高跟鞋，鞋跟高度适中，鞋面光滑无装饰。",
-          "similarity": 0.591
+          "similarity": 0.5518
         }
       ],
       "unmatched_pred": [
         {
           "name": "鞋子",
-          "value": "穿着一双深色（黑色或深灰）的尖头高跟鞋，设计简约干练，与整体职业装束相搭配。"
+          "value": "黑色尖头高跟鞋",
+          "category": "footwear"
         }
       ],
       "unmatched_gt": [],
       "pred_elements": [
         {
-          "name": "发型发色",
-          "value": "深紫色或黑色的长直发，采用中分设计，两侧留有较长的刘海垂在脸颊旁修饰脸型，头发顺滑地披散在背部，长度及腰。"
+          "name": "头发",
+          "value": "深紫色长直发，中分，披散在双肩",
+          "category": "hair"
         },
         {
-          "name": "眼睛颜色和形状",
-          "value": "细长的杏仁眼型，瞳孔颜色为深色（深蓝或黑色），眼神显得冷静、锐利且略带严肃感，眉毛细长平直。"
+          "name": "西装外套",
+          "value": "深灰色翻领长袖外套，袖口有卷边设计",
+          "category": "clothing"
         },
         {
-          "name": "上身服装",
-          "value": "穿着一件深灰色的修身西装外套，采用单排扣设计，翻领样式；内搭一件浅灰白色的圆领打底衫或背心，袖口微微卷起露出手腕部分。"
+          "name": "内搭上衣",
+          "value": "浅灰色圆领打底衫，仅露出领口和胸口部分",
+          "category": "clothing"
         },
         {
-          "name": "下身服装",
-          "value": "穿着与上衣同色系的深灰色修身西装长裤，剪裁贴合身形，显得腿部修长笔直，裤脚长度刚好在脚踝上方。"
+          "name": "长裤",
+          "value": "深灰色修身直筒长裤，与外套同色系",
+          "category": "clothing"
         },
         {
           "name": "鞋子",
-          "value": "穿着一双深色（黑色或深灰）的尖头高跟鞋，设计简约干练，与整体职业装束相搭配。"
+          "value": "黑色尖头高跟鞋",
+          "category": "footwear"
         }
       ],
       "gt_elements": [
@@ -2187,8 +2784,2214 @@
           "value": "脚穿一双简约的灰色尖头高跟鞋，鞋跟高度适中，鞋面光滑无装饰。"
         }
       ],
-      "_raw_model_output": "```json\n{\n  \"elements\": [\n    {\n      \"name\": \"发型发色\",\n      \"value\": \"深紫色或黑色的长直发，采用中分设计，两侧留有较长的刘海垂在脸颊旁修饰脸型，头发顺滑地披散在背部，长度及腰。\"\n    },\n    {\n      \"name\": \"眼睛颜色和形状\",\n      \"value\": \"细长的杏仁眼型，瞳孔颜色为深色（深蓝或黑色），眼神显得冷静、锐利且略带严肃感，眉毛细长平直。\"\n    },\n    {\n      \"name\": \"上身服装\",\n      \"value\": \"穿着一件深灰色的修身西装外套，采用单排扣设计，翻领样式；内搭一件浅灰白色的圆领打底衫或背心，袖口微微卷起露出手腕部分。\"\n    },\n    {\n      \"name\": \"下身服装\",\n      \"value\": \"穿着与上衣同色系的深灰色修身西装长裤，剪裁贴合身形，显得腿部修长笔直，裤脚长度刚好在脚踝上方。\"\n    },\n    {\n      \"name\": \"鞋子\",\n      \"value\": \"穿着一双深色（黑色或深灰）的尖头高跟鞋，设计简约干练，与整体职业装束相搭配。\"\n    }\n  ]\n}\n```",
-      "_inference_time_s": 14.7
+      "_raw_model_output": "",
+      "_inference_time_s": 2.3
+    },
+    {
+      "sample_id": "char_021",
+      "gt_element_count": 7,
+      "pred_element_count": 10,
+      "matched_count": 7,
+      "unmatched_pred_count": 3,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6779,
+      "coverage": 1.0,
+      "precision": 0.7,
+      "matches": [
+        {
+          "pred_name": "发型与发色",
+          "pred_value": "金色短发，向上竖起且略显凌乱",
+          "pred_category": "hair",
+          "gt_name": "金色短发与胡须",
+          "gt_value": "角色拥有蓬松的金色短发和黑色胡须，面部表情坚毅，发型和胡须的轮廓清晰分明。",
+          "similarity": 0.7353
+        },
+        {
+          "pred_name": "胸口纹身",
+          "pred_value": "胸口正中央有红色火焰状纹身图案",
+          "pred_category": "skin_body",
+          "gt_name": "左胸红色火焰纹身",
+          "gt_value": "左胸处有一个醒目的红色火焰状纹身，是角色的重要标志，必须准确绘制其形状和颜色。",
+          "similarity": 0.7985
+        },
+        {
+          "pred_name": "脸部纹路",
+          "pred_value": "额头至脸颊两侧有黑色条纹状纹身或标记",
+          "pred_category": "skin_body",
+          "gt_name": "右手握拳",
+          "gt_value": "右手自然弯曲握拳，指节突出。",
+          "similarity": 0.507
+        },
+        {
+          "pred_name": "长袍外套",
+          "pred_value": "深色（黑色或深灰）开襟长袍，衣领及边缘有黄色镶边",
+          "pred_category": "clothing",
+          "gt_name": "橙色斜披布与黑色外袍",
+          "gt_value": "上半身穿着一件橙色斜披布，外罩黑色开襟长袍，衣领和衣襟有卡其色镶边，整体层次感强。",
+          "similarity": 0.7534
+        },
+        {
+          "pred_name": "斜襟内搭",
+          "pred_value": "橙色斜襟上衣，系带固定，露出胸膛",
+          "pred_category": "clothing",
+          "gt_name": "灰色宽松裤与灰色和黑色组合的靴子",
+          "gt_value": "下身穿着灰色宽松裤，裤脚束紧，搭配灰色和黑色组合的靴子，靴子边缘有金色装饰线条。",
+          "similarity": 0.5162
+        },
+        {
+          "pred_name": "编织腰带",
+          "pred_value": "腰部系有粗大的黄色编织绳状腰带，缠绕多圈",
+          "pred_category": "accessory",
+          "gt_name": "金色编织腰带与护腕",
+          "gt_value": "腰部系着一条宽大的金色编织腰带，手腕上也佩戴同款金色编织护腕，细节纹理需清晰呈现。",
+          "similarity": 0.7578
+        },
+        {
+          "pred_name": "编织护腕",
+          "pred_value": "双手手腕处佩戴黄色编织绳状护腕",
+          "pred_category": "accessory",
+          "gt_name": "左手持金色护肩",
+          "gt_value": "左手握着一个金色护肩，护肩呈多层折叠结构，边缘锋利，是角色标志性装备。",
+          "similarity": 0.6768
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "宽松长裤",
+          "value": "浅灰色灯笼裤，裤脚收紧并带有深色边缘",
+          "category": "clothing"
+        },
+        {
+          "name": "短靴",
+          "value": "白色鞋面的短靴，脚踝处有深色拼接及鞋底边缘",
+          "category": "footwear"
+        },
+        {
+          "name": "手持道具",
+          "value": "右手持有一个金色叶片状物体（疑似武器或忍具部件）",
+          "category": "prop"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "发型与发色",
+          "value": "金色短发，向上竖起且略显凌乱",
+          "category": "hair"
+        },
+        {
+          "name": "胸口纹身",
+          "value": "胸口正中央有红色火焰状纹身图案",
+          "category": "skin_body"
+        },
+        {
+          "name": "脸部纹路",
+          "value": "额头至脸颊两侧有黑色条纹状纹身或标记",
+          "category": "skin_body"
+        },
+        {
+          "name": "长袍外套",
+          "value": "深色（黑色或深灰）开襟长袍，衣领及边缘有黄色镶边",
+          "category": "clothing"
+        },
+        {
+          "name": "斜襟内搭",
+          "value": "橙色斜襟上衣，系带固定，露出胸膛",
+          "category": "clothing"
+        },
+        {
+          "name": "编织腰带",
+          "value": "腰部系有粗大的黄色编织绳状腰带，缠绕多圈",
+          "category": "accessory"
+        },
+        {
+          "name": "宽松长裤",
+          "value": "浅灰色灯笼裤，裤脚收紧并带有深色边缘",
+          "category": "clothing"
+        },
+        {
+          "name": "编织护腕",
+          "value": "双手手腕处佩戴黄色编织绳状护腕",
+          "category": "accessory"
+        },
+        {
+          "name": "短靴",
+          "value": "白色鞋面的短靴，脚踝处有深色拼接及鞋底边缘",
+          "category": "footwear"
+        },
+        {
+          "name": "手持道具",
+          "value": "右手持有一个金色叶片状物体（疑似武器或忍具部件）",
+          "category": "prop"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "金色短发与胡须",
+          "value": "角色拥有蓬松的金色短发和黑色胡须，面部表情坚毅，发型和胡须的轮廓清晰分明。"
+        },
+        {
+          "name": "左胸红色火焰纹身",
+          "value": "左胸处有一个醒目的红色火焰状纹身，是角色的重要标志，必须准确绘制其形状和颜色。"
+        },
+        {
+          "name": "橙色斜披布与黑色外袍",
+          "value": "上半身穿着一件橙色斜披布，外罩黑色开襟长袍，衣领和衣襟有卡其色镶边，整体层次感强。"
+        },
+        {
+          "name": "金色编织腰带与护腕",
+          "value": "腰部系着一条宽大的金色编织腰带，手腕上也佩戴同款金色编织护腕，细节纹理需清晰呈现。"
+        },
+        {
+          "name": "灰色宽松裤与灰色和黑色组合的靴子",
+          "value": "下身穿着灰色宽松裤，裤脚束紧，搭配灰色和黑色组合的靴子，靴子边缘有金色装饰线条。"
+        },
+        {
+          "name": "左手持金色护肩",
+          "value": "左手握着一个金色护肩，护肩呈多层折叠结构，边缘锋利，是角色标志性装备。"
+        },
+        {
+          "name": "右手握拳",
+          "value": "右手自然弯曲握拳，指节突出。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.9
+    },
+    {
+      "sample_id": "char_022",
+      "gt_element_count": 5,
+      "pred_element_count": 6,
+      "matched_count": 4,
+      "unmatched_pred_count": 2,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.6699,
+      "coverage": 0.8,
+      "precision": 0.6667,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "黑色长直发，长度及腰，有刘海",
+          "pred_category": "hair",
+          "gt_name": "深紫色长发",
+          "gt_value": "角色拥有长长的深紫色头发，发丝飘逸自然，发尾略微散开，整体颜色深浅不一且有光泽。",
+          "similarity": 0.6589
+        },
+        {
+          "pred_name": "帽子",
+          "pred_value": "红色贝雷帽，戴在头顶",
+          "pred_category": "headwear",
+          "gt_name": "红色贝雷帽",
+          "gt_value": "头上戴着一顶红色的贝雷帽，帽子形状圆润，位置略微倾斜，是角色标志性配饰，必须准确绘制。",
+          "similarity": 0.7784
+        },
+        {
+          "pred_name": "上衣",
+          "pred_value": "粉色长袖内搭，外穿深紫色无袖背心",
+          "pred_category": "clothing",
+          "gt_name": "紫红色上衣与深紫色短裙",
+          "gt_value": "穿着一件紫红色的无袖上衣，搭配深紫色的百褶短裙，颜色对比鲜明。",
+          "similarity": 0.671
+        },
+        {
+          "pred_name": "裙子",
+          "pred_value": "深紫色百褶短裙，裙摆有白色虚线装饰",
+          "pred_category": "clothing",
+          "gt_name": "深紫色过膝袜与黑色靴子",
+          "gt_value": "腿部穿着深紫色的过膝袜，脚穿黑色高帮靴子，靴子前面有系带设计，鞋底较薄。",
+          "similarity": 0.5715
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "袜子",
+          "value": "深紫色过膝长袜，长度至大腿中部",
+          "category": "clothing"
+        },
+        {
+          "name": "鞋子",
+          "value": "黑色短靴，系带设计",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [
+        {
+          "name": "黑色蝴蝶结装饰",
+          "value": "上衣领口处有一个黑色的小蝴蝶结，作为点缀，位置居中，需注意其对称性和细节。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "黑色长直发，长度及腰，有刘海",
+          "category": "hair"
+        },
+        {
+          "name": "帽子",
+          "value": "红色贝雷帽，戴在头顶",
+          "category": "headwear"
+        },
+        {
+          "name": "上衣",
+          "value": "粉色长袖内搭，外穿深紫色无袖背心",
+          "category": "clothing"
+        },
+        {
+          "name": "裙子",
+          "value": "深紫色百褶短裙，裙摆有白色虚线装饰",
+          "category": "clothing"
+        },
+        {
+          "name": "袜子",
+          "value": "深紫色过膝长袜，长度至大腿中部",
+          "category": "clothing"
+        },
+        {
+          "name": "鞋子",
+          "value": "黑色短靴，系带设计",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "深紫色长发",
+          "value": "角色拥有长长的深紫色头发，发丝飘逸自然，发尾略微散开，整体颜色深浅不一且有光泽。"
+        },
+        {
+          "name": "红色贝雷帽",
+          "value": "头上戴着一顶红色的贝雷帽，帽子形状圆润，位置略微倾斜，是角色标志性配饰，必须准确绘制。"
+        },
+        {
+          "name": "紫红色上衣与深紫色短裙",
+          "value": "穿着一件紫红色的无袖上衣，搭配深紫色的百褶短裙，颜色对比鲜明。"
+        },
+        {
+          "name": "深紫色过膝袜与黑色靴子",
+          "value": "腿部穿着深紫色的过膝袜，脚穿黑色高帮靴子，靴子前面有系带设计，鞋底较薄。"
+        },
+        {
+          "name": "黑色蝴蝶结装饰",
+          "value": "上衣领口处有一个黑色的小蝴蝶结，作为点缀，位置居中，需注意其对称性和细节。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.4
+    },
+    {
+      "sample_id": "char_023",
+      "gt_element_count": 7,
+      "pred_element_count": 8,
+      "matched_count": 7,
+      "unmatched_pred_count": 1,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.7358,
+      "coverage": 1.0,
+      "precision": 0.875,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "浅蓝色中长发，略显凌乱，刘海遮住部分额头。",
+          "pred_category": "hair",
+          "gt_name": "银灰色短发",
+          "gt_value": "角色拥有银灰色的短发，发丝略显蓬松，发梢微微翘起，整体造型简洁利落。",
+          "similarity": 0.7065
+        },
+        {
+          "pred_name": "外套",
+          "pred_value": "米白色长款大衣，领口有深红色毛领，袖口卷起。",
+          "pred_category": "clothing",
+          "gt_name": "米白色长外套与深红色内衬",
+          "gt_value": "穿着一件米白色的长款外套，衣领内侧和肩侧为深红色，形成鲜明对比，外套下摆平整，袖口有自然的褶皱。",
+          "similarity": 0.773
+        },
+        {
+          "pred_name": "内搭上衣",
+          "pred_value": "黑色圆领上衣，可见于外套内侧。",
+          "pred_category": "clothing",
+          "gt_name": "浅蓝色内搭",
+          "gt_value": "上身穿着一件浅蓝色的内搭，自然堆叠于领口，边缘有细微褶皱，需注意其与外套的层次关系。",
+          "similarity": 0.7528
+        },
+        {
+          "pred_name": "腰封/腰带",
+          "pred_value": "腰间缠绕宽大的棕色布带，类似绷带或巨大腰带。",
+          "pred_category": "accessory",
+          "gt_name": "棕色腰带与布料缠绕",
+          "gt_value": "腰部系有一条宽大的棕色腰，布料呈多层缠绕状，覆盖部分长裤，需准确表现其纹理和层次。",
+          "similarity": 0.7533
+        },
+        {
+          "pred_name": "裤子",
+          "pred_value": "深灰色灯笼裤（袴），裤脚收紧。",
+          "pred_category": "clothing",
+          "gt_name": "深灰色宽松裤装",
+          "gt_value": "下身穿着深灰色的宽松裤子，裤脚收束于靴子上方，裤腿有自然褶皱感，褶皱需清晰表现。",
+          "similarity": 0.714
+        },
+        {
+          "pred_name": "手套",
+          "pred_value": "左手佩戴棕褐色手套/护腕。",
+          "pred_category": "accessory",
+          "gt_name": "棕色手套和短靴",
+          "gt_value": "右手半握成拳，戴有棕色皮质手套，手套略微褶皱；脚穿同色系棕色短筒靴，靴筒有缝线细节，鞋底较薄。",
+          "similarity": 0.7408
+        },
+        {
+          "pred_name": "鞋子",
+          "pred_value": "棕褐色短靴，鞋头略圆。",
+          "pred_category": "footwear",
+          "gt_name": "棕色手套与短靴",
+          "gt_value": "左手插兜，露出一截棕色皮质手套；脚穿同色系棕色短筒靴，靴筒有缝线细节，鞋底较薄。",
+          "similarity": 0.7105
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "胡须",
+          "value": "下巴处有明显的黑色短须/胡茬。",
+          "category": "face"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "浅蓝色中长发，略显凌乱，刘海遮住部分额头。",
+          "category": "hair"
+        },
+        {
+          "name": "胡须",
+          "value": "下巴处有明显的黑色短须/胡茬。",
+          "category": "face"
+        },
+        {
+          "name": "外套",
+          "value": "米白色长款大衣，领口有深红色毛领，袖口卷起。",
+          "category": "clothing"
+        },
+        {
+          "name": "内搭上衣",
+          "value": "黑色圆领上衣，可见于外套内侧。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰封/腰带",
+          "value": "腰间缠绕宽大的棕色布带，类似绷带或巨大腰带。",
+          "category": "accessory"
+        },
+        {
+          "name": "裤子",
+          "value": "深灰色灯笼裤（袴），裤脚收紧。",
+          "category": "clothing"
+        },
+        {
+          "name": "手套",
+          "value": "左手佩戴棕褐色手套/护腕。",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋子",
+          "value": "棕褐色短靴，鞋头略圆。",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "银灰色短发",
+          "value": "角色拥有银灰色的短发，发丝略显蓬松，发梢微微翘起，整体造型简洁利落。"
+        },
+        {
+          "name": "浅蓝色内搭",
+          "value": "上身穿着一件浅蓝色的内搭，自然堆叠于领口，边缘有细微褶皱，需注意其与外套的层次关系。"
+        },
+        {
+          "name": "棕色腰带与布料缠绕",
+          "value": "腰部系有一条宽大的棕色腰，布料呈多层缠绕状，覆盖部分长裤，需准确表现其纹理和层次。"
+        },
+        {
+          "name": "深灰色宽松裤装",
+          "value": "下身穿着深灰色的宽松裤子，裤脚收束于靴子上方，裤腿有自然褶皱感，褶皱需清晰表现。"
+        },
+        {
+          "name": "棕色手套与短靴",
+          "value": "左手插兜，露出一截棕色皮质手套；脚穿同色系棕色短筒靴，靴筒有缝线细节，鞋底较薄。"
+        },
+        {
+          "name": "米白色长外套与深红色内衬",
+          "value": "穿着一件米白色的长款外套，衣领内侧和肩侧为深红色，形成鲜明对比，外套下摆平整，袖口有自然的褶皱。"
+        },
+        {
+          "name": "棕色手套和短靴",
+          "value": "右手半握成拳，戴有棕色皮质手套，手套略微褶皱；脚穿同色系棕色短筒靴，靴筒有缝线细节，鞋底较薄。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.9
+    },
+    {
+      "sample_id": "char_024",
+      "gt_element_count": 7,
+      "pred_element_count": 11,
+      "matched_count": 6,
+      "unmatched_pred_count": 5,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.6599,
+      "coverage": 0.8571,
+      "precision": 0.5455,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "红色长发，带有刘海，发尾微卷",
+          "pred_category": "hair",
+          "gt_name": "红色长发与头饰",
+          "gt_value": "角色拥有飘逸的红色和紫色长发，头顶佩戴一个精致的银色或白色头饰，形状类似小皇冠或发箍，是标志性配饰。",
+          "similarity": 0.6996
+        },
+        {
+          "pred_name": "眼睛",
+          "pred_value": "蓝色瞳孔，眼神明亮",
+          "pred_category": "face",
+          "gt_name": "蓝色眼睛",
+          "gt_value": "眼睛为明亮的蓝色，眼神清澈，是角色面部的重要特征。",
+          "similarity": 0.8245
+        },
+        {
+          "pred_name": "外套",
+          "pred_value": "红色短款上衣，后摆极长呈燕尾状，内衬蓝色，边缘有金色线条装饰",
+          "pred_category": "clothing",
+          "gt_name": "红紫色学院风外套",
+          "gt_value": "穿着一件红紫色调的学院风格外套，衣领和袖口有白色装饰边，下摆呈不对称设计，带有金色镶边细节。",
+          "similarity": 0.7113
+        },
+        {
+          "pred_name": "领饰",
+          "pred_value": "白色荷叶边领口装饰，位于颈部前方",
+          "pred_category": "accessory",
+          "gt_name": "格纹短裙与白色蕾丝边",
+          "gt_value": "搭配一条深色格纹短裙，裙摆边缘有白色蕾丝花边装饰，层次分明。",
+          "similarity": 0.5686
+        },
+        {
+          "pred_name": "领带",
+          "pred_value": "深色细长领带，系于领口处垂下",
+          "pred_category": "accessory",
+          "gt_name": "肤色裤袜与深色靴子",
+          "gt_value": "腿部穿着肤色裤袜，脚穿深色短靴，靴子表面光滑，无过多装饰。",
+          "similarity": 0.5254
+        },
+        {
+          "pred_name": "手套",
+          "pred_value": "白色短手套，戴在左手",
+          "pred_category": "accessory",
+          "gt_name": "左手姿势",
+          "gt_value": "左手垂于身后，手指自然张开掌心朝下，需注意手指比例和线条。",
+          "similarity": 0.6302
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "发箍",
+          "value": "银色小皇冠造型发箍，位于头顶",
+          "category": "accessory"
+        },
+        {
+          "name": "裙子",
+          "value": "紫色格纹短裙，下摆露出白色荷叶边衬裙",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色宽腰带，束在腰部",
+          "category": "accessory"
+        },
+        {
+          "name": "袜子",
+          "value": "深紫色长筒袜，覆盖小腿部分",
+          "category": "footwear"
+        },
+        {
+          "name": "鞋子",
+          "value": "深色高跟短靴，鞋头略尖",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [
+        {
+          "name": "右手姿势",
+          "value": "右手抬起，手掌朝前，手指自然张开，需注意手指比例和线条。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "红色长发，带有刘海，发尾微卷",
+          "category": "hair"
+        },
+        {
+          "name": "发箍",
+          "value": "银色小皇冠造型发箍，位于头顶",
+          "category": "accessory"
+        },
+        {
+          "name": "眼睛",
+          "value": "蓝色瞳孔，眼神明亮",
+          "category": "face"
+        },
+        {
+          "name": "外套",
+          "value": "红色短款上衣，后摆极长呈燕尾状，内衬蓝色，边缘有金色线条装饰",
+          "category": "clothing"
+        },
+        {
+          "name": "领饰",
+          "value": "白色荷叶边领口装饰，位于颈部前方",
+          "category": "accessory"
+        },
+        {
+          "name": "领带",
+          "value": "深色细长领带，系于领口处垂下",
+          "category": "accessory"
+        },
+        {
+          "name": "裙子",
+          "value": "紫色格纹短裙，下摆露出白色荷叶边衬裙",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色宽腰带，束在腰部",
+          "category": "accessory"
+        },
+        {
+          "name": "袜子",
+          "value": "深紫色长筒袜，覆盖小腿部分",
+          "category": "footwear"
+        },
+        {
+          "name": "鞋子",
+          "value": "深色高跟短靴，鞋头略尖",
+          "category": "footwear"
+        },
+        {
+          "name": "手套",
+          "value": "白色短手套，戴在左手",
+          "category": "accessory"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "红色长发与头饰",
+          "value": "角色拥有飘逸的红色和紫色长发，头顶佩戴一个精致的银色或白色头饰，形状类似小皇冠或发箍，是标志性配饰。"
+        },
+        {
+          "name": "蓝色眼睛",
+          "value": "眼睛为明亮的蓝色，眼神清澈，是角色面部的重要特征。"
+        },
+        {
+          "name": "红紫色学院风外套",
+          "value": "穿着一件红紫色调的学院风格外套，衣领和袖口有白色装饰边，下摆呈不对称设计，带有金色镶边细节。"
+        },
+        {
+          "name": "格纹短裙与白色蕾丝边",
+          "value": "搭配一条深色格纹短裙，裙摆边缘有白色蕾丝花边装饰，层次分明。"
+        },
+        {
+          "name": "肤色裤袜与深色靴子",
+          "value": "腿部穿着肤色裤袜，脚穿深色短靴，靴子表面光滑，无过多装饰。"
+        },
+        {
+          "name": "右手姿势",
+          "value": "右手抬起，手掌朝前，手指自然张开，需注意手指比例和线条。"
+        },
+        {
+          "name": "左手姿势",
+          "value": "左手垂于身后，手指自然张开掌心朝下，需注意手指比例和线条。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 3.3
+    },
+    {
+      "sample_id": "char_025",
+      "gt_element_count": 8,
+      "pred_element_count": 8,
+      "matched_count": 7,
+      "unmatched_pred_count": 1,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.578,
+      "coverage": 0.875,
+      "precision": 0.875,
+      "matches": [
+        {
+          "pred_name": "发型",
+          "pred_value": "粉紫色短发，齐刘海，发尾微卷。",
+          "pred_category": "hair",
+          "gt_name": "紫红色短发与头饰",
+          "gt_value": "角色拥有鲜艳的紫红色短发，头部两侧各有一个黑色齿轮状头饰，是其标志性配饰，必须准确绘制。",
+          "similarity": 0.6517
+        },
+        {
+          "pred_name": "耳饰",
+          "pred_value": "耳朵上戴着带有花纹的深色大耳环/耳罩。",
+          "pred_category": "accessory",
+          "gt_name": "左手黑色手套与袖套",
+          "gt_value": "左手佩戴黑色手套和袖套，手腕处有白色条纹装饰，需注意条纹宽度和位置。",
+          "similarity": 0.5697
+        },
+        {
+          "pred_name": "恶魔翼",
+          "pred_value": "背部有一对黑色的蝙蝠状小翅膀。",
+          "pred_category": "skin_body",
+          "gt_name": "紫红色披风与背部装饰",
+          "gt_value": "背后有紫红色披风，背部带有类似蝙蝠翅膀的尖角设计，边缘有黑色内衬，需注意对称性。",
+          "similarity": 0.5659
+        },
+        {
+          "pred_name": "披风",
+          "pred_value": "紫色大披风，领口处有黑色毛领装饰。",
+          "pred_category": "clothing",
+          "gt_name": "白色连衣裙与粉色蝴蝶结",
+          "gt_value": "穿着一件白色短款连衣裙，胸前有粉色蝴蝶结装饰，裙摆呈百褶状，边缘线条需清晰。",
+          "similarity": 0.5507
+        },
+        {
+          "pred_name": "抹胸上衣",
+          "pred_value": "白色抹胸式上衣，胸前有黑色交叉绑带和粉色蝴蝶结装饰。",
+          "pred_category": "clothing",
+          "gt_name": "右手黑色手套与袖套",
+          "gt_value": "右色手套和袖套，手腕处有白色条纹装饰，需注意条纹宽度和位置。",
+          "similarity": 0.5734
+        },
+        {
+          "pred_name": "百褶裙",
+          "pred_value": "白色百褶短裙。",
+          "pred_category": "clothing",
+          "gt_name": "粉紫色大腿袜与白色图案",
+          "gt_value": "穿着粉紫色大腿袜，大腿部分有白色图案，袜口处有深色边线，需注意图案位置和比例。",
+          "similarity": 0.5433
+        },
+        {
+          "pred_name": "过膝袜",
+          "pred_value": "粉紫色过膝长袜，膝盖处有白色V形图案装饰。",
+          "pred_category": "footwear",
+          "gt_name": "紫红色鞋子与蝴蝶结",
+          "gt_value": "脚穿紫红色高跟鞋，鞋面上有小型紫色蝴蝶结装饰，鞋跟略高，需注意细节对称。",
+          "similarity": 0.5913
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "玛丽珍鞋",
+          "value": "粉紫色玛丽珍单鞋，脚背处有蝴蝶结装饰。",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [
+        {
+          "name": "紫红色眼睛",
+          "value": "眼睛为明亮的紫红色，眼神温和，眼型又大又圆，需注意瞳孔高光的位置和形状。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "发型",
+          "value": "粉紫色短发，齐刘海，发尾微卷。",
+          "category": "hair"
+        },
+        {
+          "name": "耳饰",
+          "value": "耳朵上戴着带有花纹的深色大耳环/耳罩。",
+          "category": "accessory"
+        },
+        {
+          "name": "恶魔翼",
+          "value": "背部有一对黑色的蝙蝠状小翅膀。",
+          "category": "skin_body"
+        },
+        {
+          "name": "披风",
+          "value": "紫色大披风，领口处有黑色毛领装饰。",
+          "category": "clothing"
+        },
+        {
+          "name": "抹胸上衣",
+          "value": "白色抹胸式上衣，胸前有黑色交叉绑带和粉色蝴蝶结装饰。",
+          "category": "clothing"
+        },
+        {
+          "name": "百褶裙",
+          "value": "白色百褶短裙。",
+          "category": "clothing"
+        },
+        {
+          "name": "过膝袜",
+          "value": "粉紫色过膝长袜，膝盖处有白色V形图案装饰。",
+          "category": "footwear"
+        },
+        {
+          "name": "玛丽珍鞋",
+          "value": "粉紫色玛丽珍单鞋，脚背处有蝴蝶结装饰。",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "紫红色短发与头饰",
+          "value": "角色拥有鲜艳的紫红色短发，头部两侧各有一个黑色齿轮状头饰，是其标志性配饰，必须准确绘制。"
+        },
+        {
+          "name": "紫红色眼睛",
+          "value": "眼睛为明亮的紫红色，眼神温和，眼型又大又圆，需注意瞳孔高光的位置和形状。"
+        },
+        {
+          "name": "白色连衣裙与粉色蝴蝶结",
+          "value": "穿着一件白色短款连衣裙，胸前有粉色蝴蝶结装饰，裙摆呈百褶状，边缘线条需清晰。"
+        },
+        {
+          "name": "紫红色披风与背部装饰",
+          "value": "背后有紫红色披风，背部带有类似蝙蝠翅膀的尖角设计，边缘有黑色内衬，需注意对称性。"
+        },
+        {
+          "name": "粉紫色大腿袜与白色图案",
+          "value": "穿着粉紫色大腿袜，大腿部分有白色图案，袜口处有深色边线，需注意图案位置和比例。"
+        },
+        {
+          "name": "紫红色鞋子与蝴蝶结",
+          "value": "脚穿紫红色高跟鞋，鞋面上有小型紫色蝴蝶结装饰，鞋跟略高，需注意细节对称。"
+        },
+        {
+          "name": "左手黑色手套与袖套",
+          "value": "左手佩戴黑色手套和袖套，手腕处有白色条纹装饰，需注意条纹宽度和位置。"
+        },
+        {
+          "name": "右手黑色手套与袖套",
+          "value": "右色手套和袖套，手腕处有白色条纹装饰，需注意条纹宽度和位置。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.8
+    },
+    {
+      "sample_id": "char_026",
+      "gt_element_count": 6,
+      "pred_element_count": 10,
+      "matched_count": 6,
+      "unmatched_pred_count": 4,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6142,
+      "coverage": 1.0,
+      "precision": 0.6,
+      "matches": [
+        {
+          "pred_name": "发型与发色",
+          "pred_value": "金色长发，左侧编有一条明显的麻花辫垂在胸前。",
+          "pred_category": "hair",
+          "gt_name": "金色马尾",
+          "gt_value": "角色拥有金色的头发，扎成低马尾，发尾部分有自然的卷曲，发丝光泽感强，需注意马尾的蓬松度和发量。",
+          "similarity": 0.699
+        },
+        {
+          "pred_name": "瞳孔颜色",
+          "pred_value": "右眼睁开呈黄色，左眼闭合（Wink）。",
+          "pred_category": "face",
+          "gt_name": "黄色眼睛",
+          "gt_value": "眼睛为明亮的黄色，瞳孔清晰，眼神灵动，是角色面部的重要特征，需准确表现其神采。",
+          "similarity": 0.7097
+        },
+        {
+          "pred_name": "耳饰",
+          "pred_value": "佩戴金色圆形耳环。",
+          "pred_category": "accessory",
+          "gt_name": "黑色腰带与十字架装饰",
+          "gt_value": "腰部系有一条黑色宽腰带，中央镶嵌着一个金色十字架装饰，细节需清晰刻画，位置在腹部正中。",
+          "similarity": 0.5799
+        },
+        {
+          "pred_name": "领结",
+          "pred_value": "胸前系有黄色蝴蝶结领饰。",
+          "pred_category": "accessory",
+          "gt_name": "蓝紫色背心与白色衬衫",
+          "gt_value": "上身穿着一件蓝紫色紧身背心，内搭白色长袖衬衫，领口有黄色蝴蝶结装饰和红色宝石点缀，背心上有金属扣环。",
+          "similarity": 0.6216
+        },
+        {
+          "pred_name": "马甲",
+          "pred_value": "蓝紫色无袖紧身马甲，边缘有白色滚边装饰。",
+          "pred_category": "clothing",
+          "gt_name": "深灰色长裙",
+          "gt_value": "下身穿着一条深灰色长裙，裙摆呈自然垂坠状，褶皱均匀且富有层次感，长度至膝盖下方。",
+          "similarity": 0.5277
+        },
+        {
+          "pred_name": "腰带",
+          "pred_value": "黑色宽腰带，中间配有金色方形装饰扣。",
+          "pred_category": "accessory",
+          "gt_name": "棕色丝袜与灰色皮鞋",
+          "gt_value": "腿部穿着棕色丝袜，袜身紧贴腿部线条，脚穿灰色低跟皮鞋，鞋面光滑。",
+          "similarity": 0.5475
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "长袖衬衫",
+          "value": "白色长袖衬衫，袖口有褶皱设计。",
+          "category": "clothing"
+        },
+        {
+          "name": "半身裙",
+          "value": "深灰色中长款A字裙，长度过膝。",
+          "category": "clothing"
+        },
+        {
+          "name": "连裤袜",
+          "value": "深棕色连裤袜。",
+          "category": "footwear"
+        },
+        {
+          "name": "高跟鞋",
+          "value": "黑色细带高跟皮鞋。",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "发型与发色",
+          "value": "金色长发，左侧编有一条明显的麻花辫垂在胸前。",
+          "category": "hair"
+        },
+        {
+          "name": "瞳孔颜色",
+          "value": "右眼睁开呈黄色，左眼闭合（Wink）。",
+          "category": "face"
+        },
+        {
+          "name": "耳饰",
+          "value": "佩戴金色圆形耳环。",
+          "category": "accessory"
+        },
+        {
+          "name": "领结",
+          "value": "胸前系有黄色蝴蝶结领饰。",
+          "category": "accessory"
+        },
+        {
+          "name": "马甲",
+          "value": "蓝紫色无袖紧身马甲，边缘有白色滚边装饰。",
+          "category": "clothing"
+        },
+        {
+          "name": "长袖衬衫",
+          "value": "白色长袖衬衫，袖口有褶皱设计。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色宽腰带，中间配有金色方形装饰扣。",
+          "category": "accessory"
+        },
+        {
+          "name": "半身裙",
+          "value": "深灰色中长款A字裙，长度过膝。",
+          "category": "clothing"
+        },
+        {
+          "name": "连裤袜",
+          "value": "深棕色连裤袜。",
+          "category": "footwear"
+        },
+        {
+          "name": "高跟鞋",
+          "value": "黑色细带高跟皮鞋。",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "金色马尾",
+          "value": "角色拥有金色的头发，扎成低马尾，发尾部分有自然的卷曲，发丝光泽感强，需注意马尾的蓬松度和发量。"
+        },
+        {
+          "name": "黄色眼睛",
+          "value": "眼睛为明亮的黄色，瞳孔清晰，眼神灵动，是角色面部的重要特征，需准确表现其神采。"
+        },
+        {
+          "name": "蓝紫色背心与白色衬衫",
+          "value": "上身穿着一件蓝紫色紧身背心，内搭白色长袖衬衫，领口有黄色蝴蝶结装饰和红色宝石点缀，背心上有金属扣环。"
+        },
+        {
+          "name": "黑色腰带与十字架装饰",
+          "value": "腰部系有一条黑色宽腰带，中央镶嵌着一个金色十字架装饰，细节需清晰刻画，位置在腹部正中。"
+        },
+        {
+          "name": "深灰色长裙",
+          "value": "下身穿着一条深灰色长裙，裙摆呈自然垂坠状，褶皱均匀且富有层次感，长度至膝盖下方。"
+        },
+        {
+          "name": "棕色丝袜与灰色皮鞋",
+          "value": "腿部穿着棕色丝袜，袜身紧贴腿部线条，脚穿灰色低跟皮鞋，鞋面光滑。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.6
+    },
+    {
+      "sample_id": "char_027",
+      "gt_element_count": 6,
+      "pred_element_count": 9,
+      "matched_count": 6,
+      "unmatched_pred_count": 3,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.5619,
+      "coverage": 1.0,
+      "precision": 0.6667,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "黑色短发，向后梳理，有刘海",
+          "pred_category": "hair",
+          "gt_name": "金色头冠",
+          "gt_value": "头上戴着一顶金色的头冠，形状简约但具有王权象征，必须准确绘制其弧度和装饰细节。",
+          "similarity": 0.539
+        },
+        {
+          "pred_name": "头冠",
+          "pred_value": "金色金属头饰，环绕头顶，带有装饰细节",
+          "pred_category": "headwear",
+          "gt_name": "银色盔甲",
+          "gt_value": "角色全身穿着厚重的银色盔甲，包括肩甲、胸甲、护臂和护腿，盔甲表面有明显的金属质感和铆钉细节。",
+          "similarity": 0.6164
+        },
+        {
+          "pred_name": "胡须",
+          "pred_value": "深色络腮胡，覆盖下巴和脸颊下部",
+          "pred_category": "face",
+          "gt_name": "红色披风",
+          "gt_value": "背后披着一条鲜红色的披风，从肩部垂下，边缘自然飘动，与银色盔甲形成鲜明对比。",
+          "similarity": 0.5036
+        },
+        {
+          "pred_name": "胸甲与肩甲",
+          "pred_value": "银白色金属材质，覆盖胸部和肩部，肩部有尖刺状突起",
+          "pred_category": "clothing",
+          "gt_name": "深蓝色内搭与棕色护腕",
+          "gt_value": "盔甲内穿深蓝色衣物，手臂部分露出棕色护腕，颜色层次分明，护腕上有绑带设计。",
+          "similarity": 0.5984
+        },
+        {
+          "pred_name": "披风",
+          "pred_value": "红色长款披风，从肩部垂下至脚踝附近",
+          "pred_category": "clothing",
+          "gt_name": "银色长靴与银色护胫",
+          "gt_value": "脚穿银色长靴，外侧配有银色护胫，护胫前端有尖锐的装饰，整体造型威严。",
+          "similarity": 0.5407
+        },
+        {
+          "pred_name": "手臂绑带",
+          "pred_value": "棕色缠绕式护腕/绑带，位于前臂外侧",
+          "pred_category": "accessory",
+          "gt_name": "深蓝色腰带与X形扣环",
+          "gt_value": "腰间系有一条宽大的深蓝色腰带，中央有一个醒目的X形扣环，是角色身份的重要标志。",
+          "similarity": 0.5733
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "腰带",
+          "value": "黑色宽腰带，配有巨大的金色圆形交叉扣环",
+          "category": "accessory"
+        },
+        {
+          "name": "腿甲",
+          "value": "银白色金属护胫，覆盖小腿，带有尖刺设计",
+          "category": "clothing"
+        },
+        {
+          "name": "战靴",
+          "value": "银白色金属战靴，鞋头有尖刺装饰",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "黑色短发，向后梳理，有刘海",
+          "category": "hair"
+        },
+        {
+          "name": "头冠",
+          "value": "金色金属头饰，环绕头顶，带有装饰细节",
+          "category": "headwear"
+        },
+        {
+          "name": "胡须",
+          "value": "深色络腮胡，覆盖下巴和脸颊下部",
+          "category": "face"
+        },
+        {
+          "name": "胸甲与肩甲",
+          "value": "银白色金属材质，覆盖胸部和肩部，肩部有尖刺状突起",
+          "category": "clothing"
+        },
+        {
+          "name": "披风",
+          "value": "红色长款披风，从肩部垂下至脚踝附近",
+          "category": "clothing"
+        },
+        {
+          "name": "手臂绑带",
+          "value": "棕色缠绕式护腕/绑带，位于前臂外侧",
+          "category": "accessory"
+        },
+        {
+          "name": "腰带",
+          "value": "黑色宽腰带，配有巨大的金色圆形交叉扣环",
+          "category": "accessory"
+        },
+        {
+          "name": "腿甲",
+          "value": "银白色金属护胫，覆盖小腿，带有尖刺设计",
+          "category": "clothing"
+        },
+        {
+          "name": "战靴",
+          "value": "银白色金属战靴，鞋头有尖刺装饰",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "银色盔甲",
+          "value": "角色全身穿着厚重的银色盔甲，包括肩甲、胸甲、护臂和护腿，盔甲表面有明显的金属质感和铆钉细节。"
+        },
+        {
+          "name": "红色披风",
+          "value": "背后披着一条鲜红色的披风，从肩部垂下，边缘自然飘动，与银色盔甲形成鲜明对比。"
+        },
+        {
+          "name": "金色头冠",
+          "value": "头上戴着一顶金色的头冠，形状简约但具有王权象征，必须准确绘制其弧度和装饰细节。"
+        },
+        {
+          "name": "深蓝色内搭与棕色护腕",
+          "value": "盔甲内穿深蓝色衣物，手臂部分露出棕色护腕，颜色层次分明，护腕上有绑带设计。"
+        },
+        {
+          "name": "深蓝色腰带与X形扣环",
+          "value": "腰间系有一条宽大的深蓝色腰带，中央有一个醒目的X形扣环，是角色身份的重要标志。"
+        },
+        {
+          "name": "银色长靴与银色护胫",
+          "value": "脚穿银色长靴，外侧配有银色护胫，护胫前端有尖锐的装饰，整体造型威严。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.8
+    },
+    {
+      "sample_id": "char_028",
+      "gt_element_count": 4,
+      "pred_element_count": 8,
+      "matched_count": 4,
+      "unmatched_pred_count": 4,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6128,
+      "coverage": 1.0,
+      "precision": 0.5,
+      "matches": [
+        {
+          "pred_name": "发型",
+          "pred_value": "棕色短发，右侧扎有小发髻",
+          "pred_category": "hair",
+          "gt_name": "棕色短发与红色蝴蝶结",
+          "gt_value": "角色拥有齐肩的棕色中长发，头顶正中央系有一个鲜艳的红色蝴蝶结，是其标志性配饰。",
+          "similarity": 0.673
+        },
+        {
+          "pred_name": "红色蝴蝶结发带",
+          "pred_value": "位于头顶正上方的大红色蝴蝶结",
+          "pred_category": "accessory",
+          "gt_name": "蓝色腰带与小包",
+          "gt_value": "腰部系有一条蓝色编绳腰带，腰带上挂着一个棕色的小包，包上有两个圆形装饰，形似眼睛。",
+          "similarity": 0.556
+        },
+        {
+          "pred_name": "蓝色短披肩",
+          "pred_value": "覆盖肩部，边缘有黄色镶边",
+          "pred_category": "clothing",
+          "gt_name": "白色的连衣裙",
+          "gt_value": "穿着一件白色连衣裙，肩上围着一件蓝色披肩，裙摆边缘有黄绿色条纹点缀，整体设计简洁清新。",
+          "similarity": 0.6284
+        },
+        {
+          "pred_name": "蓝色编织绳腰带",
+          "pred_value": "腰间系着的蓝色绳子，打结垂下",
+          "pred_category": "accessory",
+          "gt_name": "黑色绑带凉鞋",
+          "gt_value": "脚穿黑色绑带凉鞋，鞋带在脚踝处交叉缠绕，设计独特且具有辨识度。",
+          "similarity": 0.5939
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "眼睛",
+          "value": "绿色瞳孔",
+          "category": "face"
+        },
+        {
+          "name": "白色连衣裙",
+          "value": "裙摆处有两条黄色横条纹",
+          "category": "clothing"
+        },
+        {
+          "name": "棕色动物造型腰包",
+          "value": "挂在腰间的棕色动物头像造型小包",
+          "category": "accessory"
+        },
+        {
+          "name": "棕色绑带鞋",
+          "value": "交叉绑带设计的短靴/凉鞋",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "发型",
+          "value": "棕色短发，右侧扎有小发髻",
+          "category": "hair"
+        },
+        {
+          "name": "红色蝴蝶结发带",
+          "value": "位于头顶正上方的大红色蝴蝶结",
+          "category": "accessory"
+        },
+        {
+          "name": "眼睛",
+          "value": "绿色瞳孔",
+          "category": "face"
+        },
+        {
+          "name": "蓝色短披肩",
+          "value": "覆盖肩部，边缘有黄色镶边",
+          "category": "clothing"
+        },
+        {
+          "name": "白色连衣裙",
+          "value": "裙摆处有两条黄色横条纹",
+          "category": "clothing"
+        },
+        {
+          "name": "蓝色编织绳腰带",
+          "value": "腰间系着的蓝色绳子，打结垂下",
+          "category": "accessory"
+        },
+        {
+          "name": "棕色动物造型腰包",
+          "value": "挂在腰间的棕色动物头像造型小包",
+          "category": "accessory"
+        },
+        {
+          "name": "棕色绑带鞋",
+          "value": "交叉绑带设计的短靴/凉鞋",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "棕色短发与红色蝴蝶结",
+          "value": "角色拥有齐肩的棕色中长发，头顶正中央系有一个鲜艳的红色蝴蝶结，是其标志性配饰。"
+        },
+        {
+          "name": "白色的连衣裙",
+          "value": "穿着一件白色连衣裙，肩上围着一件蓝色披肩，裙摆边缘有黄绿色条纹点缀，整体设计简洁清新。"
+        },
+        {
+          "name": "蓝色腰带与小包",
+          "value": "腰部系有一条蓝色编绳腰带，腰带上挂着一个棕色的小包，包上有两个圆形装饰，形似眼睛。"
+        },
+        {
+          "name": "黑色绑带凉鞋",
+          "value": "脚穿黑色绑带凉鞋，鞋带在脚踝处交叉缠绕，设计独特且具有辨识度。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.5
+    },
+    {
+      "sample_id": "char_029",
+      "gt_element_count": 6,
+      "pred_element_count": 10,
+      "matched_count": 6,
+      "unmatched_pred_count": 4,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6643,
+      "coverage": 1.0,
+      "precision": 0.6,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "浅棕色凌乱短发",
+          "pred_category": "hair",
+          "gt_name": "白色绑腿与棕色靴子",
+          "gt_value": "小腿处缠绕白色绑腿布，脚穿棕色短靴，靴面没有磨损纹理。",
+          "similarity": 0.5418
+        },
+        {
+          "pred_name": "头带",
+          "pred_value": "红色头带系于额头",
+          "pred_category": "headwear",
+          "gt_name": "深红色头巾",
+          "gt_value": "头上系着一条深红色头巾，包裹住额头和部分头发，是角色标志性配饰，必须准确绘制。",
+          "similarity": 0.7043
+        },
+        {
+          "pred_name": "连帽衫",
+          "pred_value": "绿色长袖连帽衫，兜帽位于颈后",
+          "pred_category": "clothing",
+          "gt_name": "绿色连帽上衣",
+          "gt_value": "内穿一件绿色连帽长袖上衣，帽子自然垂下，袖口有褶皱细节。",
+          "similarity": 0.8042
+        },
+        {
+          "pred_name": "马甲",
+          "pred_value": "棕色无袖马甲，正面有三颗黑色盘扣",
+          "pred_category": "clothing",
+          "gt_name": "棕色背心与黑色纽扣",
+          "gt_value": "外穿一件棕色无袖背心，正面有四颗黑色圆形纽扣，位置对称且清晰可见。",
+          "similarity": 0.6874
+        },
+        {
+          "pred_name": "腰带",
+          "pred_value": "棕色皮带配金属扣",
+          "pred_category": "accessory",
+          "gt_name": "灰色灯笼裤与棕色腰带",
+          "gt_value": "穿着宽松的灰色灯笼裤，腰部系有一条棕色宽腰带和白色布条，腰带中央配有金属搭扣。",
+          "similarity": 0.7236
+        },
+        {
+          "pred_name": "腰间垂布",
+          "pred_value": "米色长条布料系于腰间左侧下垂",
+          "pred_category": "accessory",
+          "gt_name": "黑色手套",
+          "gt_value": "左手佩戴黑色五指手套，覆盖手掌至前臂中部，边缘有缝线细节。",
+          "similarity": 0.5244
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "胡须",
+          "value": "黑色山羊胡",
+          "category": "face"
+        },
+        {
+          "name": "长裤",
+          "value": "灰绿色宽松长裤，裤脚收紧",
+          "category": "clothing"
+        },
+        {
+          "name": "腿部绷带",
+          "value": "白色绷带缠绕于小腿处",
+          "category": "accessory"
+        },
+        {
+          "name": "短靴",
+          "value": "棕色短筒皮靴",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "浅棕色凌乱短发",
+          "category": "hair"
+        },
+        {
+          "name": "头带",
+          "value": "红色头带系于额头",
+          "category": "headwear"
+        },
+        {
+          "name": "胡须",
+          "value": "黑色山羊胡",
+          "category": "face"
+        },
+        {
+          "name": "连帽衫",
+          "value": "绿色长袖连帽衫，兜帽位于颈后",
+          "category": "clothing"
+        },
+        {
+          "name": "马甲",
+          "value": "棕色无袖马甲，正面有三颗黑色盘扣",
+          "category": "clothing"
+        },
+        {
+          "name": "腰带",
+          "value": "棕色皮带配金属扣",
+          "category": "accessory"
+        },
+        {
+          "name": "腰间垂布",
+          "value": "米色长条布料系于腰间左侧下垂",
+          "category": "accessory"
+        },
+        {
+          "name": "长裤",
+          "value": "灰绿色宽松长裤，裤脚收紧",
+          "category": "clothing"
+        },
+        {
+          "name": "腿部绷带",
+          "value": "白色绷带缠绕于小腿处",
+          "category": "accessory"
+        },
+        {
+          "name": "短靴",
+          "value": "棕色短筒皮靴",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "深红色头巾",
+          "value": "头上系着一条深红色头巾，包裹住额头和部分头发，是角色标志性配饰，必须准确绘制。"
+        },
+        {
+          "name": "绿色连帽上衣",
+          "value": "内穿一件绿色连帽长袖上衣，帽子自然垂下，袖口有褶皱细节。"
+        },
+        {
+          "name": "棕色背心与黑色纽扣",
+          "value": "外穿一件棕色无袖背心，正面有四颗黑色圆形纽扣，位置对称且清晰可见。"
+        },
+        {
+          "name": "灰色灯笼裤与棕色腰带",
+          "value": "穿着宽松的灰色灯笼裤，腰部系有一条棕色宽腰带和白色布条，腰带中央配有金属搭扣。"
+        },
+        {
+          "name": "黑色手套",
+          "value": "左手佩戴黑色五指手套，覆盖手掌至前臂中部，边缘有缝线细节。"
+        },
+        {
+          "name": "白色绑腿与棕色靴子",
+          "value": "小腿处缠绕白色绑腿布，脚穿棕色短靴，靴面没有磨损纹理。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.4
+    },
+    {
+      "sample_id": "char_030",
+      "gt_element_count": 6,
+      "pred_element_count": 5,
+      "matched_count": 5,
+      "unmatched_pred_count": 0,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.7381,
+      "coverage": 0.8333,
+      "precision": 1.0,
+      "matches": [
+        {
+          "pred_name": "发型发色",
+          "pred_value": "深棕色短发，发型凌乱向上竖起。",
+          "pred_category": "hair",
+          "gt_name": "棕色短发",
+          "gt_value": "角色拥有蓬松的棕色短发，发丝凌乱但有层次感，前额刘海略微遮挡眉毛。",
+          "similarity": 0.7715
+        },
+        {
+          "pred_name": "瞳孔颜色",
+          "pred_value": "蓝绿色（青色）眼睛。",
+          "pred_category": "face",
+          "gt_name": "蓝色眼睛",
+          "gt_value": "眼睛为明亮的蓝色，眼神坚定，眼型偏圆，是角色表情的核心部分。",
+          "similarity": 0.7236
+        },
+        {
+          "pred_name": "上衣",
+          "pred_value": "白色短袖水手服风格上衣，配有蓝色大翻领（带白色细边）、袖口和下摆的蓝白条纹装饰，腹部两侧有深蓝色口袋。",
+          "pred_category": "clothing",
+          "gt_name": "白色水手服上衣",
+          "gt_value": "穿着一件白色短袖水手服上衣，领口、袖口和下摆有蓝色条纹装饰，胸前有拉链设计。",
+          "similarity": 0.8523
+        },
+        {
+          "pred_name": "裤子",
+          "pred_value": "深蓝色长裤（或短裤），仅可见腰部至大腿部分。",
+          "pred_category": "clothing",
+          "gt_name": "深蓝色裤子",
+          "gt_value": "搭配深蓝色长裤，裤腰处有棕色皮带扣，整体剪裁简洁利落。",
+          "similarity": 0.7723
+        },
+        {
+          "pred_name": "腰部配饰",
+          "pred_value": "腰部垂下一根棕色带状物（疑似皮带末端或绳结）。",
+          "pred_category": "accessory",
+          "gt_name": "右手叉腰姿势",
+          "gt_value": "角色右手叉腰，身体略微侧倾，体现自信或略带不满的情绪。",
+          "similarity": 0.5706
+        }
+      ],
+      "unmatched_pred": [],
+      "unmatched_gt": [
+        {
+          "name": "左手自然下垂",
+          "value": "左手自然垂放。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "发型发色",
+          "value": "深棕色短发，发型凌乱向上竖起。",
+          "category": "hair"
+        },
+        {
+          "name": "瞳孔颜色",
+          "value": "蓝绿色（青色）眼睛。",
+          "category": "face"
+        },
+        {
+          "name": "上衣",
+          "value": "白色短袖水手服风格上衣，配有蓝色大翻领（带白色细边）、袖口和下摆的蓝白条纹装饰，腹部两侧有深蓝色口袋。",
+          "category": "clothing"
+        },
+        {
+          "name": "裤子",
+          "value": "深蓝色长裤（或短裤），仅可见腰部至大腿部分。",
+          "category": "clothing"
+        },
+        {
+          "name": "腰部配饰",
+          "value": "腰部垂下一根棕色带状物（疑似皮带末端或绳结）。",
+          "category": "accessory"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "棕色短发",
+          "value": "角色拥有蓬松的棕色短发，发丝凌乱但有层次感，前额刘海略微遮挡眉毛。"
+        },
+        {
+          "name": "蓝色眼睛",
+          "value": "眼睛为明亮的蓝色，眼神坚定，眼型偏圆，是角色表情的核心部分。"
+        },
+        {
+          "name": "白色水手服上衣",
+          "value": "穿着一件白色短袖水手服上衣，领口、袖口和下摆有蓝色条纹装饰，胸前有拉链设计。"
+        },
+        {
+          "name": "深蓝色裤子",
+          "value": "搭配深蓝色长裤，裤腰处有棕色皮带扣，整体剪裁简洁利落。"
+        },
+        {
+          "name": "右手叉腰姿势",
+          "value": "角色右手叉腰，身体略微侧倾，体现自信或略带不满的情绪。"
+        },
+        {
+          "name": "左手自然下垂",
+          "value": "左手自然垂放。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.4
+    },
+    {
+      "sample_id": "char_031",
+      "gt_element_count": 7,
+      "pred_element_count": 11,
+      "matched_count": 7,
+      "unmatched_pred_count": 4,
+      "unmatched_gt_count": 0,
+      "avg_similarity": 0.6559,
+      "coverage": 1.0,
+      "precision": 0.6364,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "黑色短发，后部有长发尾垂下",
+          "pred_category": "hair",
+          "gt_name": "黑灰色头发",
+          "gt_value": "身后有一条细长的黑灰色头发，自然垂落，尾端略微回扣，是角色恶魔或兽人属性的关键标志。",
+          "similarity": 0.7178
+        },
+        {
+          "pred_name": "尾巴",
+          "pred_value": "黑色长尾巴，尖端较细",
+          "pred_category": "other",
+          "gt_name": "黑灰色长发与角",
+          "gt_value": "角色拥有黑灰色长发，头顶长有一对小巧的白色角，角的形状和位置是关键特征。",
+          "similarity": 0.6397
+        },
+        {
+          "pred_name": "上衣",
+          "pred_value": "浅蓝色比基尼式胸甲/上衣",
+          "pred_category": "clothing",
+          "gt_name": "蓝色比基尼式上衣与下装",
+          "gt_value": "穿着浅蓝色的比基尼式上衣和深蓝色下装，边缘有深蓝色装饰线条，需注意颜色和裁剪细节。",
+          "similarity": 0.7133
+        },
+        {
+          "pred_name": "肩甲",
+          "pred_value": "灰色带尖刺护肩（左右各一）",
+          "pred_category": "accessory",
+          "gt_name": "灰色护具与尖刺装饰",
+          "gt_value": "手臂、腿部和肩部佩戴灰色护具，部分护具有尖刺设计，如肩甲和膝甲，必须准确绘制其形状和分布。",
+          "similarity": 0.6885
+        },
+        {
+          "pred_name": "护膝",
+          "pred_value": "灰色带尖刺护膝（左右各一）",
+          "pred_category": "accessory",
+          "gt_name": "红色和金色绑带",
+          "gt_value": "左大腿处缠绕着红色和金色绑带，呈交叉状，是角色造型的重要点缀，需注意绑带的位置和走向。",
+          "similarity": 0.53
+        },
+        {
+          "pred_name": "鞋靴",
+          "pred_value": "白蓝配色高跟短靴，脚踝处有蓝色装饰",
+          "pred_category": "footwear",
+          "gt_name": "蓝白相间的高跟靴",
+          "gt_value": "左脚穿蓝白配色的高跟靴，靴筒上有蓝色条纹装饰，鞋跟为黑色，整体设计需保持对称和比例协调。",
+          "similarity": 0.774
+        },
+        {
+          "pred_name": "大腿绑带",
+          "pred_value": "红色绑带配金色缠绕（画面左侧大腿）",
+          "pred_category": "accessory",
+          "gt_name": "蓝白相间的高跟靴",
+          "gt_value": "右脚穿蓝白配色的高跟靴，靴筒上有蓝色条纹装饰，鞋跟为黑色，整体设计需保持对称和比例协调。",
+          "similarity": 0.5282
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "兽耳",
+          "value": "白色尖耳（头顶两侧）",
+          "category": "other"
+        },
+        {
+          "name": "眼睛",
+          "value": "蓝灰色瞳孔",
+          "category": "face"
+        },
+        {
+          "name": "下装",
+          "value": "蓝色比基尼式底裤/短裤",
+          "category": "clothing"
+        },
+        {
+          "name": "臂环",
+          "value": "红黄相间臂环（画面右侧手臂上臂）",
+          "category": "accessory"
+        }
+      ],
+      "unmatched_gt": [],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "黑色短发，后部有长发尾垂下",
+          "category": "hair"
+        },
+        {
+          "name": "兽耳",
+          "value": "白色尖耳（头顶两侧）",
+          "category": "other"
+        },
+        {
+          "name": "尾巴",
+          "value": "黑色长尾巴，尖端较细",
+          "category": "other"
+        },
+        {
+          "name": "眼睛",
+          "value": "蓝灰色瞳孔",
+          "category": "face"
+        },
+        {
+          "name": "上衣",
+          "value": "浅蓝色比基尼式胸甲/上衣",
+          "category": "clothing"
+        },
+        {
+          "name": "肩甲",
+          "value": "灰色带尖刺护肩（左右各一）",
+          "category": "accessory"
+        },
+        {
+          "name": "下装",
+          "value": "蓝色比基尼式底裤/短裤",
+          "category": "clothing"
+        },
+        {
+          "name": "护膝",
+          "value": "灰色带尖刺护膝（左右各一）",
+          "category": "accessory"
+        },
+        {
+          "name": "鞋靴",
+          "value": "白蓝配色高跟短靴，脚踝处有蓝色装饰",
+          "category": "footwear"
+        },
+        {
+          "name": "大腿绑带",
+          "value": "红色绑带配金色缠绕（画面左侧大腿）",
+          "category": "accessory"
+        },
+        {
+          "name": "臂环",
+          "value": "红黄相间臂环（画面右侧手臂上臂）",
+          "category": "accessory"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "黑灰色长发与角",
+          "value": "角色拥有黑灰色长发，头顶长有一对小巧的白色角，角的形状和位置是关键特征。"
+        },
+        {
+          "name": "灰色护具与尖刺装饰",
+          "value": "手臂、腿部和肩部佩戴灰色护具，部分护具有尖刺设计，如肩甲和膝甲，必须准确绘制其形状和分布。"
+        },
+        {
+          "name": "红色和金色绑带",
+          "value": "左大腿处缠绕着红色和金色绑带，呈交叉状，是角色造型的重要点缀，需注意绑带的位置和走向。"
+        },
+        {
+          "name": "蓝白相间的高跟靴",
+          "value": "左脚穿蓝白配色的高跟靴，靴筒上有蓝色条纹装饰，鞋跟为黑色，整体设计需保持对称和比例协调。"
+        },
+        {
+          "name": "黑灰色头发",
+          "value": "身后有一条细长的黑灰色头发，自然垂落，尾端略微回扣，是角色恶魔或兽人属性的关键标志。"
+        },
+        {
+          "name": "蓝白相间的高跟靴",
+          "value": "右脚穿蓝白配色的高跟靴，靴筒上有蓝色条纹装饰，鞋跟为黑色，整体设计需保持对称和比例协调。"
+        },
+        {
+          "name": "蓝色比基尼式上衣与下装",
+          "value": "穿着浅蓝色的比基尼式上衣和深蓝色下装，边缘有深蓝色装饰线条，需注意颜色和裁剪细节。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 4.2
+    },
+    {
+      "sample_id": "char_032",
+      "gt_element_count": 8,
+      "pred_element_count": 7,
+      "matched_count": 7,
+      "unmatched_pred_count": 0,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.7593,
+      "coverage": 0.875,
+      "precision": 1.0,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "棕色中长发，齐刘海，两侧有鬓角垂至肩部。",
+          "pred_category": "hair",
+          "gt_name": "棕色短发",
+          "gt_value": "角色拥有齐肩的棕色短发，发梢略微内扣，刘海整齐地覆盖在额前，发色均匀无杂色。",
+          "similarity": 0.8001
+        },
+        {
+          "pred_name": "领结",
+          "pred_value": "蓝色大蝴蝶结，位于衬衫领口处。",
+          "pred_category": "accessory",
+          "gt_name": "蓝色蝴蝶结领结",
+          "gt_value": "穿着校服时，领口系着一个大而饱满的蓝色蝴蝶结，边缘有黑色细线勾勒，是整体造型的视觉焦点。",
+          "similarity": 0.7464
+        },
+        {
+          "pred_name": "西装外套",
+          "pred_value": "深蓝色西装外套，领口和袖口有金色镶边，前襟有一颗金色扣子。",
+          "pred_category": "clothing",
+          "gt_name": "深蓝色西装外套与金色镶边",
+          "gt_value": "外套为深蓝色，翻领、袖口和口袋边缘均有金色细线镶边，纽扣为单颗金色圆形纽扣，位置居中。",
+          "similarity": 0.8438
+        },
+        {
+          "pred_name": "衬衫",
+          "pred_value": "白色衬衫，仅可见领口部分。",
+          "pred_category": "clothing",
+          "gt_name": "深蓝色长袜",
+          "gt_value": "右脚穿深蓝色长袜。",
+          "similarity": 0.5433
+        },
+        {
+          "pred_name": "百褶裙",
+          "pred_value": "蓝白格子图案的短裙，下摆边缘有白色蕾丝花边。",
+          "pred_category": "clothing",
+          "gt_name": "蓝黄格纹百褶裙",
+          "gt_value": "下身穿着蓝黄相间的格纹百褶裙，裙摆有白色蕾丝花边装饰，褶皱需清晰对称，格纹比例需准确。",
+          "similarity": 0.8212
+        },
+        {
+          "pred_name": "长筒袜",
+          "pred_value": "深蓝色长筒袜，长度至膝盖下方。",
+          "pred_category": "footwear",
+          "gt_name": "深蓝色长袜",
+          "gt_value": "左脚穿深蓝色长袜。",
+          "similarity": 0.7865
+        },
+        {
+          "pred_name": "鞋子",
+          "pred_value": "棕色圆头皮鞋（乐福鞋款式）。",
+          "pred_category": "footwear",
+          "gt_name": "棕色皮鞋",
+          "gt_value": "右脚穿棕色圆头皮鞋，鞋面光滑无多余装饰，无鞋带。",
+          "similarity": 0.7737
+        }
+      ],
+      "unmatched_pred": [],
+      "unmatched_gt": [
+        {
+          "name": "棕色皮鞋",
+          "value": "左脚穿棕色圆头皮鞋，鞋面光滑无多余装饰，无鞋带。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "棕色中长发，齐刘海，两侧有鬓角垂至肩部。",
+          "category": "hair"
+        },
+        {
+          "name": "领结",
+          "value": "蓝色大蝴蝶结，位于衬衫领口处。",
+          "category": "accessory"
+        },
+        {
+          "name": "西装外套",
+          "value": "深蓝色西装外套，领口和袖口有金色镶边，前襟有一颗金色扣子。",
+          "category": "clothing"
+        },
+        {
+          "name": "衬衫",
+          "value": "白色衬衫，仅可见领口部分。",
+          "category": "clothing"
+        },
+        {
+          "name": "百褶裙",
+          "value": "蓝白格子图案的短裙，下摆边缘有白色蕾丝花边。",
+          "category": "clothing"
+        },
+        {
+          "name": "长筒袜",
+          "value": "深蓝色长筒袜，长度至膝盖下方。",
+          "category": "footwear"
+        },
+        {
+          "name": "鞋子",
+          "value": "棕色圆头皮鞋（乐福鞋款式）。",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "棕色短发",
+          "value": "角色拥有齐肩的棕色短发，发梢略微内扣，刘海整齐地覆盖在额前，发色均匀无杂色。"
+        },
+        {
+          "name": "蓝色蝴蝶结领结",
+          "value": "穿着校服时，领口系着一个大而饱满的蓝色蝴蝶结，边缘有黑色细线勾勒，是整体造型的视觉焦点。"
+        },
+        {
+          "name": "深蓝色西装外套与金色镶边",
+          "value": "外套为深蓝色，翻领、袖口和口袋边缘均有金色细线镶边，纽扣为单颗金色圆形纽扣，位置居中。"
+        },
+        {
+          "name": "蓝黄格纹百褶裙",
+          "value": "下身穿着蓝黄相间的格纹百褶裙，裙摆有白色蕾丝花边装饰，褶皱需清晰对称，格纹比例需准确。"
+        },
+        {
+          "name": "深蓝色长袜",
+          "value": "左脚穿深蓝色长袜。"
+        },
+        {
+          "name": "深蓝色长袜",
+          "value": "右脚穿深蓝色长袜。"
+        },
+        {
+          "name": "棕色皮鞋",
+          "value": "左脚穿棕色圆头皮鞋，鞋面光滑无多余装饰，无鞋带。"
+        },
+        {
+          "name": "棕色皮鞋",
+          "value": "右脚穿棕色圆头皮鞋，鞋面光滑无多余装饰，无鞋带。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 3.1
+    },
+    {
+      "sample_id": "char_033",
+      "gt_element_count": 8,
+      "pred_element_count": 8,
+      "matched_count": 7,
+      "unmatched_pred_count": 1,
+      "unmatched_gt_count": 1,
+      "avg_similarity": 0.6737,
+      "coverage": 0.875,
+      "precision": 0.875,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "青绿色短发，略显凌乱",
+          "pred_category": "hair",
+          "gt_name": "绿色短发",
+          "gt_value": "角色拥有清爽的绿色短发，发丝蓬松有层次感，发梢略微内扣。",
+          "similarity": 0.7288
+        },
+        {
+          "pred_name": "眼镜",
+          "pred_value": "细框眼镜",
+          "pred_category": "accessory",
+          "gt_name": "眼镜",
+          "gt_value": "佩戴一副细框眼镜，镜片透明，镜框线条纤细，是角色标志性特征之一。",
+          "similarity": 0.7969
+        },
+        {
+          "pred_name": "西装外套",
+          "pred_value": "浅蓝色西装外套，深青色翻领及袖口滚边装饰",
+          "pred_category": "clothing",
+          "gt_name": "蓝色西装校服",
+          "gt_value": "穿着一套浅蓝色西装式校服，衣领和袖口有深蓝色镶边，右胸处有一个带字母“M”的徽章。",
+          "similarity": 0.6616
+        },
+        {
+          "pred_name": "衬衫",
+          "pred_value": "白色衬衫",
+          "pred_category": "clothing",
+          "gt_name": "灰白色衬衫与蓝色领带",
+          "gt_value": "内搭灰白色衬衫，系着一条深蓝色领带，领带结整齐，颜色与校服协调。",
+          "similarity": 0.6927
+        },
+        {
+          "pred_name": "领带",
+          "pred_value": "深蓝色领带",
+          "pred_category": "accessory",
+          "gt_name": "深蓝色皮鞋",
+          "gt_value": "左脚穿深蓝色皮鞋，鞋面光滑，鞋型简洁，与整体制服风格一致。",
+          "similarity": 0.5735
+        },
+        {
+          "pred_name": "西裤",
+          "pred_value": "浅蓝色长裤，与外套同色系",
+          "pred_category": "clothing",
+          "gt_name": "深蓝色皮鞋",
+          "gt_value": "右脚穿深蓝色皮鞋，鞋面光滑，鞋型简洁，与整体制服风格一致。",
+          "similarity": 0.6189
+        },
+        {
+          "pred_name": "胸章",
+          "pred_value": "左胸口深色边框徽章，内有字母图案",
+          "pred_category": "accessory",
+          "gt_name": "左手轻抚胸口",
+          "gt_value": "左手自然抬起，手掌轻放在左胸位置，姿态优雅，是角色常见姿势。",
+          "similarity": 0.6436
+        }
+      ],
+      "unmatched_pred": [
+        {
+          "name": "皮鞋",
+          "value": "深蓝色皮鞋",
+          "category": "footwear"
+        }
+      ],
+      "unmatched_gt": [
+        {
+          "name": "右手自然垂下",
+          "value": "右手自然垂下。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "青绿色短发，略显凌乱",
+          "category": "hair"
+        },
+        {
+          "name": "眼镜",
+          "value": "细框眼镜",
+          "category": "accessory"
+        },
+        {
+          "name": "西装外套",
+          "value": "浅蓝色西装外套，深青色翻领及袖口滚边装饰",
+          "category": "clothing"
+        },
+        {
+          "name": "衬衫",
+          "value": "白色衬衫",
+          "category": "clothing"
+        },
+        {
+          "name": "领带",
+          "value": "深蓝色领带",
+          "category": "accessory"
+        },
+        {
+          "name": "西裤",
+          "value": "浅蓝色长裤，与外套同色系",
+          "category": "clothing"
+        },
+        {
+          "name": "皮鞋",
+          "value": "深蓝色皮鞋",
+          "category": "footwear"
+        },
+        {
+          "name": "胸章",
+          "value": "左胸口深色边框徽章，内有字母图案",
+          "category": "accessory"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "绿色短发",
+          "value": "角色拥有清爽的绿色短发，发丝蓬松有层次感，发梢略微内扣。"
+        },
+        {
+          "name": "眼镜",
+          "value": "佩戴一副细框眼镜，镜片透明，镜框线条纤细，是角色标志性特征之一。"
+        },
+        {
+          "name": "蓝色西装校服",
+          "value": "穿着一套浅蓝色西装式校服，衣领和袖口有深蓝色镶边，右胸处有一个带字母“M”的徽章。"
+        },
+        {
+          "name": "灰白色衬衫与蓝色领带",
+          "value": "内搭灰白色衬衫，系着一条深蓝色领带，领带结整齐，颜色与校服协调。"
+        },
+        {
+          "name": "左手轻抚胸口",
+          "value": "左手自然抬起，手掌轻放在左胸位置，姿态优雅，是角色常见姿势。"
+        },
+        {
+          "name": "深蓝色皮鞋",
+          "value": "左脚穿深蓝色皮鞋，鞋面光滑，鞋型简洁，与整体制服风格一致。"
+        },
+        {
+          "name": "深蓝色皮鞋",
+          "value": "右脚穿深蓝色皮鞋，鞋面光滑，鞋型简洁，与整体制服风格一致。"
+        },
+        {
+          "name": "右手自然垂下",
+          "value": "右手自然垂下。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 2.7
+    },
+    {
+      "sample_id": "char_034",
+      "gt_element_count": 8,
+      "pred_element_count": 6,
+      "matched_count": 6,
+      "unmatched_pred_count": 0,
+      "unmatched_gt_count": 2,
+      "avg_similarity": 0.7052,
+      "coverage": 0.75,
+      "precision": 1.0,
+      "matches": [
+        {
+          "pred_name": "头发",
+          "pred_value": "金色短发，略显凌乱。",
+          "pred_category": "hair",
+          "gt_name": "浅金色短发",
+          "gt_value": "头发为浅金色，长度较短，从帽子边缘露出，发丝蓬松有层次感。",
+          "similarity": 0.7638
+        },
+        {
+          "pred_name": "黑色连帽外套",
+          "pred_value": "黑色连帽衫/外套，帽子正面有两个明显的白色圆点图案。",
+          "pred_category": "clothing",
+          "gt_name": "深灰色连帽斗篷与白色圆点",
+          "gt_value": "角色穿着一件深灰色的连帽斗篷，帽子上有三个醒目的白色圆形图案，位置在帽子两侧，是其标志性特征。",
+          "similarity": 0.7191
+        },
+        {
+          "pred_name": "棕褐色上衣",
+          "pred_value": "棕褐色内搭T恤/衬衫，领口敞开。",
+          "pred_category": "clothing",
+          "gt_name": "内搭的棕色短袖",
+          "gt_value": "在斗篷内可见一件棕色短袖，领口和袖口细节需清晰表现。",
+          "similarity": 0.6929
+        },
+        {
+          "pred_name": "白色内搭",
+          "pred_value": "白色打底衫，领口及袖口可见。",
+          "pred_category": "clothing",
+          "gt_name": "深灰色高筒系带靴",
+          "gt_value": "右脚穿深灰色高筒靴，靴子正面有交叉系带设计，鞋底厚实，整体风格硬朗。",
+          "similarity": 0.5457
+        },
+        {
+          "pred_name": "深蓝色长裤",
+          "pred_value": "深蓝色宽松长裤，裤腿有褶皱。",
+          "pred_category": "clothing",
+          "gt_name": "深紫色宽松裤子",
+          "gt_value": "下身穿着深紫色的宽松裤子，裤腿宽大且有自然褶皱，裤脚塞进靴子里。",
+          "similarity": 0.7634
+        },
+        {
+          "pred_name": "黑色靴子",
+          "pred_value": "黑色系带高帮靴。",
+          "pred_category": "footwear",
+          "gt_name": "深灰色高筒系带靴",
+          "gt_value": "左脚穿深灰色高筒靴，靴子正面有交叉系带设计，鞋底厚实，整体风格硬朗。",
+          "similarity": 0.7463
+        }
+      ],
+      "unmatched_pred": [],
+      "unmatched_gt": [
+        {
+          "name": "蹲姿与右手部姿势",
+          "value": "角色呈蹲姿，身体前倾，右手向前伸出，手指微张，姿态充满动感和警觉性，需注意肢体比例和重心。"
+        },
+        {
+          "name": "左手部姿势",
+          "value": "左手自然垂下，手指微张，姿态充满动感和警觉性，需注意肢体比例和重心。"
+        }
+      ],
+      "pred_elements": [
+        {
+          "name": "头发",
+          "value": "金色短发，略显凌乱。",
+          "category": "hair"
+        },
+        {
+          "name": "黑色连帽外套",
+          "value": "黑色连帽衫/外套，帽子正面有两个明显的白色圆点图案。",
+          "category": "clothing"
+        },
+        {
+          "name": "棕褐色上衣",
+          "value": "棕褐色内搭T恤/衬衫，领口敞开。",
+          "category": "clothing"
+        },
+        {
+          "name": "白色内搭",
+          "value": "白色打底衫，领口及袖口可见。",
+          "category": "clothing"
+        },
+        {
+          "name": "深蓝色长裤",
+          "value": "深蓝色宽松长裤，裤腿有褶皱。",
+          "category": "clothing"
+        },
+        {
+          "name": "黑色靴子",
+          "value": "黑色系带高帮靴。",
+          "category": "footwear"
+        }
+      ],
+      "gt_elements": [
+        {
+          "name": "深灰色连帽斗篷与白色圆点",
+          "value": "角色穿着一件深灰色的连帽斗篷，帽子上有三个醒目的白色圆形图案，位置在帽子两侧，是其标志性特征。"
+        },
+        {
+          "name": "浅金色短发",
+          "value": "头发为浅金色，长度较短，从帽子边缘露出，发丝蓬松有层次感。"
+        },
+        {
+          "name": "深紫色宽松裤子",
+          "value": "下身穿着深紫色的宽松裤子，裤腿宽大且有自然褶皱，裤脚塞进靴子里。"
+        },
+        {
+          "name": "深灰色高筒系带靴",
+          "value": "左脚穿深灰色高筒靴，靴子正面有交叉系带设计，鞋底厚实，整体风格硬朗。"
+        },
+        {
+          "name": "内搭的棕色短袖",
+          "value": "在斗篷内可见一件棕色短袖，领口和袖口细节需清晰表现。"
+        },
+        {
+          "name": "蹲姿与右手部姿势",
+          "value": "角色呈蹲姿，身体前倾，右手向前伸出，手指微张，姿态充满动感和警觉性，需注意肢体比例和重心。"
+        },
+        {
+          "name": "深灰色高筒系带靴",
+          "value": "右脚穿深灰色高筒靴，靴子正面有交叉系带设计，鞋底厚实，整体风格硬朗。"
+        },
+        {
+          "name": "左手部姿势",
+          "value": "左手自然垂下，手指微张，姿态充满动感和警觉性，需注意肢体比例和重心。"
+        }
+      ],
+      "_raw_model_output": "",
+      "_inference_time_s": 3.4
     }
-  ]
+  ],
+  "category_metrics": {
+    "accessory": {
+      "total_pred": 65,
+      "matched": 44,
+      "unmatched": 21,
+      "precision": 0.6769,
+      "avg_similarity": 0.6509
+    },
+    "clothing": {
+      "total_pred": 94,
+      "matched": 75,
+      "unmatched": 19,
+      "precision": 0.7979,
+      "avg_similarity": 0.6671
+    },
+    "face": {
+      "total_pred": 20,
+      "matched": 13,
+      "unmatched": 7,
+      "precision": 0.65,
+      "avg_similarity": 0.6966
+    },
+    "footwear": {
+      "total_pred": 35,
+      "matched": 10,
+      "unmatched": 25,
+      "precision": 0.2857,
+      "avg_similarity": 0.7251
+    },
+    "hair": {
+      "total_pred": 33,
+      "matched": 33,
+      "unmatched": 0,
+      "precision": 1.0,
+      "avg_similarity": 0.7122
+    },
+    "headwear": {
+      "total_pred": 10,
+      "matched": 10,
+      "unmatched": 0,
+      "precision": 1.0,
+      "avg_similarity": 0.6886
+    },
+    "other": {
+      "total_pred": 5,
+      "matched": 4,
+      "unmatched": 1,
+      "precision": 0.8,
+      "avg_similarity": 0.6143
+    },
+    "prop": {
+      "total_pred": 4,
+      "matched": 0,
+      "unmatched": 4,
+      "precision": 0.0,
+      "avg_similarity": 0
+    },
+    "skin_body": {
+      "total_pred": 6,
+      "matched": 5,
+      "unmatched": 1,
+      "precision": 0.8333,
+      "avg_similarity": 0.6478
+    }
+  }
 }
