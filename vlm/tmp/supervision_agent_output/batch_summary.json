@@ -1,0 +1,23 @@
+{
+  "batch": "SN_6_3D_dataset",
+  "total_samples": 2,
+  "ok": 2,
+  "failed": 0,
+  "skipped": 0,
+  "total_elapsed_seconds": 220.5,
+  "started_at": 1785153843.4062903,
+  "results": [
+    {
+      "sample_id": "char_015",
+      "status": "ok",
+      "elapsed_seconds": 77.3,
+      "stdout": "}"
+    },
+    {
+      "sample_id": "char_017",
+      "status": "ok",
+      "elapsed_seconds": 143.2,
+      "stdout": "}"
+    }
+  ]
+}

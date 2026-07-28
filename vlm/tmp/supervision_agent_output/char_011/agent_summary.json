@@ -1,0 +1,11 @@
+{
+  "status": "ok",
+  "sample_id": "char_011",
+  "category": "dataset_figurine",
+  "element_count": 9,
+  "billable_annotation_issue_count": 2,
+  "design_quality_note_count": 1,
+  "human_review_required": false,
+  "overall_decision": "fail",
+  "review_output_dir": "vlm/tmp/supervision_agent_output/char_011/review/dataset_figurine/char_011_v3_20260727_171519"
+}
