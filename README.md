@@ -25,3 +25,4 @@ Use `vlm/docs/workflows/process.md` as the current RunningHub merchandise proces
 - Keep durable datasets under `vlm/data/`; keep scratch or rerun logs under `vlm/tmp/`.
 - Put experiment designs and small reproducible manifests in `vlm/experiments/`; keep large generated artifacts in ignored data/tmp paths.
 - Put retired code or whole workflow snapshots under `vlm/archive/`.
+sk-ws-H.RPPELMI.hu2W.MEYCIQClRkwtkxhwKmwdTS-E-IOi69UQR1cRgQ0OoRUjd-dqpgIhAIKfjhfKlDMj22OQdrrDXHJBZDffayRY4qLjvXjqCdG9
