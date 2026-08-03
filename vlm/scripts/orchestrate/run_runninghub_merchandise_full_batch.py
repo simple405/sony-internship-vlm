@@ -1,4 +1,4 @@
-"""Run the four RunningHub merchandise categories in a safe fixed order."""
+"""Run the six RunningHub merchandise categories in a safe fixed order."""
 
 from __future__ import annotations
 
@@ -7,12 +7,18 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-DEFAULT_DATASET = Path("vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20")
+from vlm.scripts.generate.runninghub_client import load_api_env
+
+
+DEFAULT_DATASET = Path("vlm/data/safebooru_2d")
 DEFAULT_ASSIGNMENT_DIR = DEFAULT_DATASET / "reports" / "merchandise_category_assignment"
 DEFAULT_RUN_DIR = Path("vlm/tmp/runninghub_full_generation")
 # Note 1: The same suffix set is used by the lower-level generator. Keep both in
@@ -25,28 +31,38 @@ CATEGORY_CONFIGS = {
     "head_key_chain": {
         "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_head_keychain_user_cn.txt"),
         "output_suffix": "head_keychain",
-        "output_subdir": Path("runninghub/head_key_chain"),
+        "output_subdir": Path("head_key_chain"),
     },
     "backpack": {
         "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_backpack_user_cn.txt"),
         "output_suffix": "backpack",
-        "output_subdir": Path("runninghub/backpack"),
+        "output_subdir": Path("backpack"),
     },
     "cake_roll": {
         "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_cake_roll_user_cn.txt"),
         "output_suffix": "cake_roll",
-        "output_subdir": Path("runninghub/cake_roll"),
+        "output_subdir": Path("cake_roll"),
     },
     "plush": {
         "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_plush_user_cn.txt"),
         "output_suffix": "plush",
-        "output_subdir": Path("runninghub/plush"),
+        "output_subdir": Path("plush"),
+    },
+    "dataset_QSitFigures": {
+        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_dataset_QSitFigures_user_cn.txt"),
+        "output_suffix": "SitFigures",
+        "output_subdir": Path("dataset_QSitFigures"),
+    },
+    "dataset_figurine": {
+        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_dataset_figurine_user_cn.txt"),
+        "output_suffix": "figurine",
+        "output_subdir": Path("dataset_figurine"),
     },
 }
 
 # Note 3: The order is intentionally sequential and stable. Running one category
 # at a time keeps logs readable and reduces accidental duplicate API pressure.
-DEFAULT_ORDER = ("head_key_chain", "backpack", "cake_roll", "plush")
+DEFAULT_ORDER = ("head_key_chain", "cake_roll", "backpack", "plush", "dataset_QSitFigures", "dataset_figurine")
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,7 +78,7 @@ def parse_args() -> argparse.Namespace:
         choices=DEFAULT_ORDER,
         # Note 5: Repeating --category lets a maintainer retry one or two queues
         # without editing code or changing the default full order.
-        help="Category to run. Repeatable. Default order: head_key_chain, backpack, cake_roll, plush.",
+        help="Category to run. Repeatable. Default order covers all six merchandise categories.",
     )
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--poll-interval", type=int, default=8)
@@ -70,7 +86,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--resolution", default="1k", choices=("1k", "2k", "4k"))
     parser.add_argument("--aspect-ratio", default="21:9")
     parser.add_argument("--max-samples-per-category", type=int, default=0)
+    parser.add_argument(
+        "--follow-atomic-rules",
+        action="store_true",
+        help="Keep polling for newly extracted atomic rules and submit them as they appear.",
+    )
+    parser.add_argument(
+        "--atomic-poll-interval",
+        type=int,
+        default=30,
+        help="Seconds to wait before rescanning for atomic rules in --follow-atomic-rules mode.",
+    )
     parser.add_argument("--refresh-assignment", action="store_true")
+    parser.add_argument("--score-only-assignment", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -93,6 +121,42 @@ def has_existing_output(output_dir: Path, sample_id: str, output_suffix: str) ->
         if (sample_dir / f"{sample_id}_{output_suffix}{suffix}").exists():
             return True
     return False
+
+
+def has_atomic_rules(atomic_dir: Path, sample_id: str) -> bool:
+    sample_dir = atomic_dir / sample_id
+    return (
+        (sample_dir / "atomic_rules.json").exists()
+        or (sample_dir / f"{sample_id}_atomic_rules.json").exists()
+    )
+
+
+def has_atomic_error(atomic_dir: Path, sample_id: str) -> bool:
+    """Return whether Qwen recorded a terminal extraction error for this sample."""
+    return (atomic_dir / sample_id / "error.json").exists()
+
+
+def categorize_sample_ids(
+    sample_ids: list[str],
+    output_dir: Path,
+    output_suffix: str,
+    atomic_dir: Path,
+    attempted_ids: set[str],
+) -> dict[str, list[str]]:
+    """Partition a category queue without resubmitting work from this invocation."""
+    states = {"existing": [], "attempted": [], "ready": [], "atomic_errors": [], "waiting": []}
+    for sample_id in sample_ids:
+        if has_existing_output(output_dir, sample_id, output_suffix):
+            states["existing"].append(sample_id)
+        elif sample_id in attempted_ids:
+            states["attempted"].append(sample_id)
+        elif has_atomic_rules(atomic_dir, sample_id):
+            states["ready"].append(sample_id)
+        elif has_atomic_error(atomic_dir, sample_id):
+            states["atomic_errors"].append(sample_id)
+        else:
+            states["waiting"].append(sample_id)
+    return states
 
 
 def run_and_log(command: list[str], log_path: Path) -> tuple[int, dict[str, Any] | None]:
@@ -142,6 +206,8 @@ def run_refresh_assignment(args: argparse.Namespace) -> None:
         "--output-dir",
         str(args.assignment_dir),
     ]
+    if not args.score_only_assignment:
+        command.append("--balanced")
     print(json.dumps({"status": "refresh_assignment_started", "command": command}, ensure_ascii=False), flush=True)
     # Note 13: check=True is correct here because stale assignment data should
     # stop the batch before any generation work begins.
@@ -177,6 +243,8 @@ def category_command(
             str(config["prompt_file"]),
             "--output-suffix",
             str(config["output_suffix"]),
+            "--category",
+            category,
             "--aspect-ratio",
             args.aspect_ratio,
             "--resolution",
@@ -198,11 +266,14 @@ def category_command(
 
 
 def main() -> None:
-    # Note 17: main is deliberately linear: validate, optionally refresh queues,
-    # run each category, then write an overall summary.
+    # Note 17: In follow mode, Qwen produces local rule files while this process
+    # consumes each completed file exactly once for RunningHub generation.
     args = parse_args()
     if args.workers < 1:
         raise ValueError("--workers must be at least 1")
+    if args.atomic_poll_interval < 1:
+        raise ValueError("--atomic-poll-interval must be at least 1")
+    load_api_env()
     if not args.dry_run and not os.environ.get("RUNNINGHUB_API_KEY", "").strip():
         # Note 18: Fail before creating per-category logs if the API key is
         # missing; otherwise a long batch would fail sample by sample.
@@ -221,6 +292,7 @@ def main() -> None:
     log_dir.mkdir(parents=True, exist_ok=True)
 
     overall: list[dict[str, Any]] = []
+    attempted_ids = {category: set() for category in categories}
     print(
         # Note 21: The first line records batch-level configuration in a
         # machine-readable form for later handoff notes or debugging.
@@ -230,6 +302,8 @@ def main() -> None:
                 "categories": categories,
                 "workers_per_category": args.workers,
                 "category_parallelism": 1,
+                "follow_atomic_rules": args.follow_atomic_rules,
+                "atomic_poll_interval": args.atomic_poll_interval if args.follow_atomic_rules else None,
                 "log_dir": str(log_dir),
                 "dry_run": args.dry_run,
             },
@@ -238,71 +312,94 @@ def main() -> None:
         flush=True,
     )
 
-    for category in categories:
-        # Note 22: Categories are processed sequentially by this loop. Per-sample
-        # parallelism still happens inside the child generator via --workers.
-        config = CATEGORY_CONFIGS[category]
-        all_ids = read_sample_ids(args.assignment_dir / "sample_lists" / f"{category}.txt")
-        output_dir = args.dataset_dir / "generated" / Path(config["output_subdir"])
-        pending_ids = [
-            # Note 23: Filtering here is what makes the full batch resumable: a
-            # rerun sends only ids that do not yet have the expected output file.
-            sample_id
-            for sample_id in all_ids
-            if not has_existing_output(output_dir, sample_id, str(config["output_suffix"]))
-        ]
-        skipped = len(all_ids) - len(pending_ids)
-        if args.max_samples_per_category > 0:
-            # Note 24: This cap is useful for smoke tests and cautious restarts.
-            # Zero means no cap.
-            pending_ids = pending_ids[: args.max_samples_per_category]
-
-        start_payload = {
-            "status": "category_started",
-            "category": category,
-            "listed_samples": len(all_ids),
-            "skipped_existing_outputs": skipped,
-            "selected_samples": len(pending_ids),
-        }
-        print(json.dumps(start_payload, ensure_ascii=False), flush=True)
-        if not pending_ids:
-            # Note 25: A category can be safely skipped when every listed sample
-            # already has an output file.
-            overall.append({**start_payload, "status": "category_skipped"})
-            continue
-
-        log_path = log_dir / f"{category}.log"
-        command = category_command(args, category, pending_ids)
-        if args.dry_run:
-            # Note 26: In dry-run mode, print and record the exact child command
-            # that would have run. This is the safest way to review a large queue.
-            print(json.dumps({"status": "category_command", "category": category, "command": command}, ensure_ascii=False))
-            overall.append(
-                {
-                    "status": "category_dry_run",
-                    "category": category,
-                    "selected_samples": len(pending_ids),
-                    "log_path": str(log_path),
-                    "command": command,
-                }
+    round_number = 0
+    while True:
+        round_number += 1
+        waiting_for_atomic = 0
+        for category in categories:
+            # Note 22: Categories remain sequential to preserve the established
+            # request rate, while each child still uses per-sample workers.
+            config = CATEGORY_CONFIGS[category]
+            all_ids = read_sample_ids(args.assignment_dir / "sample_lists" / f"{category}.txt")
+            output_dir = args.dataset_dir / "generated" / Path(config["output_subdir"])
+            states = categorize_sample_ids(
+                all_ids,
+                output_dir,
+                str(config["output_suffix"]),
+                args.dataset_dir / "atomic_rules",
+                attempted_ids[category],
             )
-            continue
-        return_code, child_summary = run_and_log(command, log_path)
-        # Note 27: child_summary is best-effort because a crashing child may not
-        # emit its final JSON line. The log file remains the source of truth.
-        result = {
-            "status": "category_finished",
-            "category": category,
-            "return_code": return_code,
-            "log_path": str(log_path),
-            "child_summary": child_summary or {},
-        }
-        print(json.dumps(result, ensure_ascii=False), flush=True)
-        overall.append(result)
-        if return_code != 0:
-            # Note 28: Stop after a failing category so later categories do not
-            # hide the first failure or consume API credits under bad conditions.
-            raise SystemExit(f"Category {category} failed with return code {return_code}. See {log_path}")
+            pending_ids = states["ready"]
+            if args.max_samples_per_category > 0:
+                remaining_capacity = max(0, args.max_samples_per_category - len(attempted_ids[category]))
+                pending_ids = pending_ids[:remaining_capacity]
+            waiting_for_atomic += len(states["waiting"]) if (
+                args.max_samples_per_category == 0
+                or len(attempted_ids[category]) < args.max_samples_per_category
+            ) else 0
+
+            start_payload = {
+                "status": "category_started",
+                "round": round_number,
+                "category": category,
+                "listed_samples": len(all_ids),
+                "existing_outputs": len(states["existing"]),
+                "already_attempted_this_run": len(states["attempted"]),
+                "skipped_missing_atomic_rules": len(states["waiting"]),
+                "skipped_atomic_rule_errors": len(states["atomic_errors"]),
+                "selected_samples": len(pending_ids),
+            }
+            print(json.dumps(start_payload, ensure_ascii=False), flush=True)
+            if not pending_ids:
+                overall.append({**start_payload, "status": "category_skipped"})
+                continue
+
+            attempted_ids[category].update(pending_ids)
+            log_name = f"{round_number:04d}_{category}.log" if args.follow_atomic_rules else f"{category}.log"
+            log_path = log_dir / log_name
+            command = category_command(args, category, pending_ids)
+            if args.dry_run:
+                print(json.dumps({"status": "category_command", "category": category, "command": command}, ensure_ascii=False))
+                overall.append(
+                    {
+                        "status": "category_dry_run",
+                        "round": round_number,
+                        "category": category,
+                        "selected_samples": len(pending_ids),
+                        "log_path": str(log_path),
+                        "command": command,
+                    }
+                )
+                continue
+            return_code, child_summary = run_and_log(command, log_path)
+            result = {
+                "status": "category_finished",
+                "round": round_number,
+                "category": category,
+                "return_code": return_code,
+                "log_path": str(log_path),
+                "child_summary": child_summary or {},
+            }
+            print(json.dumps(result, ensure_ascii=False), flush=True)
+            overall.append(result)
+            if return_code != 0:
+                raise SystemExit(f"Category {category} failed with return code {return_code}. See {log_path}")
+
+        if not args.follow_atomic_rules or args.dry_run or waiting_for_atomic == 0:
+            break
+        print(
+            json.dumps(
+                {
+                    "status": "waiting_for_atomic_rules",
+                    "round": round_number,
+                    "samples": waiting_for_atomic,
+                    "poll_interval_seconds": args.atomic_poll_interval,
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        time.sleep(args.atomic_poll_interval)
 
     summary_path = log_dir / "summary.json"
     # Note 29: The summary file is compact compared with full logs and is usually

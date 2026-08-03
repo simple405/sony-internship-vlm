@@ -210,6 +210,15 @@ def test_validate_annotator_gold_wrong_result_matches_error_status(tmp_path):
     report = validate_annotator_gold(p, {})
     assert all("result_mismatch" not in r["issues"] for r in report)
 
+
+def test_validate_annotator_gold_accepts_wrong_prosition_for_visible(tmp_path):
+    p = tmp_path / "gold.csv"
+    _write_csv(p, [_gold_row_dict(front_status="wrong_prosition", result="wrong")], GOLD_COLS)
+    report = validate_annotator_gold(p, {})
+
+    assert all("invalid_front_status_for_visible" not in row["issues"] for row in report)
+    assert all("result_mismatch" not in row["issues"] for row in report)
+
 def test_validate_annotator_gold_invisible_correct_status(tmp_path):
     """visible=invisible, status=correct → valid."""
     row = _gold_row_dict()
@@ -301,4 +310,3 @@ def test_read_csv_bom(tmp_path):
     header, rows = read_csv(p)
     assert header[0] == "col1"
     assert rows[0]["col1"] == "val1"
-

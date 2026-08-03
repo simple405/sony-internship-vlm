@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import shutil
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
@@ -13,6 +14,11 @@ from typing import Any
 
 import requests
 from PIL import Image
+
+if __package__ in (None, ""):
+    sys.path.append(str(Path(__file__).resolve().parents[3]))
+
+from vlm.scripts.build_safebooru_trial_dataset import write_xlsx
 
 
 DEFAULT_DATASET = Path("vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20")
@@ -58,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aspect-ratio", default="21:9")
     parser.add_argument("--resolution", default="1k", choices=("1k", "2k", "4k"))
     parser.add_argument("--output-suffix", default="head_keychain")
+    parser.add_argument("--category", default="", help="Merchandise category used when writing the annotation xlsx.")
     parser.add_argument("--poll-interval", type=int, default=5)
     parser.add_argument("--timeout", type=int, default=900)
     parser.add_argument("--workers", type=int, default=1)
@@ -119,7 +126,13 @@ def resolve_sample_paths(source_dir: Path, atomic_dir: Path, sample_id: str) -> 
     # RunningHub upload and the atomic_rules JSON for archived provenance.
     source_sample_dir = source_dir / sample_id
     image_path = find_sample_file(source_sample_dir, sample_id, "original")
-    rules_path = source_sample_dir / f"{sample_id}_atomic_rules.json"
+    rules_candidates = [
+        source_sample_dir / "atomic_rules.json",
+        source_sample_dir / f"{sample_id}_atomic_rules.json",
+        atomic_dir / sample_id / "atomic_rules.json",
+        atomic_dir / sample_id / f"{sample_id}_atomic_rules.json",
+    ]
+    rules_path = next((path for path in rules_candidates if path.exists()), rules_candidates[0])
 
     if image_path is None:
         # Note 11: The fallback order mirrors historical dataset layouts, so old
@@ -127,10 +140,6 @@ def resolve_sample_paths(source_dir: Path, atomic_dir: Path, sample_id: str) -> 
         image_path = find_flat_sample_image(source_dir, sample_id)
     if image_path is None:
         image_path = find_sample_file(atomic_dir / sample_id, sample_id, "original")
-    if not rules_path.exists():
-        # Note 12: atomic_rules are normally under the atomic_rules root, but some
-        # older runs kept them beside source images; both layouts are accepted.
-        rules_path = atomic_dir / sample_id / f"{sample_id}_atomic_rules.json"
 
     if image_path is None or not image_path.exists():
         raise FileNotFoundError(f"No original image found for sample {sample_id}.")
@@ -300,6 +309,34 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def classify_rejection(message: str) -> str:
+    lowered = message.lower()
+    content_markers = (
+        "datainspectionfailed",
+        "content",
+        "policy",
+        "safety",
+        "sensitive",
+        "forbidden",
+        "审核",
+        "敏感",
+        "违规",
+        "拒绝",
+    )
+    return "content_policy_or_provider_rejection" if any(marker in lowered for marker in content_markers) else "runtime_error"
+
+
+def write_generation_error(args: argparse.Namespace, sample_id: str, status: dict[str, Any]) -> None:
+    error_payload = {
+        "schema_version": "generation_error.v1",
+        "stage": "runninghub_multiview",
+        **status,
+    }
+    if status.get("error_message"):
+        error_payload["rejection_type"] = classify_rejection(str(status["error_message"]))
+    write_json(args.direct_output_dir / sample_id / "generation_error.json", error_payload)
+
+
 def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str) -> dict[str, Any]:
     # Note 29: run_one is the unit of work executed by each thread. It returns a
     # JSON-serializable status dict so callers can log or summarize uniformly.
@@ -342,6 +379,12 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
     final_response = wait_for_results(api_key, task_id, args.poll_interval, args.timeout)
     results = final_response.get("results") or []
     downloaded = download_results(results, clean_dir, sample_id, args.output_suffix)
+    annotation_xlsx = ""
+    if downloaded:
+        annotation_path = clean_dir / f"{sample_id}.xlsx"
+        category = args.category or args.direct_output_dir.name
+        write_xlsx(rules_path, annotation_path, {}, category)
+        annotation_xlsx = str(annotation_path)
 
     status = {
         # Note 34: "no_image_url_found" is separated from failure because the
@@ -354,6 +397,7 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
         "resolution": args.resolution,
         "elapsed_seconds": round(time.time() - start_time, 2),
         "downloaded_images": [str(path) for path in downloaded],
+        "annotation_xlsx": annotation_xlsx,
         "image_metadata": [image_metadata(path) for path in downloaded],
         "clean_dir": str(clean_dir),
         "usage": final_response.get("usage"),
@@ -425,11 +469,14 @@ def main() -> None:
                     "error_type": type(exc).__name__,
                     "error_message": str(exc),
                 }
+                write_generation_error(args, sample_id, status)
                 print(json.dumps(status, ensure_ascii=False), flush=True)
                 summaries.append(status)
                 if args.stop_on_error:
                     raise
                 continue
+            if status.get("status") in {"failed", "no_image_url_found"}:
+                write_generation_error(args, sample_id, status)
             print(json.dumps(status, ensure_ascii=False), flush=True)
             summaries.append(status)
 

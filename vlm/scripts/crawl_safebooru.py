@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import statistics
@@ -57,6 +58,7 @@ USER_AGENT = "Sony-Internship-VLM-Crawler/2.0 (+https://safebooru.org/)"
 DEFAULT_OUTPUT_NAMES = {
     "japanese_anime_turnaround_strict": "japanese_anime_turnaround_180",
     "aniplex_supervision_strict": "aniplex_supervision_180",
+    "aniplex_supervision_full_body_strict": "safebooru_2d",
 }
 MANIFEST_FIELDS = [
     "post_id",
@@ -64,6 +66,7 @@ MANIFEST_FIELDS = [
     "crawl_label",
     "query_tags",
     "image_path",
+    "content_sha256",
     "download_status",
     "tags",
     "width",
@@ -289,7 +292,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--view-preset",
-        choices=("japanese_anime_turnaround_strict", "aniplex_supervision_strict"),
+        choices=(
+            "japanese_anime_turnaround_strict",
+            "aniplex_supervision_strict",
+            "aniplex_supervision_full_body_strict",
+        ),
         default="aniplex_supervision_strict",
         help="Use a built-in preset aligned with the atomic-rules workflow.",
     )
@@ -348,6 +355,11 @@ def parse_args() -> argparse.Namespace:
         "--incremental-write",
         action="store_true",
         help="Rewrite metadata.jsonl and manifest.csv after each accepted image so downstream workers can start early.",
+    )
+    parser.add_argument(
+        "--allow-character-duplicates",
+        action="store_true",
+        help="Allow different posts for the same character; exact image hashes are still rejected.",
     )
     return parser.parse_args()
 
@@ -552,7 +564,27 @@ def preset_query_groups(preset: str) -> dict[str, list[str]]:
         return strict_preset_query_groups()
     if preset == "aniplex_supervision_strict":
         return aniplex_supervision_query_groups()
+    if preset == "aniplex_supervision_full_body_strict":
+        return full_body_supervision_query_groups()
     raise ValueError(f"Unsupported view preset: {preset}")
+
+
+def full_body_supervision_query_groups() -> dict[str, list[str]]:
+    """Return strict single-character full-body queries for the new image batch."""
+    base = "solo full_body rating:safe -2girls -2boys -group -duo -trio"
+    negatives = "-chibi -creature -monster -furry -anthro -western -comic -greyscale -grayscale -lineart -monochrome -sketch -rough_sketch -photo -photorealistic -realistic"
+    return {
+        "full_body_1girl": [
+            f"full_body solo 1girl official_art {base} {negatives}",
+            f"full_body solo 1girl character_sheet {base} {negatives}",
+            f"full_body solo 1girl turnaround {base} {negatives}",
+        ],
+        "full_body_1boy": [
+            f"full_body solo 1boy official_art {base} {negatives}",
+            f"full_body solo 1boy character_sheet {base} {negatives}",
+            f"full_body solo 1boy turnaround {base} {negatives}",
+        ],
+    }
 
 
 def fetch_posts(session: requests.Session, tags: str, page: int, page_limit: int) -> list[dict[str, Any]]:
@@ -845,7 +877,7 @@ def allows_official_full_body(crawl_label: str, raw_tags: str) -> bool:
     Returns:
         True if ``official_full_body`` appears in the label or both tags are present.
     """
-    return "official_full_body" in crawl_label or (
+    return "official_full_body" in crawl_label or "full_body_" in crawl_label or (
         "official_art" in raw_tags.split() and "full_body" in raw_tags.split()
     )
 
@@ -942,10 +974,11 @@ def prefilter_post(
     if str(post.get("rating", "")).lower() != "safe":
         return False, "not_safe", ""
     if allow_official_full_body:
-        if "official_art" not in tags:
-            return False, "missing_official_art", ""
         if "full_body" not in tags:
             return False, "missing_full_body", ""
+        if "official_full_body" in crawl_label or "official_art" in raw_tags.split():
+            if "official_art" not in tags:
+                return False, "missing_official_art", ""
     else:
         # Normal groups require a sheet/turnaround tag to confirm reference-quality
         if not (tags & SHEET_TAGS):
@@ -1147,6 +1180,7 @@ def metadata_row(
         "crawl_label": crawl_label,
         "hash": post.get("hash"),
         "image_path": str(image_path.as_posix()),
+        "content_sha256": file_sha256(image_path),
         "download_status": status,
         "query_tags": tags_query,
         "tags": post.get("tags"),
@@ -1167,6 +1201,15 @@ def metadata_row(
         "likely_color": metrics.get("likely_color"),
         "selection_notes": selection_notes,
     }
+
+
+def file_sha256(path: Path) -> str:
+    """Return a streaming SHA-256 digest for an image file."""
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def write_outputs(rows: list[dict[str, Any]], metadata_path: Path, manifest_path: Path) -> None:
@@ -1200,7 +1243,11 @@ def write_outputs(rows: list[dict[str, Any]], metadata_path: Path, manifest_path
     manifest_tmp_path.replace(manifest_path)
 
 
-def seed_seen_sets(existing_rows: list[dict[str, Any]]) -> tuple[set[str], set[str]]:
+def seed_seen_sets(
+    existing_rows: list[dict[str, Any]],
+    *,
+    allow_character_duplicates: bool = False,
+) -> tuple[set[str], set[str], set[str]]:
     """Build the initial deduplication sets from a previously collected metadata file.
 
     Called at the start of a crawl session to initialise ``seen_ids`` and
@@ -1217,14 +1264,30 @@ def seed_seen_sets(existing_rows: list[dict[str, Any]]) -> tuple[set[str], set[s
     """
     seen_ids: set[str] = set()
     seen_signatures: set[str] = set()
+    seen_hashes: set[str] = set()
     for row in existing_rows:
         post_id = str(row.get("post_id") or "").strip()
         if post_id:
             seen_ids.add(post_id)
         signature = str(row.get("character_signature") or "").strip()
-        if signature:
+        if signature and not allow_character_duplicates:
             seen_signatures.add(signature)
-    return seen_ids, seen_signatures
+        content_hash = str(row.get("content_sha256") or "").strip()
+        if content_hash:
+            seen_hashes.add(content_hash)
+    return seen_ids, seen_signatures, seen_hashes
+
+
+def seed_existing_image_hashes(images_dir: Path, seen_hashes: set[str]) -> None:
+    """Include already-downloaded images when legacy metadata lacks hashes."""
+    if not images_dir.exists():
+        return
+    for path in images_dir.iterdir():
+        if path.is_file() and path.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
+            try:
+                seen_hashes.add(file_sha256(path))
+            except OSError:
+                continue
 
 
 def add_explicit_skip_ids(seen_ids: set[str], skip_post_ids: str) -> None:
@@ -1281,6 +1344,8 @@ def crawl_query_variants(
     max_pages_per_query: int,
     seen_ids: set[str],
     seen_signatures: set[str],
+    seen_hashes: set[str],
+    allow_character_duplicates: bool = False,
     on_accept: Callable[[dict[str, Any]], None] | None = None,
 ) -> list[dict[str, Any]]:
     """Crawl one or more tag query variants until the per-group target count is reached.
@@ -1401,9 +1466,17 @@ def crawl_query_variants(
                             output_path.unlink()
                         continue
 
-                    # Register the accepted post in both deduplication sets
+                    content_hash = file_sha256(output_path)
+                    if content_hash in seen_hashes:
+                        if status == "downloaded" and output_path.exists():
+                            output_path.unlink()
+                        continue
+
+                    # Register the accepted post in the deduplication sets
                     seen_ids.add(str(post.get("id")))
-                    seen_signatures.add(signature)
+                    if not allow_character_duplicates:
+                        seen_signatures.add(signature)
+                    seen_hashes.add(content_hash)
                     row = metadata_row(
                         post=post,
                         tags_query=tags,
@@ -1455,6 +1528,7 @@ def crawl_custom_tags(args: argparse.Namespace, session: requests.Session) -> tu
     output_name = args.output_name or slugify_tags(args.tags)
     output_dir = args.out_dir / output_name
     existing_rows = load_jsonl_rows(args.existing_metadata)
+    requested_new_count = max(args.limit - len(existing_rows), 0)
     live_rows = list(existing_rows)
     metadata_path = output_dir / "metadata.jsonl"
     manifest_path = output_dir / "manifest.csv"
@@ -1465,14 +1539,18 @@ def crawl_custom_tags(args: argparse.Namespace, session: requests.Session) -> tu
         live_rows.append(row)
         write_outputs(live_rows, metadata_path, manifest_path)
 
-    seen_ids, seen_signatures = seed_seen_sets(existing_rows)
+    seen_ids, seen_signatures, seen_hashes = seed_seen_sets(
+        existing_rows,
+        allow_character_duplicates=args.allow_character_duplicates,
+    )
+    seed_existing_image_hashes(output_dir / "image", seen_hashes)
     add_rejected_post_ids(seen_ids, output_dir)
     add_explicit_skip_ids(seen_ids, args.skip_post_ids)
     rows = crawl_query_variants(
         session=session,
         crawl_label=output_name,
         query_variants=[tags],
-        target_count=args.limit,
+        target_count=requested_new_count,
         images_dir=output_dir / "image",
         image_kind=args.image_kind,
         overwrite=args.overwrite,
@@ -1481,6 +1559,8 @@ def crawl_custom_tags(args: argparse.Namespace, session: requests.Session) -> tu
         max_pages_per_query=args.max_pages_per_query,
         seen_ids=seen_ids,
         seen_signatures=seen_signatures,
+        seen_hashes=seen_hashes,
+        allow_character_duplicates=args.allow_character_duplicates,
         on_accept=on_accept,
     )
     return output_dir, [*existing_rows, *rows]
@@ -1510,11 +1590,16 @@ def crawl_preset(args: argparse.Namespace, session: requests.Session) -> tuple[P
         pre-existing rows from ``--existing-metadata`` and newly accepted rows.
     """
     query_groups = preset_query_groups(args.view_preset)
-    output_name = args.output_name or DEFAULT_OUTPUT_NAMES[args.view_preset]
-    output_dir = args.out_dir / output_name
-    # Distribute the total limit across groups; first groups absorb any remainder
-    counts = split_counts(args.limit, list(query_groups))
+    if args.output_name:
+        output_dir = args.out_dir / args.output_name
+    elif args.view_preset == "aniplex_supervision_full_body_strict":
+        output_dir = args.out_dir
+    else:
+        output_dir = args.out_dir / DEFAULT_OUTPUT_NAMES[args.view_preset]
+    # Distribute only the missing count across groups; existing rows are retained.
     existing_rows = load_jsonl_rows(args.existing_metadata)
+    requested_new_count = max(args.limit - len(existing_rows), 0)
+    counts = split_counts(requested_new_count, list(query_groups))
     rows: list[dict[str, Any]] = []
     metadata_path = output_dir / "metadata.jsonl"
     manifest_path = output_dir / "manifest.csv"
@@ -1525,12 +1610,16 @@ def crawl_preset(args: argparse.Namespace, session: requests.Session) -> tuple[P
         rows.append(row)
         write_outputs([*existing_rows, *rows], metadata_path, manifest_path)
 
-    seen_ids, seen_signatures = seed_seen_sets(existing_rows)
+    seen_ids, seen_signatures, seen_hashes = seed_seen_sets(
+        existing_rows,
+        allow_character_duplicates=args.allow_character_duplicates,
+    )
+    seed_existing_image_hashes(output_dir / "image", seen_hashes)
     add_rejected_post_ids(seen_ids, output_dir)
     add_explicit_skip_ids(seen_ids, args.skip_post_ids)
 
     for crawl_label, query_variants in query_groups.items():
-        remaining_total = args.limit - len(rows)
+        remaining_total = requested_new_count - len(rows)
         if remaining_total <= 0:
             break
         # Cap per-group target so late groups can fill slack from under-performing earlier groups
@@ -1548,12 +1637,14 @@ def crawl_preset(args: argparse.Namespace, session: requests.Session) -> tuple[P
             max_pages_per_query=args.max_pages_per_query,
             seen_ids=seen_ids,
             seen_signatures=seen_signatures,
+            seen_hashes=seen_hashes,
+            allow_character_duplicates=args.allow_character_duplicates,
             on_accept=on_accept,
         )
         if not args.incremental_write:
             rows.extend(group_rows)
 
-    if len(rows) < args.limit:
+    if len(rows) < requested_new_count:
         # Primary groups did not reach the target — run a backfill pass with broader queries
         if args.view_preset == "aniplex_supervision_strict":
             backfill_variants = [
@@ -1580,7 +1671,7 @@ def crawl_preset(args: argparse.Namespace, session: requests.Session) -> tuple[P
             session=session,
             crawl_label="strict_backfill",
             query_variants=backfill_variants,
-            target_count=args.limit - len(rows),
+            target_count=requested_new_count - len(rows),
             images_dir=output_dir / "image",
             image_kind=args.image_kind,
             overwrite=args.overwrite,
@@ -1589,6 +1680,8 @@ def crawl_preset(args: argparse.Namespace, session: requests.Session) -> tuple[P
             max_pages_per_query=args.max_pages_per_query,
             seen_ids=seen_ids,
             seen_signatures=seen_signatures,
+            seen_hashes=seen_hashes,
+            allow_character_duplicates=args.allow_character_duplicates,
             on_accept=on_accept,
         )
         if not args.incremental_write:
@@ -1640,8 +1733,9 @@ def crawl(args: argparse.Namespace) -> Path:
 
     existing_count = len(load_jsonl_rows(args.existing_metadata))
     new_count = len(rows) - existing_count
-    if new_count < args.limit:
-        print(f"Warning: accepted {new_count} new images, below requested limit {args.limit}.")
+    requested_new_count = max(args.limit - existing_count, 0)
+    if new_count < requested_new_count:
+        print(f"Warning: accepted {new_count} new images, below requested new count {requested_new_count}.")
 
     # Final authoritative write — overwrites incremental partial files if any
     metadata_path = output_dir / "metadata.jsonl"

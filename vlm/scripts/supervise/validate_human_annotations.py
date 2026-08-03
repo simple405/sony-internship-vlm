@@ -129,9 +129,9 @@ OPTIONAL_VISIBLE_VALUES = {"visible", "invisible", "unknown", ""}
 MATCH_STATUS_VALUES = {"correct", "wrong", "unsure", ""}
 RULE_VALIDITY_VALUES = {"correct", "wrong_value", "missing_from_2d", "ambiguous", "out_of_scope", "duplicate"}
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "wrong_prosition", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
-ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "extra", "wrong invisible"}
+ERROR_STATUSES = {"wrong color", "wrong material", "wrong shape", "wrong_prosition", "extra", "wrong invisible"}
 RESULT_VALUES = {"correct", "wrong"}
 
 

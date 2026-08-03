@@ -74,6 +74,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_DATASET / "reports" / "merchandise_category_assignment",
     )
     parser.add_argument("--contact-sheet-limit", type=int, default=40)
+    parser.add_argument(
+        "--balanced",
+        action="store_true",
+        help="Preserve existing generated samples, then assign remaining images to even six-category targets.",
+    )
     return parser.parse_args()
 
 
@@ -111,12 +116,12 @@ def discover_generated(dataset_dir: Path) -> dict[str, str]:
     generated_root = dataset_dir / "generated"
     generated: dict[str, str] = {}
     for category, rel_path in GENERATED_CATEGORY_DIRS.items():
-        category_dir = generated_root / rel_path
-        if not category_dir.exists():
-            continue
-        for child in category_dir.iterdir():
-            if child.is_dir() and not child.name.startswith("_"):
-                generated[child.name] = category
+        for category_dir in (generated_root / rel_path, generated_root / category):
+            if not category_dir.exists():
+                continue
+            for child in category_dir.iterdir():
+                if child.is_dir() and not child.name.startswith("_"):
+                    generated.setdefault(child.name, category)
     return generated
 
 
@@ -416,6 +421,72 @@ def candidate_categories(scores: OrderedDict[str, int]) -> list[str]:
     return candidates[:4]
 
 
+def balanced_target_counts(total: int) -> dict[str, int]:
+    base, remainder = divmod(total, len(CATEGORIES))
+    return {
+        category: base + (1 if index < remainder else 0)
+        for index, category in enumerate(CATEGORIES)
+    }
+
+
+def ranked_categories(scores: OrderedDict[str, int]) -> list[str]:
+    return [
+        category
+        for category, _score in sorted(
+            scores.items(),
+            key=lambda item: (-item[1], CATEGORIES.index(item[0])),
+        )
+    ]
+
+
+def apply_balanced_assignment(rows: list[dict[str, Any]]) -> None:
+    """Mutate output rows so non-generated samples fill even category quotas."""
+    target_counts = balanced_target_counts(len(rows))
+    assigned_counts = Counter(
+        row["already_generated_category"]
+        for row in rows
+        if row.get("already_generated_category")
+    )
+    remaining_capacity = {
+        category: max(0, target_counts[category] - assigned_counts[category])
+        for category in CATEGORIES
+    }
+    pending_rows = [row for row in rows if not row.get("already_generated_category")]
+    pending_rows.sort(
+        key=lambda row: (
+            -(
+                sorted(
+                    (int(row[f"score_{category}"]) for category in CATEGORIES),
+                    reverse=True,
+                )[0]
+                - sorted(
+                    (int(row[f"score_{category}"]) for category in CATEGORIES),
+                    reverse=True,
+                )[1]
+            ),
+            row["sample_id"],
+        )
+    )
+    for row in pending_rows:
+        scores = OrderedDict((category, int(row[f"score_{category}"])) for category in CATEGORIES)
+        selected = None
+        for category in ranked_categories(scores):
+            if remaining_capacity.get(category, 0) > 0:
+                selected = category
+                break
+        if selected is None:
+            selected = min(CATEGORIES, key=lambda category: (assigned_counts[category], CATEGORIES.index(category)))
+        remaining_capacity[selected] = max(0, remaining_capacity.get(selected, 0) - 1)
+        assigned_counts[selected] += 1
+        row["primary_category"] = selected
+        row["assignment_source"] = "balanced_score"
+        candidates = str(row["candidate_categories"]).split("|") if row.get("candidate_categories") else []
+        if selected not in candidates:
+            candidates.insert(0, selected)
+        row["candidate_categories"] = "|".join(candidates[:4])
+        row["primary_score"] = row[f"score_{selected}"]
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:
     # Note 37: newline="" is the csv module's recommended mode; it avoids extra
     # blank lines on Windows when writing CSV files.
@@ -524,6 +595,9 @@ def main() -> None:
                 "primary_score": primary_score,
             }
         )
+
+    if args.balanced:
+        apply_balanced_assignment(output_rows)
 
     output_rows.sort(key=lambda row: (row["primary_category"], -int(row["primary_score"]), row["sample_id"]))
     # Note 47: Sorting by category then score puts the strongest pending samples

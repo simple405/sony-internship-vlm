@@ -61,12 +61,13 @@ ERROR_STATUSES = {
     "wrong color",
     "wrong material",
     "wrong shape",
+    "wrong_prosition",
     "paired box completion",
     "extra",
     "wrong invisible",
 }
 VISIBLE_VALUES = {"visible", "invisible"}
-VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "paired box completion", "extra"}
+VISIBLE_STATUS_VALUES = {"correct", "wrong color", "wrong material", "wrong shape", "wrong_prosition", "paired box completion", "extra"}
 INVISIBLE_STATUS_VALUES = {"correct", "wrong invisible"}
 
 
