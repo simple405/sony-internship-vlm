@@ -1,4 +1,7 @@
 .venv/
+
+# Local datasets and generated data artifacts.
+/data/
 vlm/data/
 vlm/tmp/
 vlm/archive/
