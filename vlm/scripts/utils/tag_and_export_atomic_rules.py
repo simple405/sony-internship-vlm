@@ -339,7 +339,7 @@ def write_xlsx(json_path: Path, location_map: dict[str, str]) -> Path:
             code,       # sample_id
             rule_id,    # rule_id
             location,   # location (head | body)
-            display_value,  # value (position rules use annotator viewpoint)
+            display_value,  # value already uses annotator viewpoint
         ]
         # Evaluation columns: front_visible, front_status, side_visible,
         # side_status, back_visible, back_status, note — all left blank

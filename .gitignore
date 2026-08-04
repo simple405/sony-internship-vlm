@@ -1,4 +1,6 @@
 .venv/
+/tmp/
+/output/
 
 # Local datasets and generated data artifacts.
 /data/

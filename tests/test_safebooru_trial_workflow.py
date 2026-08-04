@@ -93,7 +93,7 @@ def test_sync_generated_sample_writes_xlsx_after_image_download(tmp_path: Path):
     assert sync_sample(sample_dir, "plush", "plush") is False
 
 
-def test_position_rules_flip_to_annotator_view(tmp_path: Path):
+def test_position_rules_keep_emitted_annotator_view(tmp_path: Path):
     json_path = tmp_path / "atomic_rules.json"
     json_path.write_text(json.dumps({
         "code": "123",
@@ -107,8 +107,8 @@ def test_position_rules_flip_to_annotator_view(tmp_path: Path):
     write_xlsx(json_path, output_path, {"horn_position": "body", "wing_position": "body"}, "plush")
     sheet = load_workbook(output_path, read_only=True).active
     rows = list(sheet.iter_rows(values_only=True))
-    assert rows[1][1:4] == ("horn_position", "body", "left")
-    assert rows[2][1:4] == ("armband_position", "body", "right_arm")
+    assert rows[1][1:4] == ("horn_position", "body", "right")
+    assert rows[2][1:4] == ("armband_position", "body", "left_arm")
     assert rows[3][1:4] == ("wing_position", "body", "both_sides")
 
 

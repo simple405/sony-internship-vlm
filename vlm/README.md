@@ -11,6 +11,7 @@ Run commands from the workspace root (`D:\索尼实习`) so relative data paths 
 - `scripts/data/` - dataset assignment and maintenance scripts.
 - `scripts/generate/` - RunningHub image-generation runners.
 - `scripts/orchestrate/` - higher-level batch runners.
+- `scripts/README.md` - maintained script entry-point index and retired-script guidance.
 - `config/` - runtime configuration (schemas, sample configs, API keys).
 - `config/supervision/` - review sample configs, v3 schema, category rules.
 - `prompts/supervision/` - Qwen VL supervision prompt templates (per category).
@@ -30,6 +31,7 @@ Run commands from the workspace root (`D:\索尼实习`) so relative data paths 
 ## Current Entry Points
 
 - RunningHub process: `docs/workflows/process.md`
+- Workspace cleanup map: `docs/workflows/workspace_cleanup_20260804.md`
 - Multi-category supervision review: `scripts/supervise/run_multicategory_supervision_review.py`
 - Full RunningHub batch runner: `scripts/orchestrate/run_runninghub_merchandise_full_batch.py`
 - Single/small batch RunningHub runner: `scripts/generate/generate_head_keychain_with_runninghub_g2.py`

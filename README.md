@@ -8,6 +8,7 @@ This repository is organized as a VLM development workspace for Anime IP merchan
   - `data/` - dataset assignment and dataset maintenance helpers.
   - `generate/` - RunningHub image generation runners.
   - `orchestrate/` - batch runners that call lower-level scripts.
+  - See `vlm/scripts/README.md` for the maintained entry-point index.
 - `vlm/prompts/` - RunningHub prompt assets.
 - `vlm/data/` - local datasets, generated rules, reports, logs, and model outputs.
 - `vlm/experiments/` - lightweight experiment notes, frozen manifests, and small eval specs.
@@ -18,6 +19,8 @@ This repository is organized as a VLM development workspace for Anime IP merchan
 ## Current Workflow
 
 Use `vlm/docs/workflows/process.md` as the current RunningHub merchandise process. Qwen/Wan scripts and obsolete atomic-rules workflows have been removed from the active tracked workspace.
+
+Latest cleanup/handoff map: `vlm/docs/workflows/workspace_cleanup_20260804.md`.
 
 ## Working Convention
 

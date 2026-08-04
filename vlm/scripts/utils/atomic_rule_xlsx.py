@@ -2,16 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
-
-POSITION_RULE_SUFFIX = "_position"
-POSITION_LEFT_RIGHT_SWAP = {
-    "left": "right",
-    "right": "left",
-}
-_POSITION_TOKEN_SPLIT = re.compile(r"([_\-\s])")
 
 ANNOTATION_VISIBLE_VALUES = ("visible", "invisible")
 VISIBLE_STATUS_VALUES = (
@@ -52,20 +44,10 @@ def add_annotation_dropdowns(worksheet: Any) -> None:
 
 
 def normalize_position_value(rule_id: str, value: Any) -> Any:
-    """Flip left/right values to the annotator's observation viewpoint.
+    """Return the atomic-rule value exactly as emitted.
 
-    Only rule IDs ending in ``_position`` are adjusted. Non-string values are
-    returned unchanged.
+    Historical trial scripts flipped ``left`` and ``right`` while writing xlsx
+    files. The current SN-7 contract requires atomic_rules values to already be
+    in annotator/viewer coordinates, so export must not rewrite them.
     """
-    if not isinstance(rule_id, str) or not rule_id.lower().endswith(POSITION_RULE_SUFFIX):
-        return value
-    if not isinstance(value, str):
-        return value
-    parts = _POSITION_TOKEN_SPLIT.split(value.strip())
-    changed = False
-    for index, part in enumerate(parts):
-        swapped = POSITION_LEFT_RIGHT_SWAP.get(part.lower())
-        if swapped:
-            parts[index] = swapped
-            changed = True
-    return "".join(parts) if changed else value
+    return value
