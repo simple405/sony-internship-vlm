@@ -1,298 +1,166 @@
-# VLM 监修当前流程（压缩版）
+# 当前主线：Paired Front-View 监修 Agent
 
-更新日期：2026-07-27 +08:00
+更新日期：2026-08-06
 
-本文件用于节约后续上下文成本，只保留当前有效结论、关键路径、会议纪要和下一步。历史长流程已压缩。
+本文是当前唯一主流程。旧的元素抽取、SN-7 批处理和历史会议方案只作为归档参考，不与本流程混用。
 
-## 1. 当前最高优先级规则
+## 1. 目标
 
-2026-07-08 会议纪要定义 **人工标注验收/修改/计费口径**，不替代生图 prompt 或 atomic_rules 生成的完整 IP 设计标准。生图和 atomic_rules 仍需覆盖角色身份、商品形态、关键配饰、服装结构、图案拓扑等设计质量要求。
+对 `vlm/data/1-动漫标注结果导出_paired_samples/` 下的角色样本：
 
-当前乙方可修改/可计费项按以下口径执行：
+1. 只用 2D 原图和固定提示词生成 Q 版 3D PVC 手办正面正式图。
+2. 用 paired JSON 作为监修规格，判断生成图是否符合对应元素描述。
+3. 输出逐元素问题、整体结论和人工复核队列。
 
-1. **描述修改规则**：仅允许对预识别阶段已标注出的部位、装饰物等，针对其颜色、材质、形状三方面的明显错误进行修正，其他内容不予改动。
-2. **左右方位标注标准**：所有任务中的“左”“右”判断，统一以标注员自身的观察视角为准，确保全流程标准一致。
-3. **成对物品或身体部位标注要求**：对于成对出现的物品或部位，例如一双鞋、两条腿、两只犄角等，若原标注框仅覆盖其中一侧，则须补全另一侧标注框并添加相应描述。若两侧在外观上无任何差异，描述内容可完全相同；若存在差异，则需分别描述。若预识别阶段将成对部位合并为一个大的标注框，例如两条腿合为一框，同样需拆分为独立单框，并逐框独立描述。
-4. **计费范围说明**：凡涉及描述修改或新增标注框的操作，均纳入修改计费范畴，按统一规则核算。
+当前数据规模：`6901` 个有效图文配对，另有 `3` 张孤立图片不进入主流程。
 
-Agent 输出约束：必须区分 `billable_annotation_issues` 与 `design_quality_notes`。普通缺失细节和开放式描述补充不作为当前乙方主验收目标；如需保留观察，可进入设计质量备注或人工复核，不直接影响乙方计费/验收分数。
+## 2. 严格的数据边界
 
-## 1b. 监修 Agent 架构（已统一定义）
-
-```text
-输入：2D 原图 + 商品设计图（由上游生图流程提供，不属于 agent 职责）
-  ↓
-Step 1: 元素提取 — 从 2D 原图自动生成 atomic_rules
-        脚本: vlm/scripts/supervise/run_element_extraction.py
-        模型: qwen3-vl-plus（当前首选）
-  ↓
-Step 2: VLM 审查 — 用 atomic_rules 对比商品设计图
-        脚本: vlm/scripts/supervise/run_multicategory_supervision_review.py
-        Prompt: vlm/prompts/supervision/qwen_prompt_v3_{category}.txt
-  ↓
-输出：结构化监修报告
-        billable_annotation_issues（颜色/材质/形状错误、成对补框）
-        design_quality_notes（设计质量观察，不计入主指标）
-```
-
-**关键约束：** atomic_rules 由 agent 内部从 2D 原图生成，不作为外部输入。生图链路（RunningHub、IC-Light）是上游流程，不是监修 agent 的组成部分。
-
-## 2. 核心路径
+### 2.1 生图阶段
 
 ```text
-项目根目录: D:\索尼实习
-数据集根目录: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20
-生成三件套根目录: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated
-试标数据集: vlm/data/safebooru_2d/japanese_anime_turnaround_pilot_20/multi_view试标数据集
-人工标注说明: vlm/docs/supervision/stage1_annotation_instructions.md
-CSV schema: vlm/docs/supervision/human_annotation_csv_schemas.md
-Agent schema: vlm/config/supervision/supervision_agent_output_v3.schema.json
-API 环境变量: vlm/config/api.env
-集中路径常量: vlm/scripts/_paths.py
-Claude Code 看图入口: vlm/scripts/supervise/qwen_vl_image_tool.py
+输入：source_image + 固定 front-view prompt
+输出：<sample_id>_q_front_view.png + prompt 快照 + 请求状态
 ```
 
-当前工作流以 `generated/` 下每个样本文件夹中的三件套为输入资产：
+生图阶段禁止读取或拼接该样本 JSON。否则 JSON 会泄漏到生成条件，后续监修评估失去独立性。
+
+当前可复用提示词：
 
 ```text
-2d_original.*        # 2D 原图 / source reference
-*_product.png        # 多视角生成图，例如 *_backpack.png、*_cake_roll.png、*_plush.png
-atomic_rules.json    # 预识别阶段生成的原子规则 / 标注依据
+vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt
 ```
 
-如果实际文件名按品类变化，以样本配置中的 `source_image`、`multiview_image`、`atomic_rules` 三个字段为准。
+生成结果写入独立目录，不覆盖 paired 原始目录：
 
-Claude Code 不要直接 `Read` 图片文件；需要图片理解时使用：
+```text
+vlm/data/front_view_generation_v1/<sample_id>/
+  <sample_id>_original.<ext>
+  <sample_id>_q_front_view.png
+  <sample_id>.json
+
+vlm/data/front_view_generation_v1/_metadata/<sample_id>/
+  prompt.txt
+  request_preview.json
+  status.json
+```
+
+样本交付目录严格只保留三件套；元数据不进入样本目录。原图和 gold JSON
+在生成完成后按字节复制，JSON 不会被解析或发送到 RunningHub。
+
+### 2.2 监修阶段
+
+```text
+输入：generated_front_view + paired JSON
+可选审计输入：source_image（仅用于争议复核，不作为默认判定条件）
+输出：per-rule verdict + overall decision
+```
+
+原 JSON 中的 `bbox` 是 2D 原图坐标，不能直接套到生成图。Agent 必须在生成图上重新给出 evidence bbox，或者明确 `not_evaluable`。
+
+## 3. 监修输出契约
+
+每条 JSON 元素输出以下最小字段：
+
+```json
+{
+  "rule_index": 1,
+  "element": "蓝色眼睛",
+  "result": "pass | partial | fail | not_evaluable | review",
+  "image_grounded": true,
+  "description_correct": true,
+  "issue_types": [],
+  "observed_description": "生成图中可见蓝色眼睛。",
+  "evidence_bbox": [100, 80, 240, 160],
+  "confidence": 0.91,
+  "reason": "颜色和位置与规格一致。"
+}
+```
+
+规则：
+
+- 复合描述允许 `partial`，不能把只实现一半的元素直接算全错。
+- 正面不可见的背面/侧面细节使用 `not_evaluable`，不直接判缺失。
+- 颜色、形状、结构和代表性配饰错误进入 `design_quality_notes`；若业务验收范围明确，再映射到 `billable_annotation_issues`。
+- 低置信度、JSON 描述本身含糊或图像证据不足进入 `review`。
+- 额外生成的显著元素单独记录为 `extra_elements`，不能偷偷并入某条 gold。
+
+## 4. 开发阶段
+
+### Phase A：独立生图批处理
+
+基于 `runninghub_client.py` 写新的 paired 批处理脚本，支持：
+
+- `--input-root`、`--output-root`、`--sample-id`、`--limit`；
+- resume，已有成功结果不重复计费；
+- 固定 prompt 快照、任务状态、失败重试队列；
+- 明确记录请求只包含一张原图和固定 prompt。
+
+先做 `20` 张分层 pilot，不直接跑 6901 张。
+
+状态（2026-08-06）：已完成。新脚本为：
+
+```text
+vlm/scripts/generate/generate_paired_front_view.py
+```
+
+先执行 dry-run：
 
 ```powershell
-.\.venv\Scripts\python.exe -m vlm.scripts.supervise.qwen_vl_image_tool `
-  --model qwen-vl-max `
-  --json `
-  --prompt "请分析这张图中可见的角色/商品特征，输出用于监修的结构化 JSON。" `
-  "path\to\image.png"
+.\.venv\Scripts\python.exe -m vlm.scripts.generate.generate_paired_front_view --dry-run --limit 20
 ```
 
-## 3. 当前有效产物
+验证 preview 后执行真实 pilot：
 
-配置和 schema：
-
-```text
-vlm/config/supervision/supervision_agent_output_v3.schema.json
-vlm/config/supervision/supervision_agent_output_v3.example.json
-vlm/config/supervision/backpack_review_samples.json
-vlm/config/supervision/head_key_chain_review_samples.json
-vlm/config/supervision/cake_roll_review_samples.json
-vlm/config/supervision/plush_review_samples.json
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.generate.generate_paired_front_view --limit 20 --workers 2
 ```
 
-活跃 prompt：
+pilot 结果为 `20/20` 成功、失败队列为空，输出位于
+`vlm/data/front_view_generation_v1/`。请求审计确认每份 payload 只有一张原图和冻结 prompt，
+不含 paired JSON 路径或内容；paired 输入目录仍为 `6901` 个标准双文件样本目录。
+现有 20 个完成样本均已迁移为严格三件套，原图与 gold JSON 的 SHA-256 和 paired 输入一致。
 
-```text
-vlm/prompts/supervision/qwen_prompt_v3_backpack.txt
-vlm/prompts/supervision/qwen_prompt_v3_head_key_chain.txt
-vlm/prompts/supervision/qwen_prompt_v3_plush.txt
-vlm/prompts/supervision/qwen_prompt_v3_cake_roll.txt
-vlm/prompts/supervision/element_extraction_from_2d.txt
-vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt  # 冻结的前视图提示词
-```
+### Phase B：规格对图 baseline
 
-核心脚本：
+写 paired reviewer，直接读取 JSON，不重新抽取规则。先用 Qwen-VL prompt baseline，输出上面的结构化 verdict；不急着训练模型。
 
-```text
-vlm/scripts/supervise/run_multicategory_supervision_review.py
-vlm/scripts/supervise/validate_human_annotations.py
-vlm/scripts/supervise/create_human_annotation_templates.py
-vlm/scripts/supervise/convert_annotation_xlsx_to_csv.py
-vlm/scripts/supervise/align_human_findings_to_atomic_rules.py
-vlm/scripts/supervise/build_verified_evaluation_gold.py
-vlm/scripts/supervise/summarize_pre_gold_assets.py
-vlm/scripts/supervise/run_element_extraction.py
-vlm/scripts/supervise/evaluate_element_extraction.py
-vlm/scripts/supervise/evaluate_extraction_compound.py   # compound-aware GT matching 评估（server端主用）
-vlm/scripts/generate/runninghub_client.py         # RunningHub API 公共模块
-vlm/scripts/generate/batch_front_view.py           # 前视图 PVC 手办批量生成（4 并发，支持 resume）
-vlm/scripts/generate/smoke_test_front_view.py      # 单样本冒烟测试
-```
+### Phase C：人工 gold
 
-已归档/搁置脚本（保留代码但不在当前主流程中）：
+对 pilot 生成图逐元素人工标注：`pass/partial/fail/not_evaluable/review`，同时标记颜色、形状、结构、缺失、幻觉和 extra。按角色/画风分层留出冻结 holdout。
 
-```text
-vlm/scripts/crawl_safebooru.py               # Safebooru 数据采集，pilot-20 数据集已采集完毕，暂无新批次计划
-vlm/scripts/data/assign_merchandise_categories.py  # 配合 crawl_safebooru 的品类分配，同上，随数据采集阶段一起搁置
-```
+### Phase D：训练或蒸馏
 
-本地 ComfyUI 生图链路（IC-Light、MOGE、depth 等本地渲染脚本）已于 2026-07-28 全部移除：当前不需要本地生图，如后续恢复该需求再重写。
+只有在至少积累 `500–1000` 条人工确认 verdict 后，才评估 LoRA/SFT。先比较 prompt baseline 与训练模型，再决定是否训练；不能把模型自己的预标注当 gold。
 
-## 4. 已知当前状态
+## 5. 指标
 
-```text
-- v3 标注系统不新增 excluded；商品范围外身体部位仍按 invisible + correct 处理。
-- atomic_rules 不是天然 gold：需要先审核 rule 本身，再评估生成质量和 Qwen review 质量。
-- Qwen baseline 已能输出 v3 rule-level JSON。
-- backpack 的 back view 是背包背板，不是角色背面；该语义已写入 prompt。
-- head_key_chain / plush / cake_roll 已有品类视角语义 prompt。
-- wrong material 已加入 schema、prompt 和本地校验常量。
-- paired box completion 已作为人工标注验收问题类型保留。
-- RunningHub 前视图 PVC 手办批量生成已完成：19/20 成功（1568×672），char_008 被内容审核拦截（errorCode 1501）。
-- runninghub_client.py 已抽取为公共 API 模块，消除 ~150 行重复代码。
-```
-
-## 4b. 元素提取模型对比（2026-07-14）
-
-评估集：20 样本 / 111 gold elements，使用 `evaluate_element_extraction.py` + DashScope text-embedding-v3。
-
-| 模型 | Coverage | Conflicts | Unsupported Extra | 状态 |
-|------|----------|-----------|-------------------|------|
-| qwen3-vl-plus（基线） | 98.2% | 10 | 25 | 稳定，当前 API 首选 |
-| qwen3-vl-32b-instruct | 98.2% | 14 | 21 | 稳定，coverage 持平 |
-| qwen3-vl-30b-a3b-thinking | 94.6% | 21 | 26 | thinking 模式对结构化提取无益 |
-| qwen3-vl-30b-a3b-instruct | N/A | N/A | N/A | DashScope 45% JSON 崩溃 |
-
-关键结论：
-
-```text
-- qwen3-vl-plus 为闭源模型，无公开权重，不可本地部署。
-- qwen3-vl-32b-instruct 开源可部署，coverage 与 plus 持平，int4 量化约需 22GB VRAM。
-- qwen3-vl-30b-a3b-instruct 架构最优（MoE，总参数 30B，推理激活仅 3B），
-  DashScope 的 JSON 崩溃是平台侧问题，本地用 vLLM guided_json 可解决；
-  本地部署 ≤30B 场景的首选候选。
-- qwen3-vl-7b DashScope 无托管（404），可作为本地保守方案。
-- thinking 模式对结构化提取任务有害，不要使用 -thinking 后缀的模型。
-- 所有模型共同漏掉 char_013 的"胡须"和"袜子"——提示词无面部毛发/腿部叠层规则，
-  待新数据确认后再考虑修改（避免过拟合20样本评估集）。
-```
-
-脚本与数据路径：
-
-```text
-提取脚本:  vlm/scripts/supervise/run_element_extraction.py
-评估脚本:  vlm/scripts/supervise/evaluate_element_extraction.py
-提示词:    vlm/prompts/supervision/element_extraction_from_2d.txt
-Gold 数据: vlm/data/SN_6期动漫数据标注/
-结果目录:  vlm/data/element_extraction_results/          ← qwen3-vl-plus 基线
-           vlm/data/element_extraction_results_32b/      ← qwen3-vl-32b-instruct
-           vlm/data/element_extraction_results_30b_thinking/ ← qwen3-vl-30b-a3b-thinking
-```
-
-## 5. 人工标注 + 评估工作流
-
-当前三段式流程：
-
-```text
-generated 三件套: 2D 原图 + multi_view 生成图 + atomic_rules
-  -> Stage 1: 人工标注验收发现
-       只记录会议纪要允许的可修改/可计费项：颜色、材质、形状错误，成对补框/拆框。
-  -> Stage 2: atomic_rules 正误审核
-       判断每条 rule 是否真实描述 2D 图。
-  -> Stage 3: 候选语义对齐 + 人工复核
-       将人工发现与 atomic_rules 建立可复核桥梁。
-  -> Stage 4: 低颗粒度验收评估
-       只用 acceptance gold 评估 billable_annotation_issues。
-       design_quality_notes 单独保留，不纳入当前主 precision / recall / F1。
-```
-
-颗粒度变化后的指标边界：
-
-```text
 主指标：
-  acceptance_precision
-  acceptance_recall
-  acceptance_f1
-  billable_issue_recall
 
-主指标只统计：
-  wrong color
-  wrong material
-  wrong shape
-  paired box completion
+- rule-level macro/micro F1；
+- `fail` recall，优先避免漏报关键错误；
+- `partial` 识别率；
+- `not_evaluable` precision；
+- extra hallucination precision；
+- overall fail/review recall。
 
-不进入主指标：
-  未预识别普通细节缺失
-  开放式描述补充
-  身份元素缺失/幻觉
-  商品类型错误
-  三视图不一致
+评估按角色分组拆分，避免同一角色或近重复图同时进入 train 和 holdout。
 
-这些设计质量问题可进入 design_quality_notes 或 human_review_required，后续需要甲方专家 gold 才能评估。
-```
-
-标准样本文件夹目标结构：
+## 6. 当前资产
 
 ```text
-{category}/{sample_id}/
-├── 2d_original.jpg
-├── multiview_design.png
-├── atomic_rules.json
-├── qwen_supervision_result.csv
-├── qwen_supervision_result_summary.json
-├── human_visual_findings.csv
-├── atomic_rule_audit.csv
-├── human_to_atomic_rule_mapping_candidates.csv
-├── mapping_review_queue.csv
-└── verified_evaluation_gold.csv
+原始配对：vlm/data/1-动漫标注结果导出_paired_samples/
+生成提示词：vlm/prompts/generation/runninghub/runninghub_g2_figurine_front_view_user_cn.txt
+RunningHub 客户端：vlm/scripts/generate/runninghub_client.py
+旧多品类 reviewer：vlm/scripts/supervise/run_multicategory_supervision_review.py
+API 配置：vlm/config/api.env
+实验归档：vlm/archive/experiments/2026-08-05_2026-08-06_element_extraction_frontview/
 ```
 
-## 6. 下一步
+旧的 `smoke_test_q_front_view_from_paired.py` 会把 JSON 拼入 prompt，已归档，禁止作为新主线脚本复用。
 
-### 6a. 监修 Agent 端到端串联（最高优先级）
+## 7. 下一步
 
-两个核心步骤的脚本均已就绪，缺少统一入口：
-
-```text
-目标：单命令完成 2D 原图 + 商品设计图 → 监修报告全流程
-
-待完成：
-  1. 写 vlm/scripts/supervise/run_supervision_agent.py
-     - 接收 --source（2D 原图）和 --product（商品设计图）两个参数
-     - 内部调用 run_element_extraction → 生成 atomic_rules
-     - 再调用 run_multicategory_supervision_review → 输出监修报告
-     - 输出：billable_annotation_issues + design_quality_notes JSON
-
-  2. 用现有 20 个样本端到端跑一次，验证两步串联无断点
-
-  3. 扩充 evaluation gold（新数据批次 40-50 张到手后）验证 agent 精度
-     - 主指标：acceptance_precision / acceptance_recall / acceptance_f1 / billable_issue_recall
-```
-
-### 6b. 生图链路（上游，与监修 agent 无关）
-
-RunningHub 批量生图已完成 19/20，生图链路属于监修 agent 的上游输入来源，不是 agent 本身的功能。相关后续工作（batch_review、char_008 重试、IC-Light 对比）独立推进，不阻塞监修 agent 开发。完整计划见 `.claude/handoffs/PLAN_runninghub-batch-complete_consolidated_2026-07-24.md`。
-
-### 6b. 新元素提取批次（40-50 张图 + 人工标注，预计 2026-07-15 到手）
-
-新数据形式：源图 + 人工标注 element 名称与描述（作为 gold）。
-
-```text
-1. 将新图片和人工标注整理到 vlm/data/SN_新批次/ 目录，
-   每张图一个子文件夹，gold JSON 与现有 vlm/data/SN_6期动漫数据标注/ 格式一致：
-   {"elements": [{"name": "...", "value": "..."}, ...]}
-
-2. 在新图上跑元素提取（--workers 根据 DashScope QPS 限制调整，默认 6）：
-   python -m vlm.scripts.supervise.run_element_extraction \
-     --model qwen3-vl-plus \
-     --output-root vlm/data/element_extraction_results_new_batch \
-     --gold-root vlm/data/SN_新批次
-
-3. 跑评估，与 6期 baseline 对比：
-   python -m vlm.scripts.supervise.evaluate_element_extraction \
-     --pred-root vlm/data/element_extraction_results_new_batch \
-     --gold-root vlm/data/SN_新批次 \
-     --report-path vlm/data/element_extraction_results_new_batch/evaluation_report.json
-
-4. 若新 gold 中"胡须"/"袜子"类细节在多个样本出现且仍被漏掉，
-   再考虑修改 vlm/prompts/supervision/element_extraction_from_2d.txt。
-```
-
-### 6b. 监修验收工作流（如有 .xlsx/.csv 人工验收标注文件）
-
-```text
-1. 拿到 .xlsx 或 .csv。
-2. 用 convert_annotation_xlsx_to_csv.py 转标准 CSV（如需要）。
-3. 用 validate_human_annotations.py 校验列名、状态值、sample_id、rule_id。
-4. 若发现新列名或新状态值，只做最小 alias/枚举补充。
-5. 用 align_human_findings_to_atomic_rules.py 做候选对齐。
-6. 用 build_verified_evaluation_gold.py 生成 verified gold。
-7. 后续再开发/运行 compare_predictions.py 做三方对比。
-```
-
-RunningHub 补图不是当前主线；如恢复生成，遵守“不覆盖已有图、跳过 blocked 样本、先查进程”的旧规则。
+进入 Phase B：基于 `vlm/data/front_view_generation_v1/` 的 20 张 pilot 图和对应 paired JSON，
+实现规格对图 reviewer baseline。默认 reviewer 不读取原图，先冻结输出 schema 和 prompt，
+再对 20 张样本产出逐元素 verdict；原图仅保留为争议审计输入。

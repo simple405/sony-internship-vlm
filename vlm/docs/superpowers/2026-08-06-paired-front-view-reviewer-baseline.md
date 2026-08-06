@@ -1,4 +1,4 @@
-# Paired Front-View Reviewer Baseline Implementation Plan
+﻿# Paired Front-View Reviewer Baseline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Design source of truth: `docs/superpowers/specs/2026-08-06-paired-front-view-reviewer-baseline-design.md`.
+- Design source of truth: `vlm/docs/superpowers/2026-08-06-paired-front-view-reviewer-baseline-design.md`.
 - Default review request must reference exactly one image: the generated front-view PNG. The original 2D source image path/content must never appear in any request payload, preview file, or log line produced by this script.
 - `evidence_bbox` values are always in the generated image's pixel coordinate system (fixed 1915x821 for this pilot) — never the gold JSON's original-image coordinate system.
 - `rule_index` is 1-based and must match the gold element's position in its JSON array; the script must overwrite/repair whatever the model returns rather than trusting it.
@@ -1497,3 +1497,4 @@ Append a new checkpoint entry to `handoff/LATEST.md` (following the existing `CK
 - **Placeholder scan:** No TBD/TODO markers; every step has literal file content or literal commands.
 - **Type consistency:** `ReviewSample` fields (`sample_id`, `generated_image_path`, `gold_path`, `original_image_path`) are used identically across Tasks 2, 4, 7. `process_one`'s signature (positional `sample, gold_elements, prompt_file, prompt_template, output_root`, keyword-only `dry_run, api_key, base_url, model, timeout, call_fn`) is defined once in Task 7 and called identically in Task 8's `main()`. `ALLOWED_RESULTS` is defined once in Task 5 and reused by `compute_aggregate_counts` (Task 5) and `build_batch_summary` (Task 8).
 - **Scope check:** This plan covers one subsystem (the Phase B reviewer baseline) and stops at the 20-sample pilot, matching the design's explicit non-goal of full-corpus review.
+
