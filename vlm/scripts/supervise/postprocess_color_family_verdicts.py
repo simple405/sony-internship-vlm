@@ -143,6 +143,7 @@ COLOR_ALIASES: dict[str, str] = {
 
 TOLERATED_COLOR_GROUPS = [
     {"red", "pink", "rose", "red_brown"},
+    {"pink", "rose", "purple_red", "purple", "red"},
     {"red", "brown", "red_brown", "dark_brown", "light_brown", "khaki", "tan"},
     {"black", "dark_gray", "gray_brown", "dark_brown", "brown"},
     {"white", "silver", "light_gray", "gray"},
@@ -265,7 +266,6 @@ def extract_color_families(text: str) -> set[str]:
                 continue
             occupied.append(span)
             families.add(family)
-            break
     return families
 
 

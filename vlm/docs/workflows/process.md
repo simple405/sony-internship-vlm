@@ -123,11 +123,24 @@ pilot 结果为 `20/20` 成功、失败队列为空，输出位于
 
 ### Phase B：规格对图 baseline
 
-写 paired reviewer，直接读取 JSON，不重新抽取规则。先用 Qwen-VL prompt baseline，输出上面的结构化 verdict；不急着训练模型。
+已完成。paired reviewer 直接读取 JSON，不重新抽取规则；默认请求只带生成的正面图，
+不带原图。2026-08-06 已在原 `paired_front_view_review_v1` 上直接覆盖更新：
+prompt 增加微小细节局部检查指令和 `micro_detail_hints`，并加入相邻色系容差后处理
+（如粉红/玫红/紫红/红紫不按硬错色处理）。20 张 pilot 最新结构化 verdict：
+样本级 `pass=12`、`fail=8`、`review=0`、解析失败 `0`；
+rule-level 为 `pass=75`、`partial=45`、`fail=9`、`not_evaluable=0`、`review=0`。
+结果的 canonical 版本位于 `vlm/tmp/paired_front_view_review_v1/`；为方便逐样本复核，
+同一批结果已镜像到每个样本目录的
+`vlm/data/front_view_generation_v1/<sample_id>/_review/paired_front_view_review_v1/`。
+镜像只包含 reviewer 产物，不改变顶层三件套。
 
 ### Phase C：人工 gold
 
-对 pilot 生成图逐元素人工标注：`pass/partial/fail/not_evaluable/review`，同时标记颜色、形状、结构、缺失、幻觉和 extra。按角色/画风分层留出冻结 holdout。
+已生成完整 20 张人工标注包，但尚未填写最终 gold。标注包位于
+`vlm/tmp/paired_front_view_human_gold_v1/`，包含 20 个样本、129 条 rule 行和
+19 条 extra 候选；其中 12 个样本含自动 reviewer 的 `fail/partial` 结果，另外 8 个
+pass 样本用于校准 false negative。Qwen 结果只放在 `model_*` 列，人工字段保持空白，
+禁止直接拿自动结果训练。
 
 ### Phase D：训练或蒸馏
 
@@ -161,6 +174,6 @@ API 配置：vlm/config/api.env
 
 ## 7. 下一步
 
-进入 Phase B：基于 `vlm/data/front_view_generation_v1/` 的 20 张 pilot 图和对应 paired JSON，
-实现规格对图 reviewer baseline。默认 reviewer 不读取原图，先冻结输出 schema 和 prompt，
-再对 20 张样本产出逐元素 verdict；原图仅保留为争议审计输入。
+进入 Phase C：填写 `vlm/tmp/paired_front_view_human_gold_v1/human_gold_rules.csv` 和
+`human_gold_extras.csv`，然后运行同一脚本的 `--validate` 检查是否仍有 pending 行。
+人工确认达到足够规模后，再设计 Phase D 的训练/蒸馏集与 holdout；当前禁止启动训练。
