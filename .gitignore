@@ -1,4 +1,4 @@
-.venv/
+﻿.venv/
 /tmp/
 /output/
 
@@ -13,6 +13,11 @@ vlm/experiments/runs/
 vlm/docs/source_pdfs/
 vlm/docs/assets/
 
+# Local handoff artifacts and working notes.
+handoff/
+plans/handoffs/
+.claude/handoffs/
+
 __pycache__/
 *.egg-info/
 *.pyc
@@ -24,5 +29,3 @@ __pycache__/
 
 .DS_Store
 Thumbs.db
-
-.claude/handoffs/HANDOFF_*.md
