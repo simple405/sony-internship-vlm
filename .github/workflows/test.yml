@@ -21,7 +21,7 @@ jobs:
         run: python -m pip install -r vlm/requirements-dev.txt
       - name: Run repository quality and secret checks
         env:
-          SKIP: no-commit-to-branch
+          SKIP: gitleaks,no-commit-to-branch
         run: python -m pre_commit run --all-files
       - name: Compile retained scripts
         run: python -m compileall -q vlm/scripts

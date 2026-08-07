@@ -43,6 +43,7 @@ SUPPORTED_SUFFIXES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "imag
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse atomic-rules extraction arguments."""
     parser = argparse.ArgumentParser(description="Extract atomic rules from SN-7 design sheets.")
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
@@ -66,6 +67,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def sha256(path: Path) -> str:
+    """Return the SHA-256 digest for a file."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -89,6 +91,7 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
 
 
 def media_data_url(path: Path) -> str:
+    """Encode an image file as a data URL for Qwen."""
     mime = SUPPORTED_SUFFIXES.get(path.suffix.lower())
     if not mime:
         raise ValueError(f"Unsupported image suffix: {path}")
@@ -98,6 +101,7 @@ def media_data_url(path: Path) -> str:
 
 
 def load_rows(path: Path) -> list[dict[str, str]]:
+    """Load manifest rows that contain sample IDs."""
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         return [dict(row) for row in csv.DictReader(handle) if row.get("post_id")]
 
@@ -109,6 +113,7 @@ def resolve_image_path(row: dict[str, str], output_root: Path) -> Path:
 
 
 def parse_json(text: str) -> dict[str, Any]:
+    """Parse a JSON object from plain or fenced model output."""
     cleaned = text.strip()
     if cleaned.startswith("```"):
         cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned, flags=re.IGNORECASE | re.DOTALL).strip()
@@ -125,11 +130,13 @@ def parse_json(text: str) -> dict[str, Any]:
 
 
 def snake_case(value: Any) -> str:
+    """Normalize a rule name to snake_case."""
     text = re.sub(r"[^A-Za-z0-9]+", "_", str(value or "").strip()).strip("_").lower()
     return text or "unnamed_rule"
 
 
 def normalize_rules(raw: dict[str, Any], sample_id: str, image_path: Path, model: str, prompt_hash: str, elapsed: float) -> dict[str, Any]:
+    """Normalize raw model rules to the atomic_rules.v1 contract."""
     rules = raw.get("atomic_rules", raw.get("rules", []))
     if not isinstance(rules, list):
         raise ValueError("atomic_rules must be a list")
@@ -167,6 +174,7 @@ def normalize_rules(raw: dict[str, Any], sample_id: str, image_path: Path, model
 
 
 def messages(prompt: str, image_path: Path) -> list[dict[str, Any]]:
+    """Build the Qwen request messages for one image."""
     return [
         {"role": "system", "content": "你只能输出严格有效的 JSON，不要输出解释、Markdown 或思维链。"},
         {"role": "user", "content": [
@@ -177,6 +185,7 @@ def messages(prompt: str, image_path: Path) -> list[dict[str, Any]]:
 
 
 def call_qwen(api_key: str, base_url: str, model: str, prompt: str, image_path: Path, args: argparse.Namespace) -> tuple[str, int, float]:
+    """Call Qwen and return raw text, attempts, and elapsed time."""
     payload: dict[str, Any] = {
         "model": model,
         "messages": messages(prompt, image_path),
@@ -209,6 +218,7 @@ def call_qwen(api_key: str, base_url: str, model: str, prompt: str, image_path: 
 
 
 def classify_rejection(message: str) -> str:
+    """Classify extraction failures for retry and audit reports."""
     lowered = message.lower()
     content_markers = (
         "datainspectionfailed",
@@ -226,6 +236,7 @@ def classify_rejection(message: str) -> str:
 
 
 def process_row(row: dict[str, str], prompt: str, prompt_hash: str, args: argparse.Namespace, api_key: str, base_url: str) -> dict[str, Any]:
+    """Process one manifest row into an atomic_rules result."""
     sample_id = validate_path_component(str(row["post_id"]), "sample ID")
     image_path = resolve_image_path(row, args.output_root)
     sample_dir = args.output_root / sample_id
@@ -262,6 +273,7 @@ def process_row(row: dict[str, str], prompt: str, prompt_hash: str, args: argpar
 
 
 def main() -> None:
+    """Run the atomic-rules extraction batch."""
     args = parse_args()
     if args.limit < 0 or args.workers < 1 or args.max_retries < 0:
         raise SystemExit("--limit and --max-retries must be >= 0; --workers must be >= 1")

@@ -47,6 +47,7 @@ DEFAULT_PROMPT_FILE = Path("vlm/prompts/generation/runninghub/merchandise_genera
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse SN-7 multiview generation arguments."""
     # Note 3: This parser supports both single-sample debugging and multi-sample
     # batches. Repeating --sample-id is simpler than maintaining a separate list file here.
     parser = argparse.ArgumentParser(description=__doc__)
@@ -74,6 +75,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def find_sample_file(sample_dir: Path, sample_id: str, suffix_name: str) -> Path | None:
+    """Find a conventional sample image inside a sample directory."""
     # Note 7: Samples may be stored as png, jpg, jpeg, or webp. Returning the
     # first existing conventional filename keeps lookup deterministic.
     for suffix in IMAGE_SUFFIXES:
@@ -84,6 +86,7 @@ def find_sample_file(sample_dir: Path, sample_id: str, suffix_name: str) -> Path
 
 
 def find_flat_sample_image(source_dir: Path, sample_id: str) -> Path | None:
+    """Find a sample image stored directly under a flat source directory."""
     # Note 8: Some inputs are stored flat as "<id>_hash.png" instead of inside an
     # id-named directory. This fallback supports both dataset layouts.
     if not source_dir.exists():
@@ -103,6 +106,7 @@ def find_flat_sample_image(source_dir: Path, sample_id: str) -> Path | None:
 
 
 def resolve_sample_paths(source_dir: Path, atomic_dir: Path, sample_id: str) -> tuple[Path, Path]:
+    """Resolve the original image and atomic-rules file for one sample."""
     # Note 10: The generator needs two local inputs: the original 2D image for
     # RunningHub upload and the atomic_rules JSON for archived provenance.
     source_sample_dir = source_dir / sample_id
@@ -130,6 +134,7 @@ def resolve_sample_paths(source_dir: Path, atomic_dir: Path, sample_id: str) -> 
 
 
 def copy_inputs(clean_dir: Path, sample_id: str, image_path: Path, rules_path: Path, reference_path: Path | None) -> None:
+    """Copy generation inputs into the per-sample output directory."""
     # Note 23: Each output folder stores the exact input image and atomic_rules
     # used for generation, making later visual audits reproducible.
     clean_dir.mkdir(parents=True, exist_ok=True)
@@ -144,6 +149,7 @@ def copy_inputs(clean_dir: Path, sample_id: str, image_path: Path, rules_path: P
 
 
 def download_results(results: list[dict[str, Any]], clean_dir: Path, sample_id: str, output_suffix: str) -> list[Path]:
+    """Download RunningHub image results using canonical output names."""
     # Note 25: Some API responses can contain multiple output URLs. The first
     # keeps the canonical name; later outputs get numeric suffixes.
     downloaded: list[Path] = []
@@ -163,6 +169,7 @@ def download_results(results: list[dict[str, Any]], clean_dir: Path, sample_id: 
 
 
 def image_metadata(path: Path) -> dict[str, Any]:
+    """Return basic metadata for a downloaded image."""
     # Note 27: Stored metadata gives a quick sanity check for downloaded image
     # size and mode without reopening the image during later audits.
     with Image.open(path) as image:
@@ -170,6 +177,7 @@ def image_metadata(path: Path) -> dict[str, Any]:
 
 
 def write_json(path: Path, payload: Any) -> None:
+    """Write a JSON payload atomically enough for local debug files."""
     # Note 28: Centralizing JSON writes keeps all debug files consistently
     # formatted and UTF-8 encoded.
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -195,6 +203,7 @@ def sanitize_provider_payload(value: Any) -> Any:
 
 
 def classify_rejection(message: str) -> str:
+    """Classify provider errors into policy and runtime buckets."""
     lowered = message.lower()
     content_markers = (
         "datainspectionfailed",
@@ -212,6 +221,7 @@ def classify_rejection(message: str) -> str:
 
 
 def write_generation_error(args: argparse.Namespace, sample_id: str, status: dict[str, Any]) -> None:
+    """Persist a structured generation error for one sample."""
     error_payload = {
         "schema_version": "generation_error.v1",
         "stage": "runninghub_multiview",
@@ -223,6 +233,7 @@ def write_generation_error(args: argparse.Namespace, sample_id: str, status: dic
 
 
 def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str) -> dict[str, Any]:
+    """Generate one SN-7 multiview sample or write its dry-run preview."""
     # Note 29: run_one is the unit of work executed by each thread. It returns a
     # JSON-serializable status dict so callers can log or summarize uniformly.
     image_path, rules_path = resolve_sample_paths(args.source_dir, args.atomic_dir, sample_id)
@@ -318,6 +329,7 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
 
 
 def main() -> None:
+    """Run the SN-7 multiview generation batch."""
     # Note 36: main handles batch-level concerns: argument validation, prompt
     # loading, API-key gating, worker scheduling, and final summary output.
     args = parse_args()
