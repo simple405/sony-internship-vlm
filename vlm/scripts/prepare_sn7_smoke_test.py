@@ -16,6 +16,9 @@ from pathlib import Path
 
 from PIL import Image
 
+from vlm.scripts._paths import DATA_ROOT
+from vlm.scripts._validation import require_within, validate_path_component
+
 
 SOURCES = {
     "cs": Path("vlm/data/safebooru_character_sheet"),
@@ -34,6 +37,7 @@ IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse SN-7 smoke-test preparation arguments."""
     parser = argparse.ArgumentParser(description="Prepare the isolated SN-7 12-image smoke-test dataset.")
     parser.add_argument("--output-root", type=Path, default=Path("vlm/data/design_sheet_10610_smoke12"))
     parser.add_argument("--overwrite", action="store_true")
@@ -41,6 +45,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def sha256(path: Path) -> str:
+    """Return the SHA-256 digest of a file."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -49,6 +54,7 @@ def sha256(path: Path) -> str:
 
 
 def readable_images(source: Path) -> list[Path]:
+    """Return source images that Pillow can verify."""
     paths: list[Path] = []
     for path in sorted(source.iterdir()):
         if not path.is_file() or path.suffix.lower() not in IMAGE_SUFFIXES:
@@ -63,12 +69,14 @@ def readable_images(source: Path) -> list[Path]:
 
 
 def main() -> None:
+    """Build the deterministic 12-image SN-7 smoke dataset."""
     args = parse_args()
-    image_root = args.output_root / "image"
-    if args.output_root.exists() and not args.overwrite:
-        raise SystemExit(f"Output root already exists: {args.output_root}. Pass --overwrite only after reviewing it.")
-    if args.output_root.exists():
-        shutil.rmtree(args.output_root)
+    output_root = require_within(DATA_ROOT, args.output_root, "output root")
+    image_root = output_root / "image"
+    if output_root.exists() and not args.overwrite:
+        raise SystemExit(f"Output root already exists: {output_root}. Pass --overwrite only after reviewing it.")
+    if output_root.exists():
+        shutil.rmtree(output_root)
     image_root.mkdir(parents=True)
 
     available = {name: readable_images(path) for name, path in SOURCES.items()}
@@ -81,7 +89,9 @@ def main() -> None:
         if len(selections) != 2:
             raise RuntimeError(f"Could not select two readable images from {SOURCES[source_name]}")
         for source_path in selections:
-            sample_id = f"{source_name}_{source_path.stem}"
+            sample_id = validate_path_component(
+                f"{source_name}_{source_path.stem}", "sample ID"
+            )
             target = image_root / f"{sample_id}{source_path.suffix.lower()}"
             shutil.copy2(source_path, target)
             with Image.open(target) as image:
@@ -89,9 +99,9 @@ def main() -> None:
             manifest_rows.append(
                 {
                     "post_id": sample_id,
-                    "image_path": str(target.resolve()),
+                    "image_path": target.relative_to(output_root).as_posix(),
                     "source_dataset": source_name,
-                    "source_path": str(source_path.resolve()),
+                    "source_path": f"{source_name}/{source_path.name}",
                     "original_file_name": source_path.name,
                     "sha256": sha256(target),
                     "width": str(width),
@@ -106,7 +116,7 @@ def main() -> None:
                     "candidate_categories": category,
                     "assignment_source": "smoke_test_fixed",
                     "review_required": "false",
-                    "image_path": str(target.resolve()),
+                    "image_path": target.relative_to(output_root).as_posix(),
                     "crawl_label": "",
                     "reason": "two_per_category_smoke_test",
                     "key_tags": "",
@@ -114,21 +124,21 @@ def main() -> None:
                 }
             )
 
-    manifest_path = args.output_root / "manifest.csv"
+    manifest_path = output_root / "manifest.csv"
     with manifest_path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(manifest_rows[0]))
         writer.writeheader()
         writer.writerows(manifest_rows)
-    assignment_path = args.output_root / "category_assignment.csv"
+    assignment_path = output_root / "category_assignment.csv"
     with assignment_path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(assignment_rows[0]))
         writer.writeheader()
         writer.writerows(assignment_rows)
-    (args.output_root / "selection.json").write_text(
+    (output_root / "selection.json").write_text(
         json.dumps({"sample_count": len(manifest_rows), "samples": manifest_rows}, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(json.dumps({"status": "prepared", "output_root": str(args.output_root), "sample_count": len(manifest_rows)}, ensure_ascii=False))
+    print(json.dumps({"status": "prepared", "output_root": str(output_root), "sample_count": len(manifest_rows)}, ensure_ascii=False))
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 
-from vlm.scripts.build_safebooru_trial_dataset import write_xlsx
+from vlm.scripts.utils.atomic_rule_xlsx import write_atomic_rules_xlsx
 
 
 DEFAULT_GENERATED_ROOT = Path("vlm/data/design_sheet_10610/generated")
@@ -23,10 +23,12 @@ CATEGORY_OUTPUT_SUFFIXES = {
 
 
 def has_generated_image(sample_dir: Path, sample_id: str, output_suffix: str) -> bool:
+    """Return whether a sample directory contains its generated image."""
     return any((sample_dir / f"{sample_id}_{output_suffix}{suffix}").exists() for suffix in IMAGE_SUFFIXES)
 
 
 def find_atomic_rules(sample_dir: Path, sample_id: str) -> Path | None:
+    """Find canonical or historical atomic rules for one sample."""
     for name in (f"{sample_id}_atomic_rules.json", "atomic_rules.json"):
         path = sample_dir / name
         if path.exists():
@@ -35,6 +37,7 @@ def find_atomic_rules(sample_dir: Path, sample_id: str) -> Path | None:
 
 
 def sync_sample(sample_dir: Path, category: str, output_suffix: str) -> bool:
+    """Create a missing annotation workbook for one generated sample."""
     sample_id = sample_dir.name
     workbook = sample_dir / f"{sample_id}.xlsx"
     if workbook.exists() or not has_generated_image(sample_dir, sample_id, output_suffix):
@@ -42,11 +45,12 @@ def sync_sample(sample_dir: Path, category: str, output_suffix: str) -> bool:
     atomic_rules = find_atomic_rules(sample_dir, sample_id)
     if atomic_rules is None:
         return False
-    write_xlsx(atomic_rules, workbook, {}, category)
+    write_atomic_rules_xlsx(atomic_rules, workbook, category)
     return True
 
 
 def sync_once(generated_root: Path) -> dict[str, int]:
+    """Create all currently missing annotation workbooks under a root."""
     counts = {"scanned": 0, "written": 0}
     for category, output_suffix in CATEGORY_OUTPUT_SUFFIXES.items():
         category_dir = generated_root / category
@@ -61,6 +65,7 @@ def sync_once(generated_root: Path) -> dict[str, int]:
 
 
 def main() -> None:
+    """Run annotation workbook synchronization once or in follow mode."""
     parser = argparse.ArgumentParser(description="Sync xlsx files for completed RunningHub samples.")
     parser.add_argument("--generated-root", type=Path, default=DEFAULT_GENERATED_ROOT)
     parser.add_argument("--follow", action="store_true", help="Continue syncing images that arrive after startup.")

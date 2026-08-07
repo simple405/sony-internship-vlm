@@ -22,6 +22,7 @@ REQUIRED_COLUMNS = {
 
 
 def sync_workbook(path: Path) -> None:
+    """Refresh annotation validations in one workbook."""
     workbook = openpyxl.load_workbook(path)
     worksheet = workbook.active
     before_rows = [tuple(row) for row in worksheet.iter_rows(values_only=True)]
@@ -47,6 +48,7 @@ def sync_workbook(path: Path) -> None:
 
 
 def main() -> None:
+    """Refresh validations across generated annotation workbooks."""
     parser = argparse.ArgumentParser(description="Sync annotation workbook dropdowns in place.")
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     args = parser.parse_args()

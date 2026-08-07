@@ -2,7 +2,25 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
+
+
+HEAD_ONLY_CATEGORIES = ("head_key_chain", "cake_roll", "backpack")
+XLSX_COLUMNS = (
+    "sample_id",
+    "rule_id",
+    "location",
+    "value",
+    "front_visible",
+    "front_status",
+    "side_visible",
+    "side_status",
+    "back_visible",
+    "back_status",
+    "note",
+)
 
 
 ANNOTATION_VISIBLE_VALUES = ("visible", "invisible")
@@ -51,3 +69,67 @@ def normalize_position_value(rule_id: str, value: Any) -> Any:
     in annotator/viewer coordinates, so export must not rewrite them.
     """
     return value
+
+
+def write_atomic_rules_xlsx(
+    json_path: Path,
+    output_path: Path,
+    category: str,
+    location_map: dict[str, str] | None = None,
+) -> int:
+    """Export atomic rules to the standard three-view annotation workbook."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+
+    data = json.loads(json_path.read_text(encoding="utf-8-sig"))
+    rules = data.get("atomic_rules", [])
+    if not isinstance(rules, list):
+        raise ValueError(f"atomic_rules must be a list: {json_path}")
+    locations = location_map or {}
+    if category in HEAD_ONLY_CATEGORIES:
+        rules = [
+            rule
+            for rule in rules
+            if isinstance(rule, dict)
+            and (
+                rule.get("location") == "head"
+                or (
+                    rule.get("location") not in {"head", "body"}
+                    and locations.get(str(rule.get("id")), "body") == "head"
+                )
+            )
+        ]
+
+    sample_id = str(data.get("code") or data.get("sample_id") or json_path.parent.name)
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Sheet1"
+    for column, name in enumerate(XLSX_COLUMNS, start=1):
+        cell = sheet.cell(row=1, column=column, value=name)
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="D9D9D9")
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    for row_number, rule in enumerate(rules, start=2):
+        if not isinstance(rule, dict):
+            continue
+        rule_id = str(rule.get("id", ""))
+        location = str(rule.get("location") or locations.get(rule_id, ""))
+        if location not in {"head", "body"}:
+            raise ValueError(f"Rule {rule_id!r} is missing location=head/body")
+        value = normalize_position_value(rule_id, rule.get("value", ""))
+        row = [sample_id, rule_id, location, value]
+        row.extend([""] * (len(XLSX_COLUMNS) - len(row)))
+        for column, cell_value in enumerate(row, start=1):
+            sheet.cell(row=row_number, column=column, value=cell_value)
+
+    add_annotation_dropdowns(sheet)
+    for column_cells in sheet.columns:
+        width = max((len(str(cell.value or "")) for cell in column_cells), default=0)
+        sheet.column_dimensions[column_cells[0].column_letter].width = min(width + 4, 40)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = output_path.with_suffix(output_path.suffix + ".tmp")
+    workbook.save(temp_path)
+    workbook.close()
+    temp_path.replace(output_path)
+    return len(rules)

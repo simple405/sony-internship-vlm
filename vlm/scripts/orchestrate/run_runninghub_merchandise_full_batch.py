@@ -12,15 +12,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
 from vlm.scripts.generate.runninghub_client import load_api_env
+from vlm.scripts._validation import validate_path_component
 
 
-DEFAULT_DATASET = Path("vlm/data/safebooru_2d")
+DEFAULT_DATASET = Path("vlm/data/design_sheet_10610")
 DEFAULT_ASSIGNMENT_DIR = DEFAULT_DATASET / "reports" / "merchandise_category_assignment"
-DEFAULT_RUN_DIR = Path("vlm/tmp/runninghub_full_generation")
+DEFAULT_RUN_DIR = Path("vlm/tmp/sn7_runninghub_full_generation")
+DEFAULT_PROMPT_FILE = Path("vlm/prompts/generation/runninghub/merchandise_generation_cn.txt")
 # Note 1: The same suffix set is used by the lower-level generator. Keep both in
 # sync so "already generated" checks match actual output naming.
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
@@ -29,32 +33,26 @@ IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
 # a category should usually mean adding one entry here and one name in DEFAULT_ORDER.
 CATEGORY_CONFIGS = {
     "head_key_chain": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_head_keychain_user_cn.txt"),
         "output_suffix": "head_keychain",
         "output_subdir": Path("head_key_chain"),
     },
     "backpack": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_backpack_user_cn.txt"),
         "output_suffix": "backpack",
         "output_subdir": Path("backpack"),
     },
     "cake_roll": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_cake_roll_user_cn.txt"),
         "output_suffix": "cake_roll",
         "output_subdir": Path("cake_roll"),
     },
     "plush": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_plush_user_cn.txt"),
         "output_suffix": "plush",
         "output_subdir": Path("plush"),
     },
     "dataset_QSitFigures": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_dataset_QSitFigures_user_cn.txt"),
         "output_suffix": "SitFigures",
         "output_subdir": Path("dataset_QSitFigures"),
     },
     "dataset_figurine": {
-        "prompt_file": Path("vlm/prompts/generation/runninghub/runninghub_g2_dataset_figurine_user_cn.txt"),
         "output_suffix": "figurine",
         "output_subdir": Path("dataset_figurine"),
     },
@@ -66,6 +64,7 @@ DEFAULT_ORDER = ("head_key_chain", "cake_roll", "backpack", "plush", "dataset_QS
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse SN-7 RunningHub orchestration arguments."""
     # Note 4: These arguments describe orchestration policy, while the child
     # generator still owns sample-level upload, polling, and download behavior.
     parser = argparse.ArgumentParser(description="Run RunningHub G-2.0 merchandise batches sequentially.")
@@ -98,32 +97,48 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait before rescanning for atomic rules in --follow-atomic-rules mode.",
     )
     parser.add_argument("--refresh-assignment", action="store_true")
-    parser.add_argument("--score-only-assignment", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
 
 def read_sample_ids(path: Path) -> list[str]:
+    """Read, validate, and deduplicate a category sample list."""
     # Note 6: Sample lists are plain text so they can be inspected and edited by
     # hand. Blank lines are ignored to make manual edits forgiving.
     if not path.exists():
         raise FileNotFoundError(f"Sample list does not exist: {path}")
-    return [line.strip() for line in path.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+    sample_ids = [
+        line.strip()
+        for line in path.read_text(encoding="utf-8-sig").splitlines()
+        if line.strip()
+    ]
+    for sample_id in sample_ids:
+        validate_path_component(sample_id, "sample ID")
+    return list(dict.fromkeys(sample_ids))
 
 
 def has_existing_output(output_dir: Path, sample_id: str, output_suffix: str) -> bool:
+    """Return whether a valid canonical output image already exists."""
     # Note 7: This is the resume guard. A sample is skipped only when the expected
     # generated image file already exists in its output directory.
     sample_dir = output_dir / sample_id
     if not sample_dir.exists():
         return False
     for suffix in IMAGE_SUFFIXES:
-        if (sample_dir / f"{sample_id}_{output_suffix}{suffix}").exists():
-            return True
+        candidate = sample_dir / f"{sample_id}_{output_suffix}{suffix}"
+        if not candidate.is_file() or candidate.stat().st_size <= 0:
+            continue
+        try:
+            with Image.open(candidate) as image:
+                image.verify()
+        except Exception:
+            continue
+        return True
     return False
 
 
 def has_atomic_rules(atomic_dir: Path, sample_id: str) -> bool:
+    """Return whether a sample has canonical or historical atomic rules."""
     sample_dir = atomic_dir / sample_id
     return (
         (sample_dir / "atomic_rules.json").exists()
@@ -160,6 +175,7 @@ def categorize_sample_ids(
 
 
 def run_and_log(command: list[str], log_path: Path) -> tuple[int, dict[str, Any] | None]:
+    """Run a child batch while mirroring output to a log file."""
     # Note 8: The child process streams JSON status lines. This wrapper mirrors
     # them to the console, saves a full log, and captures the final summary.
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -196,6 +212,7 @@ def run_and_log(command: list[str], log_path: Path) -> tuple[int, dict[str, Any]
 
 
 def run_refresh_assignment(args: argparse.Namespace) -> None:
+    """Regenerate category assignments before orchestration."""
     # Note 12: Assignment refresh is optional because it rewrites queue files.
     # Use it only when the manifest or scoring rules intentionally changed.
     command = [
@@ -206,8 +223,6 @@ def run_refresh_assignment(args: argparse.Namespace) -> None:
         "--output-dir",
         str(args.assignment_dir),
     ]
-    if not args.score_only_assignment:
-        command.append("--balanced")
     print(json.dumps({"status": "refresh_assignment_started", "command": command}, ensure_ascii=False), flush=True)
     # Note 13: check=True is correct here because stale assignment data should
     # stop the batch before any generation work begins.
@@ -219,13 +234,15 @@ def category_command(
     category: str,
     sample_ids: list[str],
 ) -> list[str]:
+    """Build the generator command for one category and sample batch."""
     # Note 14: Build the child command as a list rather than a string. This avoids
     # shell quoting bugs on Windows paths and keeps arguments exact.
     config = CATEGORY_CONFIGS[category]
     output_dir = args.dataset_dir / "generated" / Path(config["output_subdir"])
     command = [
         sys.executable,
-        str(Path("vlm/scripts/generate/generate_head_keychain_with_runninghub_g2.py")),
+        "-m",
+        "vlm.scripts.generate.generate_sn7_multiview",
     ]
     for sample_id in sample_ids:
         # Note 15: The lower-level script accepts repeated --sample-id flags, so
@@ -240,7 +257,7 @@ def category_command(
             "--direct-output-dir",
             str(output_dir),
             "--prompt-file",
-            str(config["prompt_file"]),
+            str(DEFAULT_PROMPT_FILE),
             "--output-suffix",
             str(config["output_suffix"]),
             "--category",
@@ -266,6 +283,7 @@ def category_command(
 
 
 def main() -> None:
+    """Run requested merchandise categories sequentially."""
     # Note 17: In follow mode, Qwen produces local rule files while this process
     # consumes each completed file exactly once for RunningHub generation.
     args = parse_args()

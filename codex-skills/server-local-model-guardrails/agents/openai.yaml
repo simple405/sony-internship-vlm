@@ -1,7 +1,0 @@
-interface:
-  display_name: "Server-Local Model Guardrails"
-  short_description: "Enforce local models and approval-gated server changes"
-  default_prompt: "Use $server-local-model-guardrails to perform this project task under server-local model and approval requirements."
-
-policy:
-  allow_implicit_invocation: true
