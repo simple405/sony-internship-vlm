@@ -42,10 +42,51 @@
 
 - Python 3.11.9，Pillow 12.3.0。
 - `compileall` 和 78 项 pytest 全部通过；pydocstyle、YAML/JSON/冲突/大文件/文件卫生钩子已在本机执行通过。
-- gitleaks 本机首次安装因 `proxy.golang.org` 连接超时未完成；CI 已配置运行完整 pre-commit，需要在联网的交付环境确认该项通过。
+- gitleaks 本机 pre-commit hook 首次安装仍受 `proxy.golang.org` 网络影响；GitHub Actions 已拆分为独立 `gitleaks` workflow，最新 push/PR 均通过。
 
 ## 已知残余风险
 
 - 当前测试使用 mock，不会在 CI 中调用 RunningHub/DashScope；正式 API 的 schema 或限流变化仍需通过小批量 smoke test 发现。
 - SN-7 源数据不在本机，因此导入后的 10610 样本全量验收尚未执行。
 - SN-6 人工 gold 未完成，现有 Qwen verdict 不能作为训练真值。
+---
+
+CKPT-1  ·  Codex  ·  2026-08-07 15:27 Asia/Shanghai
+
+## SUMMARY
+本轮完成 GitHub 交付收尾：把当前交接提交推到原工作分支，并新增 `sn7-data-generation` 远端分支，方便在网页端单独查看 SN-7 数据生成链路。GitHub Actions 的 `test` 失败已定位并修复：补齐 SN-7 脚本的 pydocstyle docstring，把 gitleaks 从 Python test workflow 中拆成独立 workflow，并修复新 workflow 的文件尾换行。最新提交为 `428aa63`，`test` 与 `gitleaks` 的 push/PR run 均已通过。
+
+## PROGRESS
+### GITHUB-CI — Branches and Actions
+  ✅ `work/sn6-supervision-agent-training` 已推送到 `428aa63`
+  ✅ `sn7-data-generation` 已创建并推送到同一提交 `428aa63`
+  ✅ `test` workflow 最新 push/PR 均为 success
+  ✅ `gitleaks` workflow 最新 push/PR 均为 success
+  ☐ 后续如需 PR 合并，由接手人在 GitHub 网页端检查 PR #1 后合并
+
+### WORKFLOW-READINESS — SN-7 / SN-6 retained flows
+  ✅ 本地 `pre-commit` 稳定部分、`compileall`、`pytest` 已通过，pytest 为 78 passed
+  ✅ SN-6 本地 paired 数据、20 个 front-view 生成样本、20 个 Qwen 监修结果仍保留在 ignored data/tmp 目录
+  ⏳ SN-7 源目录与 `design_sheet_10610` 不在本机，真实导入与 API smoke test 尚未执行
+  ☐ 取得 SN-7 源目录后，从 `prepare_sn7_smoke_test` / `validate_sn7_smoke_test` 和 12 张 smoke test 开始
+
+## NEXT ACTION
+取得 SN-7 三个源目录后放回 `vlm/data/safebooru_character_sheet/`、`vlm/data/safebooru_turnaround/`、`vlm/data/角色分解/`，然后从仓库根目录运行：
+
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.prepare_sn7_smoke_test
+.\.venv\Scripts\python.exe -m vlm.scripts.validate_sn7_smoke_test
+.\.venv\Scripts\python.exe -m vlm.scripts.import_sn7_design_sheet_dataset
+```
+
+再按 `vlm/docs/workflows/SN_7_PLAN.md` 做 12 张 Qwen/RunningHub 小批量真实 smoke test。
+
+## SYSTEM STATE
+当前检出分支为 `work/sn6-supervision-agent-training`。远端分支为 `main`、`work/sn6-supervision-agent-training`、`sn7-data-generation`。没有长期运行的本地服务。真实 API 凭据只在本地 `vlm/config/api.env`，该文件被 Git 忽略，不应写入 handoff 或提交。
+
+## FILES CHANGED
+- `.github/workflows/test.yml` — CI test workflow 跳过 pre-commit gitleaks hook，避免 Go 安装链路影响 Python 测试。
+- `.github/workflows/gitleaks.yml` — 新增独立 gitleaks 扫描 workflow。
+- `vlm/scripts/extract_atomic_rules.py` — 给公开函数补 docstring，修复 pydocstyle。
+- `vlm/scripts/generate/generate_sn7_multiview.py` — 给公开函数补 docstring，修复 pydocstyle。
+- `vlm/docs/HANDOFF.md` — 追加本 checkpoint，并更新 gitleaks CI 状态。
