@@ -1,48 +1,33 @@
-# 10610 张设定集图片全量数据生产 Plan
+# SN-7 设定集三视图流程
 
-## Summary
+## 目标
 
-主数据源切换为：
-
-```text
-vlm/data/safebooru_character_sheet   6217张
-vlm/data/safebooru_turnaround        1908张
-vlm/data/角色分解                     2485张
-```
-
-合计 `10610` 张。旧的 `safebooru_2d` 非设定集数据不再作为主生产对象。新流程全量处理这 `10610` 张：六类分配、Qwen 提取 atomic_rules、RunningHub 生成 multiview 三视图、生成 `.xlsx`，最终每个样本一个文件夹，包含四个核心文件。
-
-## Output Structure
-
-新数据集根目录建议为：
+三个已批准源目录共 10610 张设定集图片：
 
 ```text
-vlm/data/design_sheet_10610
+vlm/data/safebooru_character_sheet  6217
+vlm/data/safebooru_turnaround       1908
+vlm/data/角色分解                    2485
 ```
 
-最终交付目录：
+当前机器未保留这些源目录和已生成结果。接手人取得数据后放回上述位置，再从导入步骤开始；不要恢复旧 `safebooru_2d` 实验集。
+
+## 数据契约
+
+统一根目录为 `vlm/data/design_sheet_10610/`：
 
 ```text
-vlm/data/design_sheet_10610/multi_view试标数据集_new/
-  backpack/
-    9730/
-      2d_original.png
-      atomic_rules.json
-      multiview_design.png
-      9730.xlsx
-  cake_roll/
-    64577/
-      2d_original.jpg
-      atomic_rules.json
-      multiview_design.png
-      64577.xlsx
-  dataset_figurine/
-  dataset_QSitFigures/
-  head_key_chain/
-  plush/
+manifest.csv
+image/<sample_id>.<ext>
+atomic_rules/<sample_id>/atomic_rules.json
+generated/<category>/<sample_id>/
+reports/merchandise_category_assignment/
+deliverables/<category>/<sample_id>/
 ```
 
-每个样本文件夹必须包含：
+manifest 的 `image_path` 必须相对数据集根目录。`sample_id` 使用 `cs_`、`ta_`、`cd_` 来源前缀，防止三个源之间重名。
+
+最终每个 `deliverables` 样本必须包含：
 
 ```text
 2d_original.<ext>
@@ -51,170 +36,50 @@ multiview_design.png
 <sample_id>.xlsx
 ```
 
-生产中间目录：
+六类名称固定为 `head_key_chain`、`cake_roll`、`backpack`、`plush`、`dataset_QSitFigures`、`dataset_figurine`。前三类 XLSX 只导出 `location=head`；后三类导出全部规则。
 
-```text
-design_sheet_10610/
-  image/
-  atomic_rules/
-  generated/<category>/<sample_id>/
-  reports/
-  manifest.csv
-  metadata.jsonl
-  multi_view试标数据集_new/
+## 执行
+
+先创建 12 张免费预检数据：
+
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.prepare_sn7_smoke_test
+.\.venv\Scripts\python.exe -m vlm.scripts.validate_sn7_smoke_test
 ```
 
-## Key Changes
+全量导入和分配：
 
-- 全量使用 `10610` 张新设定集图片。
-- 不再继续旧 `safebooru_2d` 非设定集数据的 4000 张扩容主线。
-- 三源图片先导入到统一数据集根目录。
-- `sample_id` 使用图片 id；若三个源目录有重复 id，默认加来源前缀避免覆盖：
-  ```text
-  cs_1054558
-  ta_1054558
-  cd_1-1014315226
-  ```
-  这样能保留全量 `10610` 张。
-- `.gif` 默认转首帧为 `.png` 后进入数据集；失败记录到 rejected manifest。
-- 六类使用现有代码类别名：
-  ```text
-  backpack
-  cake_roll
-  dataset_figurine
-  dataset_QSitFigures
-  head_key_chain
-  plush
-  ```
-  `back_pack` 统一映射为 `backpack`。
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.import_sn7_design_sheet_dataset
+.\.venv\Scripts\python.exe -m vlm.scripts.data.assign_merchandise_categories
+```
 
-## Pipeline
+先对少量样本提取 atomic rules；人工确认 JSON 的 `id/location/value` 和观察者视角 left/right 后，再用 `--limit 0` 全量执行：
 
-1. **导入与 manifest**
-   - 扫描三个源目录。
-   - 复制/规范化图片到：
-     ```text
-     design_sheet_10610/image/<sample_id>.<ext>
-     ```
-   - 生成：
-     ```text
-     manifest.csv
-     metadata.jsonl
-     reports/import_summary.json
-     reports/duplicate_ids.csv
-     reports/rejected_images.csv
-     ```
-   - manifest 至少包含：
-     ```text
-     sample_id, image_path, source_dataset, source_path, original_file_name, sha256, width, height, extension
-     ```
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.extract_atomic_rules --limit 12 --workers 2
+.\.venv\Scripts\python.exe -m vlm.scripts.extract_atomic_rules --limit 0 --workers 2
+```
 
-2. **六类均衡分配**
-   - 对 `10610` 张全量分配到六类。
-   - 目标分布：
-     ```text
-     head_key_chain       1769
-     cake_roll            1769
-     backpack             1768
-     plush                1768
-     dataset_QSitFigures  1768
-     dataset_figurine     1768
-     ```
-   - 输出：
-     ```text
-     reports/merchandise_category_assignment/merchandise_category_assignments.csv
-     reports/merchandise_category_assignment/sample_lists/<category>.txt
-     ```
+RunningHub 先 dry-run，再正式运行。编排器会按固定顺序消费六类队列；任一子任务失败即返回非零：
 
-3. **Qwen atomic_rules**
-   - Qwen 视觉模型读取 2D 原图。
-   - 输出：
-     ```text
-     atomic_rules/<sample_id>/atomic_rules.json
-     ```
-   - 每条 rule 必须包含：
-     ```json
-     {"id": "hair_color", "location": "head", "value": "orange"}
-     ```
-   - `location` 只允许：
-     ```text
-     head
-     body
-     ```
-   - `*_position` 的 left/right 必须按标注员/观察者视角。
-   - Qwen error 写：
-     ```text
-     atomic_rules/<sample_id>/error.json
-     ```
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.orchestrate.run_runninghub_merchandise_full_batch --dry-run
+.\.venv\Scripts\python.exe -m vlm.scripts.orchestrate.run_runninghub_merchandise_full_batch --workers 2
+```
 
-4. **RunningHub multiview**
-   - RunningHub 只接收：
-     ```text
-     原始2D图片 + 类别固定prompt
-     ```
-   - 不传 atomic_rules。
-   - 输出：
-     ```text
-     generated/<category>/<sample_id>/<sample_id>_<suffix>.png
-     ```
-   - 失败写：
-     ```text
-     generated/<category>/<sample_id>/generation_error.json
-     ```
+全部生成后打包；缺少原图、规则或三视图时默认返回非零，在
+`reports/package_validation/` 写入 incomplete 报告，并保留上一版 `deliverables/`。
+已有交付目录时必须显式传入 `--overwrite` 才会通过 staging 整体替换：
 
-5. **最终打包和 `.xlsx`**
-   - 打包成最终目录：
-     ```text
-     multi_view试标数据集_new/<category>/<sample_id>/
-     ```
-   - 每个样本目录包含：
-     ```text
-     2d_original.<ext>
-     atomic_rules.json
-     multiview_design.png
-     <sample_id>.xlsx
-     ```
-   - 头部类只写 `location=head`：
-     ```text
-     head_key_chain
-     cake_roll
-     backpack
-     ```
-   - 全身类写全量 rules：
-     ```text
-     plush
-     dataset_QSitFigures
-     dataset_figurine
-     ```
-   - `.xlsx` 不再机械左右翻转，直接使用 JSON 中已按标注员视角修正的 value。
+```powershell
+.\.venv\Scripts\python.exe -m vlm.scripts.package_sn7_dataset
+```
 
-## Test Plan
+## 验收
 
-- 导入检查：
-  - 总样本数应为 `10610`，除非 gif/损坏图被明确记录拒绝。
-  - `sample_id` 全局唯一。
-  - 每个 manifest 行的 `image_path` 可读。
-
-- Qwen smoke test：
-  - 每个源目录各抽样。
-  - 每条 rule 都包含 `id/location/value`。
-  - `location` 无非法值。
-  - 抽查 `*_position` 是否符合标注员视角。
-
-- RunningHub smoke test：
-  - 六类每类 2-3 张。
-  - 验证输出图片、错误记录、目录命名。
-
-- 最终包检查：
-  - 每个成功样本目录必须有四个核心文件。
-  - 头部类 `.xlsx` 不含 body rules。
-  - 全身类 `.xlsx` 包含全部 rules。
-  - `multiview_design.png` 存在且可读。
-
-## Assumptions
-
-- 全量处理新的 `10610` 张。
-- 重复图片 id 不去重，使用来源前缀保证全量保留。
-- 旧 `safebooru_2d` 只作为代码/方法参考，不作为主生产数据。
-- `atomic_rules.json` 每条 rule 直接写入 `location=head/body`。
-- 最终包按类别分组，再按 sample_id 建文件夹。
+- manifest 样本 ID 唯一、路径可迁移、图片 SHA-256 与文件一致。
+- atomic rules 只描述直接可见内容，每条包含 `id/location/value`，location 仅为 `head/body`。
+- RunningHub 请求只有原始 2D 图和渲染后的通用提示词，不发送 atomic rules。
+- 每个三视图是同一商品的正面、侧面和背面，局部花纹不换边、不镜像、不凭空补全。
+- `deliverables/_reports/package_summary.json` 的 `incomplete_count` 为 0。

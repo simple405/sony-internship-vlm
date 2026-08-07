@@ -41,6 +41,28 @@ def test_read_manifest_uses_image_columns_without_opening_paired_json(tmp_path: 
     assert samples[0].gold_path == sample_dir / "sample-1.json"
 
 
+def test_read_manifest_rejects_duplicate_sample_ids(tmp_path: Path):
+    sample_dir = tmp_path / "sample-1"
+    image_path = sample_dir / "sample-1.png"
+    _image(image_path)
+    (sample_dir / "sample-1.json").write_text("{}", encoding="utf-8")
+    with (tmp_path / "manifest.csv").open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(
+            handle, fieldnames=["sample_id", "json_file", "image_file"]
+        )
+        writer.writeheader()
+        row = {
+            "sample_id": "sample-1",
+            "json_file": "sample-1/sample-1.json",
+            "image_file": "sample-1/sample-1.png",
+        }
+        writer.writerow(row)
+        writer.writerow(row)
+
+    with pytest.raises(ValueError, match="Duplicate sample ID"):
+        read_manifest(tmp_path)
+
+
 def test_select_samples_is_deterministic_and_covers_visual_strata(tmp_path: Path):
     samples = []
     for sample_id, suffix, size in (

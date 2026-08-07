@@ -21,7 +21,7 @@ from vlm.scripts.supervise.run_paired_front_view_review import (
     validate_and_align_rules,
 )
 
-PROMPT_TEMPLATE_PATH = Path("vlm/prompts/supervision/paired_front_view_review_v1_cn.txt")
+PROMPT_TEMPLATE_PATH = Path("vlm/prompts/supervision/paired_front_view_review_cn.txt")
 
 
 def _write_complete_sample(root: Path, sample_id: str) -> Path:
@@ -122,6 +122,23 @@ def test_build_review_prompt_adds_micro_detail_hints():
     assert "micro_detail_hints:" in prompt
     assert "宝石" in prompt
     assert "领饰" in prompt
+
+
+def test_build_review_prompt_adds_tiny_mouth_prop_hints():
+    template = "{{GOLD_COUNT}}\n{{GOLD_ELEMENTS}}"
+    gold_elements = [
+        {
+            "element": "嘴里的木棍",
+            "description": "嘴里叼着一根细长的木棍，木棍呈深褐色，前端顶点呈黑色。",
+        }
+    ]
+
+    prompt = build_review_prompt(template, gold_elements)
+
+    assert "micro_detail_hints:" in prompt
+    assert "木棍" in prompt
+    assert "细长" in prompt
+    assert "嘴里" in prompt
 
 
 def test_request_preview_references_only_generated_image_never_original(tmp_path: Path):

@@ -1,30 +1,28 @@
-# Sony Internship VLM Workspace
+# Anime IP Merchandise VLM
 
-This repository is organized as a VLM development workspace for Anime IP merchandise supervision.
+本仓库只维护两条生产流程：
 
-## Active Workspace
+1. **SN-7**：设定集导入 -> Qwen 提取 atomic rules -> 六类商品三视图生成 -> 四件套打包。
+2. **SN-6**：人工金标配对数据 -> PVC 手办等二创商品正视图生成 -> Qwen 监修 -> 人工 gold 复核。
 
-- `vlm/scripts/` - runnable pipeline code, grouped by role:
-  - `data/` - dataset assignment and dataset maintenance helpers.
-  - `generate/` - RunningHub image generation runners.
-  - `orchestrate/` - batch runners that call lower-level scripts.
-  - See `vlm/scripts/README.md` for the maintained entry-point index.
-- `vlm/prompts/` - RunningHub prompt assets.
-- `vlm/data/` - local datasets, generated rules, reports, logs, and model outputs.
-- `vlm/experiments/` - lightweight experiment notes, frozen manifests, and small eval specs.
-- `vlm/docs/` - workflow notes, source PDFs, and diagrams.
-- `vlm/archive/` - local-only historical artifacts; ignored by git.
-- `vlm/reference/` - older prototype projects retained for reference.
+## 快速开始
 
-## Current Workflow
+环境固定为 Python 3.11：
 
-Use `vlm/docs/workflows/process.md` as the current RunningHub merchandise process. Qwen/Wan scripts and obsolete atomic-rules workflows have been removed from the active tracked workspace.
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r vlm\requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
 
-Latest cleanup/handoff map: `vlm/docs/workflows/workspace_cleanup_20260804.md`.
+复制 `vlm/config/api.env.example` 为本地 `vlm/config/api.env` 并填写密钥。`api.env`、数据集、生成结果和临时输出均被 Git 忽略，不应提交。
 
-## Working Convention
+## 入口
 
-- Run active commands from this workspace root so relative paths such as `vlm/data/safebooru_2d/...` resolve correctly.
-- Keep durable datasets under `vlm/data/`; keep scratch or rerun logs under `vlm/tmp/`.
-- Put experiment designs and small reproducible manifests in `vlm/experiments/`; keep large generated artifacts in ignored data/tmp paths.
-- Put retired code or whole workflow snapshots under `vlm/archive/`.
+- 项目结构与数据目录：`vlm/README.md`
+- 可执行脚本：`vlm/scripts/README.md`
+- SN-7：`vlm/docs/workflows/SN_7_PLAN.md`
+- SN-6：`vlm/docs/workflows/process.md`
+- 交接状态：`vlm/docs/HANDOFF.md`
+
+所有命令都从仓库根目录执行。CI 会在 Windows + Python 3.11 上编译脚本并运行测试。

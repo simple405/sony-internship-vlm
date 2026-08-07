@@ -32,15 +32,19 @@ from vlm.scripts.generate.runninghub_client import (
     submit_task,
     upload_image,
 )
+from vlm.scripts.generate.prompt_renderer import render_generation_prompt
+from vlm.scripts._validation import resolve_manifest_path, validate_path_component
 
 
 DEFAULT_INPUT_ROOT = VLM_ROOT / "data" / "1-动漫标注结果导出_paired_samples"
 DEFAULT_OUTPUT_ROOT = VLM_ROOT / "data" / "front_view_generation_v1"
-DEFAULT_PROMPT_FILE = GENERATION_PROMPTS_DIR / "runninghub_g2_figurine_front_view_user_cn.txt"
+DEFAULT_PROMPT_FILE = GENERATION_PROMPTS_DIR / "merchandise_generation_cn.txt"
 
 
 @dataclass(frozen=True)
 class Sample:
+    """Describe one paired source image and its untouched gold JSON."""
+
     sample_id: str
     image_path: Path
     image_ext: str
@@ -54,22 +58,28 @@ def read_manifest(input_root: Path) -> list[Sample]:
     if not manifest.exists():
         raise FileNotFoundError(f"Manifest does not exist: {manifest}")
     samples: list[Sample] = []
+    seen: set[str] = set()
     with manifest.open("r", encoding="utf-8-sig", newline="") as handle:
-        for row in csv.DictReader(handle):
+        for row_number, row in enumerate(csv.DictReader(handle), start=2):
             sample_id = str(row.get("sample_id") or "").strip()
             image_file = str(row.get("image_file") or "").strip()
             json_file = str(row.get("json_file") or "").strip()
             if not sample_id or not image_file or not json_file:
-                continue
-            image_path = input_root / Path(image_file)
-            gold_path = input_root / Path(json_file)
-            if (
-                not image_path.is_file()
-                or image_path.suffix.lower() not in IMAGE_SUFFIXES
-                or not gold_path.is_file()
-                or gold_path.suffix.lower() != ".json"
-            ):
-                continue
+                raise ValueError(f"Manifest row {row_number} is missing a required field")
+            validate_path_component(sample_id, "sample ID")
+            if sample_id in seen:
+                raise ValueError(f"Duplicate sample ID in manifest: {sample_id}")
+            seen.add(sample_id)
+            image_path = resolve_manifest_path(input_root, image_file, "image_file")
+            gold_path = resolve_manifest_path(input_root, json_file, "json_file")
+            if image_path.suffix.lower() not in IMAGE_SUFFIXES:
+                raise ValueError(f"Unsupported image suffix in manifest: {image_path}")
+            if gold_path.suffix.lower() != ".json":
+                raise ValueError(f"Gold path is not JSON: {gold_path}")
+            if not image_path.is_file():
+                raise FileNotFoundError(image_path)
+            if not gold_path.is_file():
+                raise FileNotFoundError(gold_path)
             samples.append(
                 Sample(
                     sample_id=sample_id,
@@ -210,6 +220,7 @@ def process_one(
     poll_interval: int = 6,
     timeout: int = 900,
 ) -> dict[str, Any]:
+    """Generate or resume one paired front-view sample."""
     sample_dir = output_root / sample.sample_id
     metadata_dir = output_root / "_metadata" / sample.sample_id
     _migrate_legacy_metadata(sample_dir, metadata_dir)
@@ -260,6 +271,7 @@ def process_one(
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse paired front-view generation arguments."""
     parser = argparse.ArgumentParser(description="Generate paired front-view images without reading paired JSON.")
     parser.add_argument("--input-root", type=Path, default=DEFAULT_INPUT_ROOT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
@@ -274,6 +286,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run the paired front-view generation batch."""
     args = parse_args()
     if args.limit < 0:
         raise SystemExit("--limit must be >= 0")
@@ -284,9 +297,14 @@ def main() -> None:
         api_key = require_api_key()
     else:
         api_key = ""
-    prompt = args.prompt_file.read_text(encoding="utf-8-sig").strip()
-    if not prompt:
+    prompt_template = args.prompt_file.read_text(encoding="utf-8-sig").strip()
+    if not prompt_template:
         raise SystemExit(f"Prompt file is empty: {args.prompt_file}")
+    prompt = render_generation_prompt(
+        prompt_template,
+        category="dataset_figurine",
+        view_mode="front",
+    )
     samples = select_samples(read_manifest(args.input_root), args.sample_id, args.limit)
     if not samples:
         raise SystemExit("No samples selected")
@@ -329,6 +347,8 @@ def main() -> None:
     _write_json(args.output_root / "batch_summary.json", {"schema_version": "front_view_generation_batch.v1", "dry_run": args.dry_run, "selected": [sample.sample_id for sample in samples], "results": summary})
     _write_json(args.output_root / "failed_queue.json", {"schema_version": "front_view_generation_failed_queue.v1", "sample_ids": failed})
     print(json.dumps({"status": "finished", "selected": len(samples), "dry_run": args.dry_run, "failed": len(failed), "output_root": str(args.output_root)}, ensure_ascii=False), flush=True)
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

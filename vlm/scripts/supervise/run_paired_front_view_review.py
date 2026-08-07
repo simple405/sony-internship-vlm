@@ -34,6 +34,7 @@ from vlm.scripts.generate.generate_paired_front_view import (
     DEFAULT_OUTPUT_ROOT as PILOT_GENERATION_ROOT,
 )
 from vlm.scripts.generate.runninghub_client import IMAGE_SUFFIXES
+from vlm.scripts._validation import validate_path_component, validate_qwen_base_url
 from vlm.scripts.supervise.postprocess_color_family_verdicts import (
     RULE_NAME as COLOR_FAMILY_RULE_NAME,
     extract_color_families,
@@ -44,7 +45,7 @@ from vlm.scripts.supervise.postprocess_color_family_verdicts import (
 MAX_PILOT_SAMPLES = 20
 DEFAULT_INPUT_ROOT = PILOT_GENERATION_ROOT
 DEFAULT_OUTPUT_ROOT = VLM_ROOT / "tmp" / "paired_front_view_review_v1"
-DEFAULT_PROMPT_FILE = SUPERVISION_PROMPTS_DIR / "paired_front_view_review_v1_cn.txt"
+DEFAULT_PROMPT_FILE = SUPERVISION_PROMPTS_DIR / "paired_front_view_review_cn.txt"
 DEFAULT_QWEN_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 DEFAULT_QWEN_MODEL = "qwen-vl-max"
 ALLOWED_RESULTS = {"pass", "partial", "fail", "not_evaluable", "review"}
@@ -71,6 +72,12 @@ MICRO_DETAIL_KEYWORDS = [
     "蕾丝",
     "高光",
     "链条",
+    "木棍",
+    "细长",
+    "前端",
+    "尖端",
+    "嘴里",
+    "叼着",
     "耳环",
     "小巧",
     "精致",
@@ -112,7 +119,7 @@ def discover_samples(input_root: Path) -> list[ReviewSample]:
     for sample_dir in sorted(input_root.iterdir(), key=lambda path: path.name):
         if not sample_dir.is_dir() or sample_dir.name == "_metadata":
             continue
-        sample_id = sample_dir.name
+        sample_id = validate_path_component(sample_dir.name, "sample ID")
         generated = None
         for suffix in IMAGE_SUFFIXES:
             candidate = sample_dir / f"{sample_id}_q_front_view{suffix}"
@@ -327,20 +334,14 @@ def call_qwen_review(
     timeout: int,
 ) -> str:
     """Call the Qwen-VL OpenAI-compatible endpoint and return raw text."""
+    base_url = validate_qwen_base_url(base_url)
     payload: dict[str, Any] = {
         "model": model,
         "messages": build_messages(prompt_text, image_path),
         "temperature": 0.0,
         "max_tokens": 4000,
     }
-    if "dashscope" in base_url.lower():
-        payload["response_format"] = {"type": "json_object"}
-    else:
-        payload["top_p"] = 0.1
-
-    proxies = None
-    if "127.0.0.1" in base_url or "localhost" in base_url:
-        proxies = {"http": None, "https": None}
+    payload["response_format"] = {"type": "json_object"}
     response = requests.post(
         base_url.rstrip("/") + "/chat/completions",
         headers={
@@ -349,7 +350,7 @@ def call_qwen_review(
         },
         data=json.dumps(payload, ensure_ascii=False),
         timeout=timeout,
-        proxies=proxies,
+        allow_redirects=False,
     )
     response.raise_for_status()
     result = response.json()
@@ -731,8 +732,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=MAX_PILOT_SAMPLES)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--model", default="")
-    parser.add_argument("--base-url", default="")
-    parser.add_argument("--qwen-api-key", default="")
     parser.add_argument("--timeout", type=int, default=180)
     return parser.parse_args()
 
@@ -755,16 +754,16 @@ def main() -> None:
         raise SystemExit(f"Prompt template is empty: {args.prompt_file}")
 
     api_key = ""
-    base_url = args.base_url.strip()
+    base_url = ""
     model = args.model.strip()
     if not args.dry_run:
         load_api_env()
-        api_key = args.qwen_api_key.strip() or os.environ.get("QWEN_API_KEY", "").strip()
+        api_key = os.environ.get("QWEN_API_KEY", "").strip()
         if not api_key:
-            raise SystemExit(
-                "QWEN_API_KEY is required. Set it in vlm/config/api.env or pass --qwen-api-key."
-            )
-        base_url = base_url or os.environ.get("QWEN_BASE_URL", "").strip() or DEFAULT_QWEN_BASE_URL
+            raise SystemExit("QWEN_API_KEY is required in vlm/config/api.env or the environment.")
+        base_url = validate_qwen_base_url(
+            os.environ.get("QWEN_BASE_URL", "").strip() or DEFAULT_QWEN_BASE_URL
+        )
         model = model or os.environ.get("QWEN_VISION_MODEL", "").strip() or DEFAULT_QWEN_MODEL
 
     args.output_root.mkdir(parents=True, exist_ok=True)
@@ -812,6 +811,8 @@ def main() -> None:
         ),
         flush=True,
     )
+    if summary["parse_failures"]:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

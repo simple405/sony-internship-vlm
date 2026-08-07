@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import shutil
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +27,8 @@ from vlm.scripts._paths import VLM_ROOT
 from vlm.scripts.generate.generate_paired_front_view import (
     DEFAULT_OUTPUT_ROOT as GENERATION_ROOT,
 )
+from vlm.scripts.generate.runninghub_client import IMAGE_SUFFIXES
+from vlm.scripts._validation import validate_path_component
 
 
 DEFAULT_REVIEW_ROOT = VLM_ROOT / "tmp" / "paired_front_view_review_v1"
@@ -81,6 +85,14 @@ MANIFEST_COLUMNS = [
     "extra_count",
     "annotation_status",
 ]
+PACKAGE_OUTPUT_FILES = (
+    "human_gold_rules.csv",
+    "human_gold_extras.csv",
+    "sample_manifest.csv",
+    "source_vs_generated_queue.jpg",
+    "README.md",
+    "batch_summary.json",
+)
 
 
 def _read_json(path: Path) -> Any:
@@ -114,16 +126,29 @@ def load_review_queue(
     records: list[dict[str, Any]] = []
     missing: list[str] = []
     for sample_id in selected:
+        sample_id = validate_path_component(sample_id, "sample ID")
         prediction_path = review_root / sample_id / "prediction.json"
         sample_dir = generation_root / sample_id
         gold_path = sample_dir / f"{sample_id}.json"
-        generated_path = sample_dir / f"{sample_id}_q_front_view.png"
+        generated_path = next(
+            (
+                sample_dir / f"{sample_id}_q_front_view{suffix}"
+                for suffix in IMAGE_SUFFIXES
+                if (sample_dir / f"{sample_id}_q_front_view{suffix}").is_file()
+            ),
+            None,
+        )
         original_candidates = sorted(
             path
             for path in sample_dir.glob(f"{sample_id}_original.*")
             if path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}
         )
-        if not prediction_path.is_file() or not generated_path.is_file() or not gold_path.is_file() or not original_candidates:
+        if (
+            not prediction_path.is_file()
+            or generated_path is None
+            or not gold_path.is_file()
+            or not original_candidates
+        ):
             missing.append(sample_id)
             continue
         prediction = _read_json(prediction_path)
@@ -236,11 +261,18 @@ def build_rows(records: list[dict[str, Any]], repo_root: Path) -> tuple[list[dic
 
 
 def write_csv(path: Path, rows: list[dict[str, Any]], columns: list[str]) -> None:
+    """Write an Excel-compatible CSV atomically."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        with temp.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=columns, extrasaction="ignore")
+            writer.writeheader()
+            writer.writerows(rows)
+        temp.replace(path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def validate_rows(rows: list[dict[str, Any]], columns: list[str], *, extra: bool = False) -> list[str]:
@@ -261,6 +293,7 @@ def validate_rows(rows: list[dict[str, Any]], columns: list[str], *, extra: bool
 
 
 def count_pending_rows(rows: list[dict[str, Any]]) -> int:
+    """Count rows that still lack a human verdict."""
     return sum(not str(row.get("human_result", "")).strip() for row in rows)
 
 
@@ -304,8 +337,10 @@ def write_contact_sheet(records: list[dict[str, Any]], path: Path) -> None:
     for index, record in enumerate(records):
         x = (index % cols) * cell_w
         y = (index // cols) * (cell_h + label_h)
-        source = crop_uniform_background(Image.open(record["original_path"]))
-        generated = crop_uniform_background(Image.open(record["generated_path"]))
+        with Image.open(record["original_path"]) as image:
+            source = crop_uniform_background(image)
+        with Image.open(record["generated_path"]) as image:
+            generated = crop_uniform_background(image)
         source.thumbnail((cell_w // 2 - 6, cell_h))
         generated.thumbnail((cell_w // 2 - 6, cell_h))
         sheet.paste(source, (x + 4, y + label_h))
@@ -314,11 +349,19 @@ def write_contact_sheet(records: list[dict[str, Any]], path: Path) -> None:
         draw.text((x + 8, y + label_h + cell_h - 20), "source", fill="black", font=_font(12))
         draw.text((x + cell_w // 2 + 8, y + label_h + cell_h - 20), "generated", fill="black", font=_font(12))
     path.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(path, format="JPEG", quality=92)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        sheet.save(temp, format="JPEG", quality=92)
+        temp.replace(path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def write_instructions(path: Path) -> None:
-    path.write_text(
+    """Write the human annotation instructions."""
+    temp = path.with_suffix(path.suffix + ".tmp")
+    temp.write_text(
         "# Paired Front-View Human Gold v1\n\n"
         "这是人工 gold，不是 Qwen 预测。每行必须重新看图后填写。\n\n"
         "## 输入\n"
@@ -336,12 +379,29 @@ def write_instructions(path: Path) -> None:
         "```powershell\n"
         ".\\.venv\\Scripts\\python.exe -m vlm.scripts.supervise.prepare_paired_front_view_human_gold --validate --output-root vlm/tmp/paired_front_view_human_gold_v1\n"
         "```\n\n"
-        "未填写的行会被报告为 pending；不要把空白标注直接用于训练。\n",
+        "未填写的行会被报告为 pending，校验命令返回非零；不要把空白标注直接用于训练。\n",
         encoding="utf-8",
     )
+    temp.replace(path)
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    """Write JSON atomically."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp = path.with_suffix(path.suffix + ".tmp")
+    try:
+        temp.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        temp.replace(path)
+    finally:
+        if temp.exists():
+            temp.unlink()
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse human-gold package arguments."""
     parser = argparse.ArgumentParser(description="Prepare or validate paired front-view human gold.")
     parser.add_argument("--review-root", type=Path, default=DEFAULT_REVIEW_ROOT)
     parser.add_argument("--generation-root", type=Path, default=GENERATION_ROOT)
@@ -349,10 +409,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample-id", action="append", default=[])
     parser.add_argument("--include-pass", action="store_true")
     parser.add_argument("--validate", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Explicitly replace an existing generated work package.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
+    """Create or validate the paired front-view human-gold package."""
     args = parse_args()
     args.output_root.mkdir(parents=True, exist_ok=True)
     if args.validate:
@@ -375,11 +441,22 @@ def main() -> None:
                 problems.extend(f"{name}:{item}" for item in validate_rows(rows, columns, extra=is_extra))
         status = "invalid" if problems else ("pending" if any(pending.values()) else "complete")
         summary = {"status": status, "pending_rows": pending, "issues": problems}
-        (args.output_root / "validation_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        write_json(args.output_root / "validation_summary.json", summary)
         print(json.dumps(summary, ensure_ascii=False))
-        if problems:
+        if problems or any(pending.values()):
             raise SystemExit(1)
         return
+
+    existing = [
+        args.output_root / name
+        for name in PACKAGE_OUTPUT_FILES
+        if (args.output_root / name).exists()
+    ]
+    if existing and not args.overwrite:
+        raise SystemExit(
+            "Human-gold work package already exists; refusing to overwrite possible "
+            "manual annotations. Pass --overwrite only after preserving those edits."
+        )
 
     records, missing = load_review_queue(
         args.review_root,
@@ -391,11 +468,6 @@ def main() -> None:
         raise SystemExit("No samples need human gold")
     repo_root = Path(__file__).resolve().parents[3]
     rule_rows, extra_rows, manifest_rows = build_rows(records, repo_root)
-    write_csv(args.output_root / "human_gold_rules.csv", rule_rows, RULE_COLUMNS)
-    write_csv(args.output_root / "human_gold_extras.csv", extra_rows, EXTRA_COLUMNS)
-    write_csv(args.output_root / "sample_manifest.csv", manifest_rows, MANIFEST_COLUMNS)
-    write_contact_sheet(records, args.output_root / "source_vs_generated_queue.jpg")
-    write_instructions(args.output_root / "README.md")
     summary = {
         "schema_version": "paired_front_view_human_gold_batch.v1",
         "sample_count": len(records),
@@ -410,7 +482,24 @@ def main() -> None:
         ),
         "human_annotation_required": True,
     }
-    (args.output_root / "batch_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.output_root.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(prefix=".paired_front_view_human_gold.", dir=args.output_root.parent)
+    )
+    try:
+        write_csv(staging / "human_gold_rules.csv", rule_rows, RULE_COLUMNS)
+        write_csv(staging / "human_gold_extras.csv", extra_rows, EXTRA_COLUMNS)
+        write_csv(staging / "sample_manifest.csv", manifest_rows, MANIFEST_COLUMNS)
+        write_contact_sheet(records, staging / "source_vs_generated_queue.jpg")
+        write_instructions(staging / "README.md")
+        write_json(staging / "batch_summary.json", summary)
+        args.output_root.mkdir(parents=True, exist_ok=True)
+        for name in PACKAGE_OUTPUT_FILES:
+            (staging / name).replace(args.output_root / name)
+        (args.output_root / "validation_summary.json").unlink(missing_ok=True)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
     print(json.dumps({"status": "created", **summary}, ensure_ascii=False))
 
 

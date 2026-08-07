@@ -1,8 +1,12 @@
 """Tests for the paired front-view human-gold package builder."""
 
 import json
+from argparse import Namespace
 from pathlib import Path
 
+import pytest
+
+from vlm.scripts.supervise import prepare_paired_front_view_human_gold as human_gold
 from vlm.scripts.supervise.prepare_paired_front_view_human_gold import (
     build_rows,
     count_pending_rows,
@@ -67,3 +71,38 @@ def test_validate_rows_allows_pending_but_rejects_unknown_values():
     assert count_pending_rows([{"human_result": ""}, {"human_result": "pass"}]) == 1
     assert validate_rows([{"sample_id": "s", "human_result": "wat"}], ["sample_id", "human_result"])
     assert validate_rows([{"sample_id": "s", "human_result": "accept_extra"}], ["sample_id", "human_result"], extra=True) == []
+
+
+def test_queue_accepts_non_png_generated_image(tmp_path: Path):
+    review_root, generation_root = _make_fixture(tmp_path)
+    sample_dir = generation_root / "sample-fail"
+    (sample_dir / "sample-fail_q_front_view.png").rename(
+        sample_dir / "sample-fail_q_front_view.jpg"
+    )
+
+    records, missing = load_review_queue(
+        review_root, generation_root, ["sample-fail"]
+    )
+
+    assert missing == []
+    assert records[0]["generated_path"].suffix == ".jpg"
+
+
+def test_main_refuses_to_overwrite_existing_human_annotations(
+    monkeypatch, tmp_path: Path
+):
+    output_root = tmp_path / "human_gold"
+    output_root.mkdir()
+    annotations = output_root / "human_gold_rules.csv"
+    annotations.write_text("manual-edit", encoding="utf-8")
+    args = Namespace(
+        output_root=output_root,
+        validate=False,
+        overwrite=False,
+    )
+    monkeypatch.setattr(human_gold, "parse_args", lambda: args)
+
+    with pytest.raises(SystemExit, match="refusing to overwrite"):
+        human_gold.main()
+
+    assert annotations.read_text(encoding="utf-8") == "manual-edit"

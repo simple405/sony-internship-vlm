@@ -4,7 +4,8 @@
 
 # Local datasets and generated data artifacts.
 /data/
-vlm/data/
+vlm/data/*
+!vlm/data/README.md
 vlm/tmp/
 vlm/archive/
 vlm/config/*.env

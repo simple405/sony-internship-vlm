@@ -13,6 +13,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from vlm.scripts._validation import validate_path_component
+
 
 SOURCES = {
     "cs": Path("vlm/data/safebooru_character_sheet"),
@@ -32,12 +34,14 @@ SUPPORTED_SUFFIXES = DIRECT_SUFFIXES | {".gif"}
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse SN-7 import arguments."""
     parser = argparse.ArgumentParser(description="Import the SN-7 10610-image design-sheet dataset.")
     parser.add_argument("--output-root", type=Path, default=Path("vlm/data/design_sheet_10610"))
     return parser.parse_args()
 
 
 def sha256(path: Path) -> str:
+    """Return the SHA-256 digest of a file."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -51,19 +55,29 @@ def import_image(source_path: Path, target_path: Path) -> tuple[int, int, str]:
     if source_path.suffix.lower() == ".gif":
         target_path = target_path.with_suffix(".png")
         tmp_path = target_path.with_suffix(".png.part")
-        with Image.open(source_path) as image:
-            image.seek(0)
-            image.convert("RGBA" if "A" in image.getbands() else "RGB").save(tmp_path, format="PNG")
+    else:
+        tmp_path = target_path.with_suffix(target_path.suffix + ".part")
+    try:
+        if source_path.suffix.lower() == ".gif":
+            with Image.open(source_path) as image:
+                image.seek(0)
+                image.convert(
+                    "RGBA" if "A" in image.getbands() else "RGB"
+                ).save(tmp_path, format="PNG")
+        else:
+            shutil.copy2(source_path, tmp_path)
+        with Image.open(tmp_path) as image:
+            width, height = image.size
+            image.verify()
         tmp_path.replace(target_path)
-    elif not target_path.exists():
-        shutil.copy2(source_path, target_path)
-    with Image.open(target_path) as image:
-        width, height = image.size
-        image.verify()
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
     return width, height, target_path.suffix.lower()
 
 
 def write_csv(path: Path, rows: list[dict[str, str]], fields: list[str]) -> None:
+    """Write a UTF-8 CSV with the requested columns."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
@@ -72,19 +86,35 @@ def write_csv(path: Path, rows: list[dict[str, str]], fields: list[str]) -> None
 
 
 def main() -> None:
+    """Import all configured SN-7 design-sheet sources."""
     args = parse_args()
     output_root = args.output_root
     image_root = output_root / "image"
     rows: list[dict[str, str]] = []
     rejected: list[dict[str, str]] = []
     raw_ids: defaultdict[str, list[str]] = defaultdict(list)
+    imported_ids: set[str] = set()
 
     for source_name, source_root in SOURCES.items():
+        if not source_root.is_dir():
+            raise SystemExit(f"SN-7 source directory not found: {source_root}")
         for source_path in sorted(source_root.iterdir()):
             if not source_path.is_file() or source_path.suffix.lower() not in SUPPORTED_SUFFIXES:
                 continue
-            sample_id = f"{source_name}_{source_path.stem}"
+            sample_id = validate_path_component(
+                f"{source_name}_{source_path.stem}", "sample ID"
+            )
             raw_ids[source_path.stem].append(sample_id)
+            if sample_id in imported_ids:
+                rejected.append(
+                    {
+                        "source_dataset": source_name,
+                        "source_path": f"{source_name}/{source_path.name}",
+                        "error": "duplicate_sample_id",
+                    }
+                )
+                continue
+            imported_ids.add(sample_id)
             target_path = image_root / f"{sample_id}{source_path.suffix.lower()}"
             try:
                 width, height, extension = import_image(source_path, target_path)
@@ -93,9 +123,9 @@ def main() -> None:
                     {
                         "post_id": sample_id,
                         "sample_id": sample_id,
-                        "image_path": str(final_path.resolve()),
+                        "image_path": final_path.relative_to(output_root).as_posix(),
                         "source_dataset": source_name,
-                        "source_path": str(source_path.resolve()),
+                        "source_path": f"{source_name}/{source_path.name}",
                         "original_file_name": source_path.name,
                         "sha256": sha256(final_path),
                         "width": str(width),
@@ -105,7 +135,7 @@ def main() -> None:
                 )
             except Exception as exc:  # noqa: BLE001
                 rejected.append(
-                    {"source_dataset": source_name, "source_path": str(source_path.resolve()), "error": f"{type(exc).__name__}: {exc}"}
+                    {"source_dataset": source_name, "source_path": f"{source_name}/{source_path.name}", "error": f"{type(exc).__name__}: {exc}"}
                 )
 
     rows.sort(key=lambda row: row["sample_id"])
@@ -156,6 +186,8 @@ def main() -> None:
     }
     (reports / "import_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))
+    if rejected:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
