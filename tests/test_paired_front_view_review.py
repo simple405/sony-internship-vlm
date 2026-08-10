@@ -17,6 +17,9 @@ from vlm.scripts.supervise.run_paired_front_view_review import (
     load_gold_elements,
     process_one,
     request_preview,
+    resolve_sample_auxiliary_output_dir,
+    resolve_sample_output_dir,
+    select_review_jobs,
     select_review_samples,
     validate_and_align_rules,
 )
@@ -241,7 +244,7 @@ def test_compute_aggregate_counts_tallies_by_result():
 
     counts = compute_aggregate_counts(rules)
 
-    assert counts == {"fail": 1, "not_evaluable": 0, "partial": 0, "pass": 2, "review": 1}
+    assert counts == {"fail": 1, "not_evaluable": 0, "out_of_scope": 0, "partial": 0, "pass": 2, "review": 1}
 
 
 def test_compute_overall_decision_prioritizes_fail_then_review_then_pass():
@@ -423,3 +426,165 @@ def test_build_batch_summary_aggregates_verdicts_and_queues():
     assert summary["parse_failures"] == ["c"]
     assert summary["verdict_distribution"]["pass"] == 1
     assert summary["verdict_distribution"]["fail"] == 1
+
+
+def test_discover_samples_finds_category_layout_with_category_suffix(tmp_path: Path):
+    sample_dir = tmp_path / "head_key_chain" / "sample-a"
+    sample_dir.mkdir(parents=True)
+    (sample_dir / "sample-a_head_keychain_front_view.png").write_bytes(b"fake-png")
+    (sample_dir / "sample-a_original.png").write_bytes(b"fake-original")
+    (sample_dir / "sample-a.json").write_text("[]", encoding="utf-8")
+
+    samples = discover_samples(tmp_path)
+
+    assert len(samples) == 1
+    assert samples[0].category == "head_key_chain"
+    assert samples[0].generated_image_path.name == "sample-a_head_keychain_front_view.png"
+
+
+def test_build_review_prompt_renders_category_context():
+    prompt = build_review_prompt(
+        "category={{MERCHANDISE_CATEGORY}}\nkey={{CATEGORY_KEY}}\nrequirements={{CATEGORY_REQUIREMENTS}}\n{{GOLD_COUNT}}\n{{GOLD_ELEMENTS}}",
+        [{"element": "red_eyes", "description": "bright red eyes"}],
+        category="cake_roll",
+    )
+
+    assert "cake_roll" in prompt
+    assert "requirements=" in prompt
+    assert "{{CATEGORY_REQUIREMENTS}}" not in prompt
+    assert "1. element: red_eyes" in prompt
+
+def test_process_one_writes_sample_qc_only_when_requested(tmp_path: Path):
+    sample_dir = _write_complete_sample(tmp_path / "input" / "head_key_chain", "sample-1")
+    (sample_dir / "sample-1.json").write_text(
+        json.dumps([{"element": "red_eyes", "description": "bright red eyes"}], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    sample = ReviewSample(
+        sample_id="sample-1",
+        generated_image_path=sample_dir / "sample-1_q_front_view.png",
+        gold_path=sample_dir / "sample-1.json",
+        original_image_path=sample_dir / "sample-1_original.png",
+        category="head_key_chain",
+    )
+    response = json.dumps(
+        {
+            "rules": [{"rule_index": 1, "result": "pass", "confidence": 0.9}],
+            "extra_elements": [],
+        },
+        ensure_ascii=False,
+    )
+
+    status = process_one(
+        sample,
+        load_gold_elements(sample.gold_path),
+        tmp_path / "prompt.txt",
+        "{{MERCHANDISE_CATEGORY}}\n{{GOLD_COUNT}}\n{{GOLD_ELEMENTS}}",
+        tmp_path / "review",
+        dry_run=False,
+        api_key="unused",
+        base_url="unused",
+        model="qwen-vl-max",
+        call_fn=lambda **_kwargs: response,
+        sample_qc_root_name="paired_front_view_review_v1",
+    )
+
+    assert status["status"] == "succeeded"
+    assert (tmp_path / "review" / "head_key_chain" / "sample-1" / "prediction.json").exists()
+    sample_qc = sample_dir / "_review" / "paired_front_view_review_v1" / "qc.csv"
+    assert sample_qc.exists()
+    assert "rule_index,element,result" in sample_qc.read_text(encoding="utf-8-sig")
+
+
+def test_select_review_jobs_uses_manifest_category(tmp_path: Path):
+    sample = ReviewSample("sample-1", Path("g.png"), Path("r.json"), Path("o.png"), category="head_key_chain")
+    manifest = tmp_path / "selection.csv"
+    manifest.write_text("category,sample_id\nhead_key_chain,sample-1\n", encoding="utf-8")
+
+    selected = select_review_jobs(
+        [sample],
+        sample_manifest=manifest,
+        requested_ids=[],
+        limit=0,
+        fallback_category="dataset_figurine",
+    )
+
+    assert selected == [sample]
+
+
+def test_validate_and_align_rules_accepts_location_and_out_of_scope():
+    rules, issues = validate_and_align_rules(
+        [
+            {
+                "rule_index": 1,
+                "result": "out_of_scope",
+                "location": "body",
+                "confidence": 0.2,
+            }
+        ],
+        [{"element": "white dress", "description": "body clothing"}],
+    )
+
+    assert issues == []
+    assert rules[0]["result"] == "out_of_scope"
+    assert rules[0]["location"] == "body"
+    assert compute_overall_decision(rules, []) == "pass"
+
+
+def test_process_one_can_write_full_review_under_sample_review_root(tmp_path: Path):
+    sample_dir = _write_complete_sample(tmp_path / "input" / "head_key_chain", "sample-1")
+    (sample_dir / "sample-1.json").write_text(
+        json.dumps([{"element": "white dress", "description": "body clothing"}], ensure_ascii=False),
+        encoding="utf-8",
+    )
+    sample = ReviewSample(
+        sample_id="sample-1",
+        generated_image_path=sample_dir / "sample-1_q_front_view.png",
+        gold_path=sample_dir / "sample-1.json",
+        original_image_path=sample_dir / "sample-1_original.png",
+        category="head_key_chain",
+    )
+    response = json.dumps(
+        {
+            "rules": [
+                {
+                    "rule_index": 1,
+                    "result": "out_of_scope",
+                    "location": "body",
+                    "confidence": 0.99,
+                }
+            ],
+            "extra_elements": [],
+        },
+        ensure_ascii=False,
+    )
+
+    status = process_one(
+        sample,
+        load_gold_elements(sample.gold_path),
+        tmp_path / "prompt.txt",
+        "{{MERCHANDISE_CATEGORY}}\n{{GOLD_COUNT}}\n{{GOLD_ELEMENTS}}",
+        tmp_path / "batch_review",
+        dry_run=False,
+        api_key="unused",
+        base_url="unused",
+        model="qwen-vl-max",
+        call_fn=lambda **_kwargs: response,
+        sample_review_root_name="review_v2",
+    )
+
+    batch_root = tmp_path / "batch_review"
+    sample_review_dir = resolve_sample_output_dir(sample, batch_root, "review_v2")
+    auxiliary_dir = resolve_sample_auxiliary_output_dir(sample, batch_root, "review_v2")
+
+    assert status["status"] == "succeeded"
+    assert sample_review_dir == sample_dir / "_review" / "review_v2"
+    assert (sample_review_dir / "raw_response.txt").exists()
+    assert (sample_review_dir / "prediction.json").exists()
+    assert (sample_review_dir / "qc.csv").exists()
+    assert (sample_review_dir / "status.json").exists()
+    assert not (sample_review_dir / "request_preview.json").exists()
+    assert not (sample_review_dir / "review_prompt.txt").exists()
+    assert (auxiliary_dir / "request_preview.json").exists()
+    assert (auxiliary_dir / "review_prompt.txt").exists()
+    assert not (batch_root / "head_key_chain" / "sample-1" / "prediction.json").exists()

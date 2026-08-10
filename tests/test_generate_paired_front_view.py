@@ -6,9 +6,12 @@ import pytest
 from PIL import Image
 
 from vlm.scripts.generate.generate_paired_front_view import (
+    CATEGORY_OUTPUT_SUFFIXES,
     Sample,
+    build_category_jobs,
     process_one,
     read_manifest,
+    read_category_sample_manifest,
     select_samples,
 )
 
@@ -167,3 +170,59 @@ def test_resume_rejects_prompt_drift(tmp_path: Path):
             dry_run=False,
             api_key="unused",
         )
+
+
+def test_read_category_sample_manifest_validates_category_and_sample_id(tmp_path: Path):
+    manifest = tmp_path / "selection.csv"
+    with manifest.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["category", "sample_id"])
+        writer.writeheader()
+        writer.writerow({"category": "head_key_chain", "sample_id": "sample-1"})
+
+    rows = read_category_sample_manifest(manifest)
+
+    assert rows == [{"category": "head_key_chain", "sample_id": "sample-1"}]
+
+
+def test_build_category_jobs_uses_selection_manifest(tmp_path: Path):
+    image_path = tmp_path / "sample-1.png"
+    _image(image_path)
+    gold_path = tmp_path / "sample-1.json"
+    gold_path.write_text("{}", encoding="utf-8")
+    sample = Sample("sample-1", image_path, ".png", image_path.stat().st_size, gold_path)
+    manifest = tmp_path / "selection.csv"
+    with manifest.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["category", "sample_id"])
+        writer.writeheader()
+        writer.writerow({"category": "cake_roll", "sample_id": "sample-1"})
+
+    jobs = build_category_jobs([sample], sample_manifest=manifest, requested_ids=[], limit=0, category="dataset_figurine")
+
+    assert jobs == [("cake_roll", sample)]
+
+
+def test_category_dry_run_writes_metadata_outside_sample_dir(tmp_path: Path):
+    image_path = tmp_path / "input" / "sample-1" / "sample-1.png"
+    _image(image_path)
+    paired_json = image_path.with_suffix(".json")
+    paired_json.write_text('{"secret_annotation": "must not leak"}', encoding="utf-8")
+    sample = Sample("sample-1", image_path, ".png", image_path.stat().st_size, paired_json)
+    metadata_root = tmp_path / "tmp" / "generation"
+
+    status = process_one(
+        sample,
+        tmp_path / "output" / "head_key_chain",
+        tmp_path / "prompt.txt",
+        "category prompt",
+        dry_run=True,
+        metadata_root=metadata_root,
+        category="head_key_chain",
+        output_suffix=CATEGORY_OUTPUT_SUFFIXES["head_key_chain"],
+    )
+
+    assert status["status"] == "dry_run"
+    assert status["category"] == "head_key_chain"
+    preview = json.loads((metadata_root / "head_key_chain" / "sample-1" / "request_preview.json").read_text(encoding="utf-8"))
+    assert preview["category"] == "head_key_chain"
+    assert preview["output_suffix"] == "head_keychain"
+    assert not (tmp_path / "output" / "head_key_chain" / "sample-1").exists()

@@ -6,14 +6,25 @@
 
 只输出一个 JSON object，不要 Markdown，不要解释 JSON 以外内容。
 
-核心原则：
-1. 先找图上证据，再下结论。每条 gold 必须在商品图上找对应区域，给 evidence_bbox。
+本版本新增 head/body 监修范围规则：
+1. 每条 rule 必须输出 location，且只能是 "head" 或 "body"，不能为空，不能同时存在多个值。
+2. head 指头部相关身份元素：头发、刘海、脸、眼睛、眉毛、嘴、表情、耳朵、角、帽子、发饰、头顶/脸部装饰、头部轮廓。颈部小饰品若在头部商品中可见，也按 head。
+3. body 指身体相关身份元素：衣服、裙裤、袖子、手、腿、鞋袜、尾巴、翅膀、身体姿势、手持物、背部装饰、躯干轮廓。衣领、胸口装饰、腰部装饰按 body。
+4. 对组合 gold 元素，先在心里拆成可检查的 head/body 子元素，再按当前品类判断：
+   - 若该条只包含 body 子元素，location 输出 "body"。
+   - 若该条包含任意 head 子元素，location 输出 "head"，但只评价 head 子元素；body 子元素写入 ignored_components，不参与扣分。
+5. head-only 品类包括：head_key_chain、cake_roll、backpack。对这些品类：
+   - location="head" 的 rule 正常评价。
+   - location="body" 的 rule 必须 result="out_of_scope"，image_grounded=false，description_correct=true，issue_types=[]，evidence_bbox=null，不扣分。
+6. 非 head-only 品类：head 和 body 都正常评价，不能输出 out_of_scope。
+
+核心监修原则：
+1. 先找图上证据，再下结论。需要评价的每条 gold 必须在商品图上找对应区域，给 evidence_bbox。
 2. 按当前商品类别判断保留方式：毛绒类可用缝线/刺绣/色块表达，背包可转化为包体/口袋/背带/挂扣特征，蛋糕卷可用脸部与外侧配色表达，PVC 可用雕刻和上色表达。
 3. 微小身份细节要做局部放大式检查。宝石、发夹、纽扣、领饰、袖口、折边、装饰带、花纹、褶皱、高光、嘴边细长物、木棍、发丝尖端等小元素，只要在合理位置有清楚的可见形态，就不能判 missing。
 4. 对低分辨率、商品化简化或材质转换导致的细节弱化：存在但不够清晰判 partial；看不清判 review 或 not_evaluable；只有确认不存在/位置完全错误/形态矛盾才判 fail。
 5. 颜色按“色系 + 角色识别”评估，不要抠中文颜色名边界。粉红/玫红/紫红/偏紫粉/红紫属于相邻红紫色系；浅灰/银白/白、深灰/黑、蓝/青蓝等相邻色也允许。只有跨大色系且影响角色识别时才判 color fail。
-6. 如果 gold 名称是组合元素，必须分别检查主体和关键细节。主体存在但小细节弱化通常是 partial，不是 fail。
-7. extra_elements 只记录明显新增且会影响角色身份的元素；商品常规结构不要强行报 extra，除非非常突出且与角色无关。
+6. extra_elements 只记录明显新增且会影响角色身份的元素；商品常规结构不要强行报 extra，除非非常突出且与角色无关。
 
 Gold 共有 {{GOLD_COUNT}} 条，按下面顺序输出 rules，rule_index 从 1 开始，数量必须一致：
 {{GOLD_ELEMENTS}}
@@ -23,14 +34,16 @@ Gold 共有 {{GOLD_COUNT}} 条，按下面顺序输出 rules，rule_index 从 1 
   "rules": [
     {
       "rule_index": 1,
+      "location": "head | body",
+      "ignored_components": [],
       "image_grounded": true,
       "description_correct": true,
       "issue_types": [],
-      "observed_description": "图中实际看到的元素、位置、颜色、材质转换和微小细节",
+      "observed_description": "图中实际看到的元素、位置、颜色、材质转换和微小细节；若 out_of_scope 则写为什么跳过",
       "evidence_bbox": [x1, y1, x2, y2],
       "confidence": 0.0,
-      "reason": "为什么给这个 result；若是商品化简化、微小细节或相邻色系，必须说明",
-      "result": "pass | partial | fail | not_evaluable | review"
+      "reason": "为什么给这个 result；若是 head-only 跳过 body，必须说明",
+      "result": "pass | partial | fail | not_evaluable | review | out_of_scope"
     }
   ],
   "extra_elements": []
@@ -42,5 +55,6 @@ result 规则：
 - fail：确认关键元素缺失、明显错色跨大色系、形态/位置严重矛盾。
 - not_evaluable：该区域被遮挡、裁切、过小到无法判断。
 - review：证据不足或判断边界不稳定，需要人工复核。
+- out_of_scope：仅用于 head-only 品类中的 body rule，表示该元素不属于当前商品监修范围。
 
 issue_types 只能使用 [] 或这些值的组合：["color", "shape", "missing", "material", "structure", "micro_detail", "ambiguous", "extra"]。
