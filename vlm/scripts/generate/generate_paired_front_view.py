@@ -455,6 +455,10 @@ def main() -> None:
         args.category = "dataset_figurine"
     if not hasattr(args, "metadata_root"):
         args.metadata_root = None
+    if not hasattr(args, "include_silver_json"):
+        args.include_silver_json = False
+    if not hasattr(args, "silver_elements_limit"):
+        args.silver_elements_limit = 12
     if args.limit < 0:
         raise SystemExit("--limit must be >= 0")
     if args.workers < 1 or args.workers > 5:

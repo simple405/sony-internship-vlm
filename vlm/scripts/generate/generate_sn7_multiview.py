@@ -352,8 +352,11 @@ def main() -> None:
         validate_path_component(sample_id, "sample ID")
     validate_path_component(args.output_suffix, "output suffix")
 
-    load_api_env()
-    api_key = "" if args.dry_run else require_api_key()
+    if args.dry_run:
+        api_key = ""
+    else:
+        load_api_env()
+        api_key = require_api_key()
     # Note 39: The batch start line is machine-readable JSON for log parsers and
     # human-readable enough for PowerShell output.
     print(
