@@ -1,10 +1,11 @@
-.venv/
+﻿.venv/
 /tmp/
 /output/
 
 # Local datasets and generated data artifacts.
 /data/
-vlm/data/
+vlm/data/*
+!vlm/data/README.md
 vlm/tmp/
 vlm/archive/
 vlm/config/*.env
@@ -12,6 +13,11 @@ vlm/reference/
 vlm/experiments/runs/
 vlm/docs/source_pdfs/
 vlm/docs/assets/
+
+# Local handoff artifacts and working notes.
+handoff/
+plans/handoffs/
+.claude/handoffs/
 
 __pycache__/
 *.egg-info/
@@ -24,5 +30,3 @@ __pycache__/
 
 .DS_Store
 Thumbs.db
-
-.claude/handoffs/HANDOFF_*.md

@@ -11,6 +11,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from vlm.scripts._validation import resolve_manifest_path, validate_path_component
+
 
 EXPECTED_CATEGORIES = {
     "backpack",
@@ -23,12 +25,14 @@ EXPECTED_CATEGORIES = {
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse SN-7 smoke-test validation arguments."""
     parser = argparse.ArgumentParser(description="Validate a prepared SN-7 smoke-test dataset.")
     parser.add_argument("--root", type=Path, default=Path("vlm/data/design_sheet_10610_smoke12"))
     return parser.parse_args()
 
 
 def sha256(path: Path) -> str:
+    """Return the SHA-256 digest of a file."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -37,6 +41,7 @@ def sha256(path: Path) -> str:
 
 
 def main() -> None:
+    """Validate the SN-7 smoke dataset contract and image integrity."""
     args = parse_args()
     with (args.root / "manifest.csv").open(encoding="utf-8-sig", newline="") as handle:
         manifest = list(csv.DictReader(handle))
@@ -51,7 +56,14 @@ def main() -> None:
         errors.append("manifest sample IDs are not unique")
     manifest_by_id = {row.get("post_id", ""): row for row in manifest}
     for sample_id, row in manifest_by_id.items():
-        image_path = Path(row.get("image_path", ""))
+        try:
+            validate_path_component(sample_id, "sample ID")
+            image_path = resolve_manifest_path(
+                args.root, row.get("image_path", ""), "image_path"
+            )
+        except ValueError as exc:
+            errors.append(str(exc))
+            continue
         if not image_path.exists():
             errors.append(f"missing image: {sample_id}")
             continue

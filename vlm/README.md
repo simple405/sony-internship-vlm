@@ -1,39 +1,24 @@
-# VLM Development Workspace
+# VLM Workspace
 
-This directory contains the active development assets for the Anime IP supervision VLM pipeline.
+## 目录
 
-Run commands from the workspace root (`D:\索尼实习`) so relative data paths such as `vlm/data/safebooru_2d/...` continue to resolve correctly.
+- `scripts/`：两条保留流程及共用 API、校验和 XLSX 工具。
+- `prompts/`：三个通用提示词文件；商品差异由代码上下文渲染。
+- `docs/workflows/`：SN-7 与 SN-6 的运行契约。
+- `config/api.env.example`：允许的本地 API 配置项。
+- `data/1-动漫标注结果导出_paired_samples/`：SN-6 配对人工金标源数据。
+- `data/front_view_generation_v1/`：SN-6 已生成的 20 样本 pilot。
+- `data/sn7_data_generation/`：SN-7 数据与生成产物根目录。
+- `data/sn7_data_generation/manifest.csv`：本机唯一汇总清单，包含批次、分类和 atomic 执行状态。
+- `tmp/paired_front_view_review_v1/`：SN-6 Qwen 监修结果。
+- `tmp/paired_front_view_human_gold_v1/`：SN-6 人工复核包。
 
-## Structure
+`data/` 和 `tmp/` 是本地资产，不进入 Git。交接或迁移时必须单独复制，并核对仓库根目录 `handoff/LATEST.md` 中的目录清单。
 
-- `scripts/_paths.py` - centralized path constants (import from here, not hardcoded paths).
-- `scripts/supervise/` - supervision review, annotation, and evaluation pipeline.
-- `scripts/data/` - dataset assignment and maintenance scripts.
-- `scripts/generate/` - RunningHub image-generation runners.
-- `scripts/orchestrate/` - higher-level batch runners.
-- `scripts/README.md` - maintained script entry-point index and retired-script guidance.
-- `config/` - runtime configuration (schemas, sample configs, API keys).
-- `config/supervision/` - review sample configs, v3 schema, category rules.
-- `prompts/supervision/` - Qwen VL supervision prompt templates (per category).
-- `prompts/generation/runninghub/` - RunningHub generation prompt templates.
+## 安全边界
 
-## Data and Docs
-
-- `data/` - datasets, generated outputs, and raw trials (gitignored).
-- `data/safebooru_2d/japanese_anime_turnaround_pilot_20/generated/` - flattened per-category generated images.
-- `data/safebooru_2d/japanese_anime_turnaround_pilot_20/multi_view试标数据集/` - multi-category review package.
-- `experiments/` - experiment notes, manifests, and eval specs.
-- `docs/` - workflow documentation, context summaries, source PDFs, and diagrams.
-- `docs/supervision/` - annotation CSV schema definitions.
-- `archive/` - historical artifacts including legacy ip_review_project (gitignored).
-- `tmp/` - scratch outputs, auto-created at runtime (gitignored).
-
-## Current Entry Points
-
-- RunningHub process: `docs/workflows/process.md`
-- Workspace cleanup map: `docs/workflows/workspace_cleanup_20260804.md`
-- Multi-category supervision review: `scripts/supervise/run_multicategory_supervision_review.py`
-- Full RunningHub batch runner: `scripts/orchestrate/run_runninghub_merchandise_full_batch.py`
-- Single/small batch RunningHub runner: `scripts/generate/generate_head_keychain_with_runninghub_g2.py`
-- Category assignment: `scripts/data/assign_merchandise_categories.py`
-- Qwen VL image CLI (for Claude Code): `scripts/supervise/qwen_vl_image_tool.py`
+- RunningHub 凭据只发送到官方 HTTPS 主机；结果下载限制为 64 MiB，并拒绝本地/私网地址和重定向。
+- Qwen 凭据只发送到 `https://dashscope.aliyuncs.com`。
+- API 密钥不支持命令行参数，避免进入 shell 历史或进程列表。
+- manifest 路径必须是数据根目录内的相对路径，样本 ID 不能包含路径分隔符。
+- 批处理任一样本失败时进程返回非零，供 CI/调度器可靠识别。

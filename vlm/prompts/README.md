@@ -1,16 +1,9 @@
 # Prompt Assets
 
-Prompt files here belong to the active VLM workflow.
+仅保留三个生产提示词：
 
-## Generation
+- `generation/runninghub/merchandise_generation_cn.txt`：SN-7 六类三视图与 SN-6 PVC 正视图共用模板。占位符由 `prompt_renderer.py` 严格渲染。
+- `supervision/atomic_rules_cn.txt`：SN-7 可见身份特征抽取。
+- `supervision/paired_front_view_review_cn.txt`：SN-6 生成图对 paired gold 的逐元素监修。
 
-- `generation/runninghub/` - frozen RunningHub G-2.0 prompts for production merchandise generation.
-  - `runninghub_g2_head_keychain_user_cn.txt` - chibi plush head-keychain three-view sheets.
-  - `runninghub_g2_backpack_user_cn.txt` - plush backpack three-view sheets.
-  - `runninghub_g2_cake_roll_user_cn.txt` - cake-roll plush charm three-view sheets.
-  - `runninghub_g2_plush_user_cn.txt` - full-body plush doll three-view sheets.
-  - `runninghub_g2_dataset_figurine_user_cn.txt` - PVC figurine three-view sheets.
-
-## References
-
-- `references/legacy_merchandise_prompt_notes.md` - summary of useful ideas from the legacy `ip_review_project` prompt generators.
+生成模板包含 `{{MERCHANDISE_CATEGORY}}`、`{{VIEW_REQUIREMENTS}}` 和 `{{CATEGORY_REQUIREMENTS}}`。不要在脚本外手工替换，也不要为单个商品复制新的提示词文件；商品差异统一维护在 `vlm/scripts/generate/prompt_renderer.py`。

@@ -6,20 +6,135 @@ Caller is responsible for calling load_api_env() before require_api_key().
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
+import socket
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator, NamedTuple
+from urllib.parse import urlparse
 
 import requests
+from PIL import Image, ImageOps
+
+from vlm.scripts._http import direct_http_session
 
 
 IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
+RESULT_CONTENT_TYPES = {
+    "application/octet-stream",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+MAX_DOWNLOAD_BYTES = 64 * 1024 * 1024
+MAX_UPLOAD_LONG_SIDE = 8192
+MAX_UPLOAD_PIXELS = 40_000_000
+RUNNINGHUB_HOSTS = {"runninghub.cn", "www.runninghub.cn"}
 
 UPLOAD_URL = "https://www.runninghub.cn/openapi/v2/media/upload/binary"
 QUERY_URL = "https://www.runninghub.cn/openapi/v2/query"
 DEFAULT_ENDPOINT = "https://www.runninghub.cn/openapi/v2/rhart-image-g-2/image-to-image"
+
+
+class PreparedUpload(NamedTuple):
+    """Provider-safe upload path plus resize metadata."""
+
+    path: Path
+    source_size: tuple[int, int]
+    upload_size: tuple[int, int]
+    resized: bool
+
+
+def _bounded_upload_size(width: int, height: int) -> tuple[int, int]:
+    """Return dimensions satisfying RunningHub's long-side and pixel limits."""
+    if width < 1 or height < 1:
+        raise ValueError(f"Invalid image dimensions: {width}x{height}")
+    scale = min(
+        1.0,
+        MAX_UPLOAD_LONG_SIDE / max(width, height),
+        (MAX_UPLOAD_PIXELS / (width * height)) ** 0.5,
+    )
+    if scale >= 1.0:
+        return width, height
+    return max(1, int(width * scale)), max(1, int(height * scale))
+
+
+@contextmanager
+def prepare_upload_image(image_path: Path, work_dir: Path) -> Iterator[PreparedUpload]:
+    """Yield an upload-safe image without modifying the source file."""
+    with Image.open(image_path) as source:
+        source_size = source.size
+        target_size = _bounded_upload_size(*source_size)
+        if target_size == source_size:
+            yield PreparedUpload(image_path, source_size, source_size, False)
+            return
+
+        work_dir.mkdir(parents=True, exist_ok=True)
+        temporary = work_dir / f".{image_path.stem}.runninghub-upload.jpg"
+        try:
+            rendered = ImageOps.exif_transpose(source)
+            if rendered.size != source_size:
+                target_size = _bounded_upload_size(*rendered.size)
+            rendered.thumbnail(target_size, Image.Resampling.LANCZOS)
+            if rendered.mode != "RGB":
+                rendered = rendered.convert("RGB")
+            rendered.save(temporary, format="JPEG", quality=95, optimize=True)
+            with Image.open(temporary) as verification:
+                upload_size = verification.size
+                if (
+                    max(upload_size) > MAX_UPLOAD_LONG_SIDE
+                    or upload_size[0] * upload_size[1] > MAX_UPLOAD_PIXELS
+                ):
+                    raise RuntimeError(
+                        f"Prepared upload still exceeds RunningHub limits: {upload_size}"
+                    )
+            yield PreparedUpload(temporary, source_size, upload_size, True)
+        finally:
+            temporary.unlink(missing_ok=True)
+
+
+def _validate_https_url(url: str, *, allowed_hosts: set[str] | None = None) -> str:
+    """Validate a remote HTTPS URL before sending credentials or downloading data."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    if (
+        parsed.scheme != "https"
+        or not host
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.port not in {None, 443}
+    ):
+        raise ValueError(f"Only absolute HTTPS URLs are allowed: {url}")
+    if allowed_hosts is not None and host not in allowed_hosts:
+        raise ValueError(f"Unexpected API host: {host}")
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        address = None
+    if host == "localhost" or (address is not None and not address.is_global):
+        raise ValueError(f"Private or local URL hosts are not allowed: {host}")
+    if allowed_hosts is None and address is None:
+        try:
+            resolved = {
+                ipaddress.ip_address(sockaddr[0].split("%", 1)[0])
+                for *_, sockaddr in socket.getaddrinfo(
+                    host, 443, type=socket.SOCK_STREAM
+                )
+            }
+        except (OSError, ValueError) as exc:
+            raise ValueError(f"Unable to resolve result URL host: {host}") from exc
+        if not resolved or any(not item.is_global for item in resolved):
+            raise ValueError(f"Private or local URL hosts are not allowed: {host}")
+    return url
+
+
+def safe_result_extension(value: Any, *, default: str = ".png") -> str:
+    """Map a provider output type to a fixed image extension allowlist."""
+    extension = "." + str(value or "").strip().lstrip(".").lower()
+    return extension if extension in IMAGE_SUFFIXES else default
 
 
 def load_api_env(env_path: Path | None = None) -> None:
@@ -40,6 +155,7 @@ def load_api_env(env_path: Path | None = None) -> None:
 
 
 def require_api_key() -> str:
+    """Return the configured RunningHub key or raise when absent."""
     api_key = os.environ.get("RUNNINGHUB_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("RUNNINGHUB_API_KEY is not set. Check vlm/config/api.env.")
@@ -55,12 +171,13 @@ def _auth_headers(api_key: str, *, json_content: bool = True) -> dict[str, str]:
 
 def upload_image(api_key: str, image_path: Path) -> dict[str, Any]:
     """Upload a local image and return the RunningHub data payload (contains download_url)."""
-    with image_path.open("rb") as fh:
-        resp = requests.post(
+    with direct_http_session() as session, image_path.open("rb") as fh:
+        resp = session.post(
             UPLOAD_URL,
             headers=_auth_headers(api_key, json_content=False),
             files={"file": (image_path.name, fh)},
             timeout=120,
+            allow_redirects=False,
         )
     resp.raise_for_status()
     data = resp.json()
@@ -82,13 +199,21 @@ def submit_task(
     resolution: str = "1k",
 ) -> dict[str, Any]:
     """Submit an image-to-image task and return the API response (contains taskId)."""
+    _validate_https_url(endpoint, allowed_hosts=RUNNINGHUB_HOSTS)
     payload = {
         "prompt": prompt,
         "imageUrls": image_urls,
         "aspectRatio": aspect_ratio,
         "resolution": resolution,
     }
-    resp = requests.post(endpoint, headers=_auth_headers(api_key), data=json.dumps(payload), timeout=120)
+    with direct_http_session() as session:
+        resp = session.post(
+            endpoint,
+            headers=_auth_headers(api_key),
+            data=json.dumps(payload),
+            timeout=120,
+            allow_redirects=False,
+        )
     resp.raise_for_status()
     data = resp.json()
     if data.get("errorCode") or str(data.get("status") or "").upper() == "FAILED":
@@ -107,37 +232,70 @@ def poll_task(
 ) -> dict[str, Any]:
     """Poll until task reaches SUCCESS. Raises RuntimeError on failure, TimeoutError on timeout."""
     deadline = time.time() + timeout
-    while True:
-        resp = requests.post(
-            QUERY_URL,
-            headers=_auth_headers(api_key),
-            data=json.dumps({"taskId": task_id}),
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        status = str(data.get("status") or "").upper()
-        if status == "SUCCESS":
-            return data
-        if status not in ("QUEUED", "RUNNING"):
-            raise RuntimeError(f"Task {task_id} failed: {data}")
-        if time.time() >= deadline:
-            raise TimeoutError(f"Timeout waiting for task {task_id}. Last: {data}")
-        time.sleep(poll_interval)
+    with direct_http_session() as session:
+        while True:
+            resp = session.post(
+                QUERY_URL,
+                headers=_auth_headers(api_key),
+                data=json.dumps({"taskId": task_id}),
+                timeout=120,
+                allow_redirects=False,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            status = str(data.get("status") or "").upper()
+            if status == "SUCCESS":
+                return data
+            if status not in ("QUEUED", "RUNNING"):
+                raise RuntimeError(f"Task {task_id} failed: {data}")
+            if time.time() >= deadline:
+                raise TimeoutError(f"Timeout waiting for task {task_id}. Last: {data}")
+            time.sleep(poll_interval)
 
 
 def download_result(result: dict[str, Any], output_path: Path) -> Path:
     """Download a single result entry to output_path. Uses .part temp file for atomicity."""
-    url = result.get("url")
+    url = str(result.get("url") or "")
     if not url:
         raise RuntimeError(f"No URL in result entry: {result}")
+    _validate_https_url(url)
     tmp = output_path.with_suffix(output_path.suffix + ".part")
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with requests.get(url, stream=True, timeout=120) as r:
-        r.raise_for_status()
-        with tmp.open("wb") as fh:
-            for chunk in r.iter_content(chunk_size=256 * 1024):
-                if chunk:
-                    fh.write(chunk)
-    tmp.replace(output_path)
+    downloaded = 0
+    try:
+        with direct_http_session() as session:
+            with session.get(
+                url,
+                stream=True,
+                timeout=120,
+                allow_redirects=False,
+            ) as r:
+                r.raise_for_status()
+                content_length = r.headers.get("Content-Length", "")
+                if content_length and int(content_length) > MAX_DOWNLOAD_BYTES:
+                    raise RuntimeError(
+                        f"RunningHub result exceeds {MAX_DOWNLOAD_BYTES} bytes"
+                    )
+                content_type = r.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+                if content_type and content_type not in RESULT_CONTENT_TYPES:
+                    raise RuntimeError(f"Unexpected result content type: {content_type}")
+                with tmp.open("wb") as fh:
+                    for chunk in r.iter_content(chunk_size=256 * 1024):
+                        if not chunk:
+                            continue
+                        downloaded += len(chunk)
+                        if downloaded > MAX_DOWNLOAD_BYTES:
+                            raise RuntimeError(
+                                f"RunningHub result exceeds {MAX_DOWNLOAD_BYTES} bytes"
+                            )
+                        fh.write(chunk)
+        with Image.open(tmp) as image:
+            image.verify()
+            if str(image.format or "").upper() not in {"JPEG", "PNG", "WEBP"}:
+                raise RuntimeError(f"Unexpected result image format: {image.format}")
+        tmp.replace(output_path)
+    except Exception:
+        if tmp.exists():
+            tmp.unlink()
+        raise
     return output_path
