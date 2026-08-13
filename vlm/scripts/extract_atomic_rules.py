@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import csv
 import hashlib
 import json
 import os
@@ -21,25 +20,37 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
 import requests
 
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[2]))
 
+from vlm.scripts._http import direct_http_session
+from vlm.scripts._dataset_manifest import (
+    atomic_status_fields,
+    CONSOLIDATED_MANIFEST,
+    MANIFEST_COLUMNS,
+    SN7_DATASET_ROOT,
+    SN7_DATASET_ID,
+    read_manifest_rows,
+    resolve_manifest_image,
+    update_dataset_fields,
+)
 from vlm.scripts._paths import API_ENV_FILE, load_api_env
 from vlm.scripts._validation import (
-    resolve_manifest_path,
     validate_path_component,
     validate_qwen_base_url,
 )
 
-DEFAULT_ROOT = Path("vlm/data/design_sheet_10610")
-DEFAULT_MANIFEST = DEFAULT_ROOT / "manifest.csv"
+DEFAULT_ROOT = SN7_DATASET_ROOT
+DEFAULT_MANIFEST = CONSOLIDATED_MANIFEST
 DEFAULT_OUTPUT = DEFAULT_ROOT / "atomic_rules"
 DEFAULT_PROMPT = Path("vlm/prompts/supervision/atomic_rules_cn.txt")
 DEFAULT_MODEL = "qwen3-vl-plus"
 DEFAULT_BASE_URL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 SUPPORTED_SUFFIXES = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+LINE_ART_ERROR_TYPE = "black_white_line_art"
 
 
 def parse_args() -> argparse.Namespace:
@@ -100,16 +111,66 @@ def media_data_url(path: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode('ascii')}"
 
 
+def is_probable_black_white_line_art(path: Path) -> bool:
+    """Return whether an image is an obvious black/white line-art draft.
+
+    The gate is intentionally conservative: it only blocks images that are both
+    nearly colorless and dominated by white paper plus dark contour pixels.
+    Colored character sheets and grayscale shaded artwork should continue to
+    the VLM review instead of being rejected locally.
+    """
+    with Image.open(path) as image:
+        image = image.convert("RGB")
+        image.thumbnail((512, 512))
+        pixels = list(image.get_flattened_data() if hasattr(image, "get_flattened_data") else image.getdata())
+    if not pixels:
+        return False
+    total = len(pixels)
+    near_gray = 0
+    very_light = 0
+    very_dark = 0
+    midtone = 0
+    chroma_values: list[int] = []
+    for red, green, blue in pixels:
+        high = max(red, green, blue)
+        low = min(red, green, blue)
+        chroma = high - low
+        chroma_values.append(chroma)
+        if chroma <= 12:
+            near_gray += 1
+        luminance = int(0.299 * red + 0.587 * green + 0.114 * blue)
+        if luminance >= 238:
+            very_light += 1
+        elif luminance <= 45:
+            very_dark += 1
+        else:
+            midtone += 1
+    gray_ratio = near_gray / total
+    white_ratio = very_light / total
+    dark_ratio = very_dark / total
+    midtone_ratio = midtone / total
+    chroma_mean = sum(chroma_values) / total
+    return (
+        gray_ratio >= 0.985
+        and chroma_mean <= 4.0
+        and white_ratio >= 0.72
+        and 0.015 <= dark_ratio <= 0.22
+        and midtone_ratio <= 0.25
+    )
+
+
 def load_rows(path: Path) -> list[dict[str, str]]:
     """Load manifest rows that contain sample IDs."""
-    with path.open("r", encoding="utf-8-sig", newline="") as handle:
-        return [dict(row) for row in csv.DictReader(handle) if row.get("post_id")]
+    return [
+        row
+        for row in read_manifest_rows(path, dataset_id=SN7_DATASET_ID)
+        if row.get("post_id") or row.get("sample_id")
+    ]
 
 
-def resolve_image_path(row: dict[str, str], output_root: Path) -> Path:
-    """Resolve a portable image path below the SN-7 dataset root."""
-    root = output_root.parent
-    return resolve_manifest_path(root, row["image_path"], "image_path")
+def resolve_image_path(row: dict[str, str], manifest_path: Path) -> Path:
+    """Resolve a portable image path relative to its declaring manifest."""
+    return resolve_manifest_image(manifest_path, row)
 
 
 def parse_json(text: str) -> dict[str, Any]:
@@ -135,8 +196,30 @@ def snake_case(value: Any) -> str:
     return text or "unnamed_rule"
 
 
+def normalize_rule_id(value: Any) -> str:
+    """Return a rule id while preserving natural Chinese labels."""
+    text = str(value or "").strip()
+    if re.search(r"[\u4e00-\u9fff]", text):
+        return re.sub(r"\s+", "", text)
+    return snake_case(text)
+
+
+def normalize_location(value: Any) -> str:
+    """Normalize English or Chinese locations to the current JSON contract."""
+    text = str(value or "").strip().lower()
+    if text in {"head", "头部"}:
+        return "头部"
+    if text in {"body", "身体"}:
+        return "身体"
+    return text
+
+
 def normalize_rules(raw: dict[str, Any], sample_id: str, image_path: Path, model: str, prompt_hash: str, elapsed: float) -> dict[str, Any]:
     """Normalize raw model rules to the atomic_rules.v1 contract."""
+    if isinstance(raw.get("error"), dict):
+        error_type = str(raw["error"].get("type", "")).strip() or "model_rejected_input"
+        message = str(raw["error"].get("message", "")).strip()
+        raise ValueError(f"{error_type}: {message}")
     rules = raw.get("atomic_rules", raw.get("rules", []))
     if not isinstance(rules, list):
         raise ValueError("atomic_rules must be a list")
@@ -145,14 +228,14 @@ def normalize_rules(raw: dict[str, Any], sample_id: str, image_path: Path, model
     for item in rules:
         if not isinstance(item, dict):
             continue
-        rule_id = snake_case(item.get("id", item.get("rule_id", item.get("name"))))
+        rule_id = normalize_rule_id(item.get("id", item.get("rule_id", item.get("name"))))
         if rule_id in seen:
             continue
         if "value" not in item:
             continue
-        location = str(item.get("location", "")).strip().lower()
-        if location not in {"head", "body"}:
-            raise ValueError(f"Rule {rule_id!r} must include location=head or location=body")
+        location = normalize_location(item.get("location", ""))
+        if location not in {"头部", "身体"}:
+            raise ValueError(f"Rule {rule_id!r} must include location=头部 or location=身体")
         seen.add(rule_id)
         value = item["value"]
         if not isinstance(value, (str, int, float, bool)):
@@ -195,25 +278,26 @@ def call_qwen(api_key: str, base_url: str, model: str, prompt: str, image_path: 
     }
     last_error: Exception | None = None
     started = time.time()
-    for attempt in range(args.max_retries + 1):
-        try:
-            response = requests.post(
-                base_url.rstrip("/") + "/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                json=payload,
-                timeout=args.timeout,
-                allow_redirects=False,
-            )
-            if response.status_code in {401, 403, 400}:
+    with direct_http_session() as session:
+        for attempt in range(args.max_retries + 1):
+            try:
+                response = session.post(
+                    base_url.rstrip("/") + "/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    json=payload,
+                    timeout=args.timeout,
+                    allow_redirects=False,
+                )
+                if response.status_code in {401, 403, 400}:
+                    response.raise_for_status()
                 response.raise_for_status()
-            response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
-            return str(content), attempt, time.time() - started
-        except (requests.RequestException, KeyError, IndexError, TypeError) as exc:
-            last_error = exc
-            if attempt >= args.max_retries:
-                break
-            time.sleep(min(30.0, 2.0**attempt))
+                content = response.json()["choices"][0]["message"]["content"]
+                return str(content), attempt, time.time() - started
+            except (requests.RequestException, KeyError, IndexError, TypeError) as exc:
+                last_error = exc
+                if attempt >= args.max_retries:
+                    break
+                time.sleep(min(30.0, 2.0**attempt))
     raise RuntimeError(f"Qwen request failed after retries: {last_error}")
 
 
@@ -231,6 +315,9 @@ def classify_rejection(message: str) -> str:
         "敏感",
         "违规",
         "拒绝",
+        LINE_ART_ERROR_TYPE,
+        "line-art",
+        "线条稿",
     )
     return "content_policy_or_provider_rejection" if any(marker in lowered for marker in content_markers) else "runtime_error"
 
@@ -238,7 +325,7 @@ def classify_rejection(message: str) -> str:
 def process_row(row: dict[str, str], prompt: str, prompt_hash: str, args: argparse.Namespace, api_key: str, base_url: str) -> dict[str, Any]:
     """Process one manifest row into an atomic_rules result."""
     sample_id = validate_path_component(str(row["post_id"]), "sample ID")
-    image_path = resolve_image_path(row, args.output_root)
+    image_path = resolve_image_path(row, args.manifest)
     sample_dir = args.output_root / sample_id
     result_path = sample_dir / "atomic_rules.json"
     legacy_path = sample_dir / f"{sample_id}_atomic_rules.json"
@@ -263,6 +350,8 @@ def process_row(row: dict[str, str], prompt: str, prompt_hash: str, args: argpar
         return {"status": "dry_run", "sample_id": sample_id}
     if not image_path.exists():
         raise FileNotFoundError(image_path)
+    if is_probable_black_white_line_art(image_path):
+        raise ValueError(f"{LINE_ART_ERROR_TYPE}: obvious black/white line-art input")
     raw_text, attempts, elapsed = call_qwen(api_key, base_url, args.model, prompt, image_path, args)
     (sample_dir / "raw_response.txt").write_text(raw_text, encoding="utf-8")
     result = normalize_rules(parse_json(raw_text), sample_id, image_path, args.model, prompt_hash, elapsed)
@@ -339,6 +428,19 @@ def main() -> None:
     }
     args.output_root.mkdir(parents=True, exist_ok=True)
     write_json_atomic(args.output_root / "extraction_summary.json", summary)
+    if not args.dry_run and args.manifest.resolve() == CONSOLIDATED_MANIFEST.resolve():
+        update_dataset_fields(
+            CONSOLIDATED_MANIFEST,
+            SN7_DATASET_ID,
+            {
+                str(row["post_id"]): atomic_status_fields(
+                    args.output_root,
+                    str(row["post_id"]),
+                )
+                for row in rows
+            },
+            MANIFEST_COLUMNS,
+        )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     if summary["errors"]:
         raise SystemExit(1)

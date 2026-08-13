@@ -12,55 +12,30 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
-
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._sn7_artifacts import (
+    CATEGORIES,
+    CATEGORY_OUTPUT_SUFFIXES,
+    find_generated_output,
+)
 from vlm.scripts.generate.runninghub_client import load_api_env
 from vlm.scripts._validation import validate_path_component
 
 
-DEFAULT_DATASET = Path("vlm/data/design_sheet_10610")
+DEFAULT_DATASET = Path("vlm/data/sn7_data_generation")
 DEFAULT_ASSIGNMENT_DIR = DEFAULT_DATASET / "reports" / "merchandise_category_assignment"
 DEFAULT_RUN_DIR = Path("vlm/tmp/sn7_runninghub_full_generation")
 DEFAULT_PROMPT_FILE = Path("vlm/prompts/generation/runninghub/merchandise_generation_cn.txt")
-# Note 1: The same suffix set is used by the lower-level generator. Keep both in
-# sync so "already generated" checks match actual output naming.
-IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
-
-# Note 2: CATEGORY_CONFIGS is the main routing table for the orchestrator. Adding
-# a category should usually mean adding one entry here and one name in DEFAULT_ORDER.
 CATEGORY_CONFIGS = {
-    "head_key_chain": {
-        "output_suffix": "head_keychain",
-        "output_subdir": Path("head_key_chain"),
-    },
-    "backpack": {
-        "output_suffix": "backpack",
-        "output_subdir": Path("backpack"),
-    },
-    "cake_roll": {
-        "output_suffix": "cake_roll",
-        "output_subdir": Path("cake_roll"),
-    },
-    "plush": {
-        "output_suffix": "plush",
-        "output_subdir": Path("plush"),
-    },
-    "dataset_QSitFigures": {
-        "output_suffix": "SitFigures",
-        "output_subdir": Path("dataset_QSitFigures"),
-    },
-    "dataset_figurine": {
-        "output_suffix": "figurine",
-        "output_subdir": Path("dataset_figurine"),
-    },
+    category: {"output_suffix": suffix, "output_subdir": Path(category)}
+    for category, suffix in CATEGORY_OUTPUT_SUFFIXES.items()
 }
 
 # Note 3: The order is intentionally sequential and stable. Running one category
 # at a time keeps logs readable and reduces accidental duplicate API pressure.
-DEFAULT_ORDER = ("head_key_chain", "cake_roll", "backpack", "plush", "dataset_QSitFigures", "dataset_figurine")
+DEFAULT_ORDER = CATEGORIES
 
 
 def parse_args() -> argparse.Namespace:
@@ -97,6 +72,16 @@ def parse_args() -> argparse.Namespace:
         help="Seconds to wait before rescanning for atomic rules in --follow-atomic-rules mode.",
     )
     parser.add_argument("--refresh-assignment", action="store_true")
+    parser.add_argument(
+        "--retry-failed",
+        action="store_true",
+        help="Resubmit samples that already have generation_error.json.",
+    )
+    parser.add_argument(
+        "--skip-xlsx",
+        action="store_true",
+        help="Generate images without creating per-sample annotation workbooks.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -118,28 +103,23 @@ def read_sample_ids(path: Path) -> list[str]:
 
 
 def has_existing_output(output_dir: Path, sample_id: str, output_suffix: str) -> bool:
-    """Return whether a valid canonical output image already exists."""
+    """Return whether a valid generated output already exists for this sample."""
     # Note 7: This is the resume guard. A sample is skipped only when the expected
     # generated image file already exists in its output directory.
-    sample_dir = output_dir / sample_id
-    if not sample_dir.exists():
-        return False
-    for suffix in IMAGE_SUFFIXES:
-        candidate = sample_dir / f"{sample_id}_{output_suffix}{suffix}"
-        if not candidate.is_file() or candidate.stat().st_size <= 0:
-            continue
-        try:
-            with Image.open(candidate) as image:
-                image.verify()
-        except Exception:
-            continue
-        return True
-    return False
+    return find_generated_output(output_dir / sample_id, sample_id, output_suffix) is not None
 
 
 def has_atomic_rules(atomic_dir: Path, sample_id: str) -> bool:
-    """Return whether a sample has canonical or historical atomic rules."""
+    """Return whether a sample has usable atomic rules.
+
+    A terminal ``error.json`` wins over stale rule files. This matters after an
+    ``--overwrite`` extraction run: a rejected sample may still have an older
+    ``atomic_rules.json`` from a previous prompt, and submitting that stale file
+    would silently bypass the extraction failure.
+    """
     sample_dir = atomic_dir / sample_id
+    if has_atomic_error(atomic_dir, sample_id):
+        return False
     return (
         (sample_dir / "atomic_rules.json").exists()
         or (sample_dir / f"{sample_id}_atomic_rules.json").exists()
@@ -151,24 +131,40 @@ def has_atomic_error(atomic_dir: Path, sample_id: str) -> bool:
     return (atomic_dir / sample_id / "error.json").exists()
 
 
+def has_generation_error(output_dir: Path, sample_id: str) -> bool:
+    """Return whether RunningHub recorded a terminal generation error."""
+    return (output_dir / sample_id / "generation_error.json").is_file()
+
+
 def categorize_sample_ids(
     sample_ids: list[str],
     output_dir: Path,
     output_suffix: str,
     atomic_dir: Path,
     attempted_ids: set[str],
+    *,
+    retry_failed: bool = False,
 ) -> dict[str, list[str]]:
-    """Partition a category queue without resubmitting work from this invocation."""
-    states = {"existing": [], "attempted": [], "ready": [], "atomic_errors": [], "waiting": []}
+    """Partition a category queue without resubmitting completed or failed work."""
+    states = {
+        "existing": [],
+        "attempted": [],
+        "generation_errors": [],
+        "ready": [],
+        "atomic_errors": [],
+        "waiting": [],
+    }
     for sample_id in sample_ids:
         if has_existing_output(output_dir, sample_id, output_suffix):
             states["existing"].append(sample_id)
         elif sample_id in attempted_ids:
             states["attempted"].append(sample_id)
-        elif has_atomic_rules(atomic_dir, sample_id):
-            states["ready"].append(sample_id)
         elif has_atomic_error(atomic_dir, sample_id):
             states["atomic_errors"].append(sample_id)
+        elif has_generation_error(output_dir, sample_id) and not retry_failed:
+            states["generation_errors"].append(sample_id)
+        elif has_atomic_rules(atomic_dir, sample_id):
+            states["ready"].append(sample_id)
         else:
             states["waiting"].append(sample_id)
     return states
@@ -209,6 +205,19 @@ def run_and_log(command: list[str], log_path: Path) -> tuple[int, dict[str, Any]
                 if payload.get("status") == "finished":
                     final_summary = payload
         return process.wait(), final_summary
+
+
+def is_nonfatal_sample_failure(return_code: int, child_summary: dict[str, Any] | None) -> bool:
+    """Return whether a child failure is limited to completed sample-level failures."""
+    # Note 12a: The lower-level generator intentionally exits 1 when any sample is
+    # rejected by RunningHub or returns no image. That should not stop later
+    # categories; only a missing/incomplete child summary means the category
+    # process itself crashed and the orchestrator must fail fast.
+    if return_code == 0 or not child_summary:
+        return False
+    if child_summary.get("status") != "finished":
+        return False
+    return bool(child_summary.get("failed", 0) or child_summary.get("no_image_url_found", 0))
 
 
 def run_refresh_assignment(args: argparse.Namespace) -> None:
@@ -279,6 +288,8 @@ def category_command(
         # Note 16: Dry-run is forwarded to the child generator so the complete
         # command path can be validated without requiring RunningHub credits.
         command.append("--dry-run")
+    if getattr(args, "skip_xlsx", False):
+        command.append("--skip-xlsx")
     return command
 
 
@@ -311,6 +322,7 @@ def main() -> None:
 
     overall: list[dict[str, Any]] = []
     attempted_ids = {category: set() for category in categories}
+    saw_nonfatal_sample_failures = False
     print(
         # Note 21: The first line records batch-level configuration in a
         # machine-readable form for later handoff notes or debugging.
@@ -322,6 +334,7 @@ def main() -> None:
                 "category_parallelism": 1,
                 "follow_atomic_rules": args.follow_atomic_rules,
                 "atomic_poll_interval": args.atomic_poll_interval if args.follow_atomic_rules else None,
+                "skip_xlsx": bool(getattr(args, "skip_xlsx", False)),
                 "log_dir": str(log_dir),
                 "dry_run": args.dry_run,
             },
@@ -346,6 +359,7 @@ def main() -> None:
                 str(config["output_suffix"]),
                 args.dataset_dir / "atomic_rules",
                 attempted_ids[category],
+                retry_failed=args.retry_failed,
             )
             pending_ids = states["ready"]
             if args.max_samples_per_category > 0:
@@ -364,6 +378,7 @@ def main() -> None:
                 "existing_outputs": len(states["existing"]),
                 "already_attempted_this_run": len(states["attempted"]),
                 "skipped_missing_atomic_rules": len(states["waiting"]),
+                "skipped_generation_errors": len(states["generation_errors"]),
                 "skipped_atomic_rule_errors": len(states["atomic_errors"]),
                 "selected_samples": len(pending_ids),
             }
@@ -398,9 +413,17 @@ def main() -> None:
                 "log_path": str(log_path),
                 "child_summary": child_summary or {},
             }
+            nonfatal_sample_failure = is_nonfatal_sample_failure(return_code, child_summary)
+            if nonfatal_sample_failure:
+                # Note 22a: RunningHub rejections are recorded per sample. Keep
+                # moving so one policy/size failure does not strand every later
+                # category in a long SN-7 run.
+                result["status"] = "category_finished_with_sample_failures"
+                result["sample_failure_nonfatal"] = True
+                saw_nonfatal_sample_failures = True
             print(json.dumps(result, ensure_ascii=False), flush=True)
             overall.append(result)
-            if return_code != 0:
+            if return_code != 0 and not nonfatal_sample_failure:
                 raise SystemExit(f"Category {category} failed with return code {return_code}. See {log_path}")
 
         if not args.follow_atomic_rules or args.dry_run or waiting_for_atomic == 0:
@@ -423,7 +446,14 @@ def main() -> None:
     # Note 29: The summary file is compact compared with full logs and is usually
     # the first artifact to inspect after a long run.
     summary_path.write_text(json.dumps(overall, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({"status": "runninghub_full_batch_finished", "summary_path": str(summary_path)}, ensure_ascii=False))
+    final_status = (
+        "runninghub_full_batch_finished_with_sample_failures"
+        if saw_nonfatal_sample_failures
+        else "runninghub_full_batch_finished"
+    )
+    print(json.dumps({"status": final_status, "summary_path": str(summary_path)}, ensure_ascii=False))
+    if saw_nonfatal_sample_failures:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

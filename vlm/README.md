@@ -8,11 +8,12 @@
 - `config/api.env.example`：允许的本地 API 配置项。
 - `data/1-动漫标注结果导出_paired_samples/`：SN-6 配对人工金标源数据。
 - `data/front_view_generation_v1/`：SN-6 已生成的 20 样本 pilot。
-- `data/design_sheet_10610/`：SN-7 数据根目录；当前机器尚未放入源设定集。
+- `data/sn7_data_generation/`：SN-7 数据与生成产物根目录。
+- `data/sn7_data_generation/manifest.csv`：本机唯一汇总清单，包含批次、分类和 atomic 执行状态。
 - `tmp/paired_front_view_review_v1/`：SN-6 Qwen 监修结果。
 - `tmp/paired_front_view_human_gold_v1/`：SN-6 人工复核包。
 
-`data/` 和 `tmp/` 是本地资产，不进入 Git。交接或迁移时必须单独复制，并核对 `vlm/docs/HANDOFF.md` 中的目录清单。
+`data/` 和 `tmp/` 是本地资产，不进入 Git。交接或迁移时必须单独复制，并核对仓库根目录 `handoff/LATEST.md` 中的目录清单。
 
 ## 安全边界
 

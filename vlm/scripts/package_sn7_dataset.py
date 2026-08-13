@@ -12,16 +12,28 @@ from typing import Any
 
 from PIL import Image
 
+from vlm.scripts._dataset_manifest import (
+    CONSOLIDATED_MANIFEST,
+    SN7_DATASET_ROOT,
+    SN7_DATASET_ID,
+    index_manifest_rows,
+    resolve_manifest_image,
+)
+from vlm.scripts._preservation import publish_staged_directory
+from vlm.scripts._sn7_artifacts import (
+    CATEGORIES,
+    CATEGORY_OUTPUT_SUFFIXES as OUTPUT_SUFFIXES,
+    IMAGE_SUFFIXES,
+    find_category_generated_output,
+)
 from vlm.scripts._validation import (
     require_within,
-    resolve_manifest_path,
     validate_path_component,
 )
-from vlm.scripts.data.assign_merchandise_categories import CATEGORIES
 from vlm.scripts.utils.atomic_rule_xlsx import write_atomic_rules_xlsx
 
 
-DEFAULT_ROOT = Path("vlm/data/design_sheet_10610")
+DEFAULT_ROOT = SN7_DATASET_ROOT
 DEFAULT_ASSIGNMENT = (
     DEFAULT_ROOT
     / "reports"
@@ -29,17 +41,6 @@ DEFAULT_ASSIGNMENT = (
     / "merchandise_category_assignments.csv"
 )
 DEFAULT_PACKAGE = DEFAULT_ROOT / "deliverables"
-IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
-OUTPUT_SUFFIXES = {
-    "head_key_chain": "head_keychain",
-    "cake_roll": "cake_roll",
-    "backpack": "backpack",
-    "plush": "plush",
-    "dataset_QSitFigures": "SitFigures",
-    "dataset_figurine": "figurine",
-}
-
-
 def parse_args() -> argparse.Namespace:
     """Parse SN-7 packager arguments."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -48,7 +49,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--assignment-csv", type=Path, default=None)
     parser.add_argument("--generated-root", type=Path, default=None)
     parser.add_argument("--package-root", type=Path, default=None)
-    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Publish a new package and archive the existing package root.",
+    )
     parser.add_argument("--allow-incomplete", action="store_true")
     return parser.parse_args()
 
@@ -69,6 +74,8 @@ def _read_csv(path: Path, id_field: str) -> dict[str, dict[str, str]]:
 def find_atomic_file(root: Path, sample_id: str) -> Path | None:
     """Find the canonical or historical atomic-rules filename for one sample."""
     sample_dir = root / sample_id
+    if (sample_dir / "error.json").is_file():
+        return None
     for name in ("atomic_rules.json", f"{sample_id}_atomic_rules.json"):
         candidate = sample_dir / name
         if candidate.is_file():
@@ -77,14 +84,8 @@ def find_atomic_file(root: Path, sample_id: str) -> Path | None:
 
 
 def find_multiview_file(root: Path, category: str, sample_id: str) -> Path | None:
-    """Find the canonical generated image for one category assignment."""
-    sample_dir = root / category / sample_id
-    suffix_name = OUTPUT_SUFFIXES[category]
-    for extension in IMAGE_SUFFIXES:
-        candidate = sample_dir / f"{sample_id}_{suffix_name}{extension}"
-        if candidate.is_file():
-            return candidate
-    return None
+    """Find the valid canonical generated image for one category assignment."""
+    return find_category_generated_output(root, category, sample_id)
 
 
 def _copy_atomic(source: Path, target: Path) -> None:
@@ -102,12 +103,17 @@ def _write_package_rules(source: Path, target: Path, sample_id: str) -> None:
     payload = json.loads(source.read_text(encoding="utf-8-sig"))
     rules: list[dict[str, Any]] = []
     for rule in payload.get("atomic_rules", []):
-        if not isinstance(rule, dict) or rule.get("location") not in {"head", "body"}:
+        location = str(rule.get("location", "")).strip() if isinstance(rule, dict) else ""
+        if location in {"头部", "身体"}:
+            canonical_location = {"头部": "head", "身体": "body"}[location]
+        else:
+            canonical_location = location
+        if not isinstance(rule, dict) or canonical_location not in {"head", "body"}:
             raise ValueError(f"Invalid atomic rule for {sample_id}: {rule!r}")
         rules.append(
             {
                 "id": str(rule.get("id", "")),
-                "location": rule["location"],
+                "location": location,
                 "value": rule.get("value"),
             }
         )
@@ -173,27 +179,15 @@ def _write_incomplete_csv(path: Path, rows: list[dict[str, str]]) -> None:
             temp.unlink()
 
 
-def _replace_directory(staged: Path, destination: Path) -> None:
-    """Replace a complete staged package and roll back a failed rename."""
-    backup = destination.with_name(destination.name + ".previous")
-    if backup.exists():
-        shutil.rmtree(backup)
-    if destination.exists():
-        destination.replace(backup)
-    try:
-        staged.replace(destination)
-    except Exception:
-        if backup.exists() and not destination.exists():
-            backup.replace(destination)
-        raise
-    if backup.exists():
-        shutil.rmtree(backup)
-
-
 def package_dataset(args: argparse.Namespace) -> dict[str, Any]:
     """Build deterministic SN-7 deliverable folders and return a summary."""
     root = args.root.resolve()
-    manifest_path = (args.manifest or root / "manifest.csv").resolve()
+    if args.manifest:
+        manifest_path = args.manifest.resolve()
+    elif root == DEFAULT_ROOT.resolve() and CONSOLIDATED_MANIFEST.is_file():
+        manifest_path = CONSOLIDATED_MANIFEST.resolve()
+    else:
+        manifest_path = root / "manifest.csv"
     assignment_path = (args.assignment_csv or root / DEFAULT_ASSIGNMENT.relative_to(DEFAULT_ROOT)).resolve()
     generated_root = (args.generated_root or root / "generated").resolve()
     package_root = require_within(
@@ -205,10 +199,18 @@ def package_dataset(args: argparse.Namespace) -> dict[str, Any]:
 
     if package_root.exists() and not args.overwrite:
         raise FileExistsError(
-            f"Package root already exists: {package_root}. Pass --overwrite to replace it."
+            f"Package root already exists: {package_root}. Pass --overwrite to "
+            "archive it and publish a replacement."
         )
 
-    manifest = _read_csv(manifest_path, "post_id")
+    manifest = index_manifest_rows(
+        manifest_path,
+        dataset_id=(
+            SN7_DATASET_ID
+            if manifest_path == CONSOLIDATED_MANIFEST.resolve()
+            else None
+        ),
+    )
     assignments = _read_csv(assignment_path, "sample_id")
     if set(manifest) != set(assignments):
         missing_assignment = sorted(set(manifest) - set(assignments))
@@ -230,9 +232,7 @@ def package_dataset(args: argparse.Namespace) -> dict[str, Any]:
             category = assignments[sample_id].get("primary_category", "")
             if category not in CATEGORIES:
                 raise ValueError(f"Unsupported category for {sample_id}: {category!r}")
-            source_image = resolve_manifest_path(
-                root, manifest[sample_id].get("image_path", ""), "image_path"
-            )
+            source_image = resolve_manifest_image(manifest_path, manifest[sample_id])
             atomic_file = find_atomic_file(atomic_root, sample_id)
             multiview_file = find_multiview_file(generated_root, category, sample_id)
             missing = [
@@ -282,7 +282,7 @@ def package_dataset(args: argparse.Namespace) -> dict[str, Any]:
             _write_json_atomic(validation_dir / "package_summary.json", summary)
             return summary
 
-        _replace_directory(staging, package_root)
+        publish_staged_directory(staging, package_root)
         published = True
         return summary
     finally:

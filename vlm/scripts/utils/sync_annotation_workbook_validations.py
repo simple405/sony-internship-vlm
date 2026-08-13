@@ -7,18 +7,15 @@ from pathlib import Path
 
 import openpyxl
 
-from vlm.scripts.utils.atomic_rule_xlsx import ANNOTATION_STATUS_VALUES, add_annotation_dropdowns
+from vlm.scripts.utils.atomic_rule_xlsx import (
+    ANNOTATION_STATUS_VALUES,
+    XLSX_COLUMNS,
+    add_annotation_dropdowns,
+)
 
 
 DEFAULT_ROOT = Path("vlm/data/multi_view试标数据集_rev")
-REQUIRED_COLUMNS = {
-    "front_visible",
-    "front_status",
-    "side_visible",
-    "side_status",
-    "back_visible",
-    "back_status",
-}
+REQUIRED_COLUMNS = set(XLSX_COLUMNS[4:10])
 
 
 def sync_workbook(path: Path) -> None:
@@ -42,8 +39,8 @@ def sync_workbook(path: Path) -> None:
     verification.close()
     if after_rows != before_rows:
         raise ValueError(f"{path}: validation sync changed worksheet values")
-    if not any("wrong_prosition" in formula for formula in formulas):
-        raise ValueError(f"{path}: missing wrong_prosition status validation")
+    if not any("\u4f4d\u7f6e\u9519\u8bef" in formula for formula in formulas):
+        raise ValueError(f"{path}: missing \u4f4d\u7f6e\u9519\u8bef status validation")
     temporary_path.replace(path)
 
 

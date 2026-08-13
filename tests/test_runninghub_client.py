@@ -10,6 +10,7 @@ from vlm.scripts.generate.runninghub_client import (
     require_api_key,
     _auth_headers,
 )
+from vlm.scripts._http import direct_http_session
 
 
 # ---------------------------------------------------------------------------
@@ -107,3 +108,17 @@ def test_auth_headers_without_json_content():
 def test_auth_headers_default_is_json():
     headers = _auth_headers("k")
     assert "Content-Type" in headers
+
+
+def test_direct_http_session_ignores_inherited_proxy_environment(monkeypatch):
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:7890")
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:7890")
+    monkeypatch.setenv("ALL_PROXY", "socks5://127.0.0.1:7890")
+
+    with direct_http_session() as session:
+        settings = session.merge_environment_settings(
+            "https://www.runninghub.cn/", {}, None, None, None
+        )
+
+    assert session.trust_env is False
+    assert settings["proxies"] == {}

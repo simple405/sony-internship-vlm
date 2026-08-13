@@ -16,6 +16,8 @@ from PIL import Image
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._sn7_artifacts import find_generated_output, validate_category_suffix
+from vlm.scripts.extract_atomic_rules import LINE_ART_ERROR_TYPE, is_probable_black_white_line_art
 from vlm.scripts.utils.atomic_rule_xlsx import write_atomic_rules_xlsx
 from vlm.scripts.generate.runninghub_client import (
     DEFAULT_ENDPOINT,
@@ -23,6 +25,7 @@ from vlm.scripts.generate.runninghub_client import (
     download_result as download_runninghub_result,
     load_api_env,
     poll_task,
+    prepare_upload_image,
     require_api_key,
     safe_result_extension,
     submit_task,
@@ -35,7 +38,7 @@ from vlm.scripts.generate.prompt_renderer import (
 from vlm.scripts._validation import validate_path_component
 
 
-DEFAULT_DATASET = Path("vlm/data/design_sheet_10610")
+DEFAULT_DATASET = Path("vlm/data/sn7_data_generation")
 DEFAULT_ATOMIC_DIR = DEFAULT_DATASET / "atomic_rules"
 # Note 1: Keep this suffix list in sync with the dataset and download code; it
 # defines which local files are considered valid image inputs.
@@ -58,7 +61,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prompt-file", type=Path, default=DEFAULT_PROMPT_FILE)
     parser.add_argument("--aspect-ratio", default="21:9")
     parser.add_argument("--resolution", default="1k", choices=("1k", "2k", "4k"))
-    parser.add_argument("--output-suffix", default="head_keychain")
+    parser.add_argument(
+        "--output-suffix",
+        default=None,
+        help="Optional compatibility override; defaults to the canonical suffix for --category.",
+    )
     parser.add_argument(
         "--category",
         default="head_key_chain",
@@ -70,6 +77,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--stop-on-error", action="store_true")
     parser.add_argument("--keep-debug-files", action="store_true")
+    parser.add_argument(
+        "--skip-xlsx",
+        action="store_true",
+        help="Download generated images without creating annotation workbooks.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -216,6 +228,9 @@ def classify_rejection(message: str) -> str:
         "敏感",
         "违规",
         "拒绝",
+        LINE_ART_ERROR_TYPE,
+        "line-art",
+        "线条稿",
     )
     return "content_policy_or_provider_rejection" if any(marker in lowered for marker in content_markers) else "runtime_error"
 
@@ -240,6 +255,16 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
     reference_path = None
     clean_dir = args.direct_output_dir / sample_id
     debug_dir = args.direct_output_dir / "_debug" / sample_id
+    existing_output = find_generated_output(clean_dir, sample_id, args.output_suffix)
+    if existing_output is not None:
+        return {
+            "status": "skipped_existing",
+            "sample_id": sample_id,
+            "existing_output": str(existing_output),
+            "clean_dir": str(clean_dir),
+        }
+    if is_probable_black_white_line_art(image_path):
+        raise ValueError(f"{LINE_ART_ERROR_TYPE}: obvious black/white line-art input; refused before RunningHub submission")
     copy_inputs(clean_dir, sample_id, image_path, rules_path, reference_path)
 
     request_preview = {
@@ -268,7 +293,8 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
     start_time = time.time()
     # Note 33: RunningHub receives only the complete original image. atomic_rules
     # are archived locally for provenance and reflected in the prompt file design.
-    upload_payloads = [upload_image(api_key, image_path)]
+    with prepare_upload_image(image_path, clean_dir) as prepared_upload:
+        upload_payloads = [upload_image(api_key, prepared_upload.path)]
     image_urls = [str(payload["download_url"]) for payload in upload_payloads]
     submit_response = submit_task(
         api_key,
@@ -288,10 +314,12 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
     downloaded = download_results(results, clean_dir, sample_id, args.output_suffix)
     annotation_xlsx = ""
     if downloaded:
-        annotation_path = clean_dir / f"{sample_id}.xlsx"
-        category = args.category or args.direct_output_dir.name
-        write_atomic_rules_xlsx(rules_path, annotation_path, category)
-        annotation_xlsx = str(annotation_path)
+        if not getattr(args, "skip_xlsx", False):
+            annotation_path = clean_dir / f"{sample_id}.xlsx"
+            category = args.category or args.direct_output_dir.name
+            write_atomic_rules_xlsx(rules_path, annotation_path, category)
+            annotation_xlsx = str(annotation_path)
+        (clean_dir / "generation_error.json").unlink(missing_ok=True)
 
     status = {
         # Note 34: "no_image_url_found" is separated from failure because the
@@ -308,6 +336,11 @@ def run_one(args: argparse.Namespace, prompt: str, api_key: str, sample_id: str)
         "image_metadata": [image_metadata(path) for path in downloaded],
         "clean_dir": str(clean_dir),
         "usage": final_response.get("usage"),
+        "upload_preparation": {
+            "source_size": list(prepared_upload.source_size),
+            "upload_size": list(prepared_upload.upload_size),
+            "resized": prepared_upload.resized,
+        },
     }
     if args.keep_debug_files:
         # Note 35: Do not persist download_url in debug upload payloads; those
@@ -350,6 +383,7 @@ def main() -> None:
         raise SystemExit("No samples selected. Use --sample-id.")
     for sample_id in sample_ids:
         validate_path_component(sample_id, "sample ID")
+    args.output_suffix = validate_category_suffix(args.category, args.output_suffix)
     validate_path_component(args.output_suffix, "output suffix")
 
     if args.dry_run:
@@ -366,6 +400,7 @@ def main() -> None:
                 "selected_samples": len(sample_ids),
                 "workers": args.workers,
                 "direct_output_dir": str(args.direct_output_dir),
+                "skip_xlsx": bool(getattr(args, "skip_xlsx", False)),
             },
             ensure_ascii=False,
         ),
@@ -410,6 +445,7 @@ def main() -> None:
         "succeeded": sum(1 for item in summaries if item.get("status") == "succeeded"),
         "dry_run": sum(1 for item in summaries if item.get("status") == "dry_run"),
         "failed": sum(1 for item in summaries if item.get("status") == "failed"),
+        "skipped_existing": sum(1 for item in summaries if item.get("status") == "skipped_existing"),
         "no_image_url_found": sum(
             1 for item in summaries if item.get("status") == "no_image_url_found"
         ),

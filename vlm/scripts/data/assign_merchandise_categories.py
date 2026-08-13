@@ -9,31 +9,28 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
-
-from vlm.scripts._validation import resolve_manifest_path, validate_path_component
-
-
-DEFAULT_DATASET = Path("vlm/data/design_sheet_10610")
-CATEGORIES = (
-    "head_key_chain",
-    "cake_roll",
-    "backpack",
-    "plush",
-    "dataset_QSitFigures",
-    "dataset_figurine",
+from vlm.scripts._dataset_manifest import (
+    CONSOLIDATED_MANIFEST,
+    MANIFEST_COLUMNS,
+    SN7_DATASET_ROOT,
+    SN7_DATASET_ID,
+    manifest_sample_id,
+    read_manifest_rows,
+    resolve_manifest_image,
+    update_dataset_fields,
 )
-HEAD_ONLY_CATEGORIES = CATEGORIES[:3]
-FULL_BODY_CATEGORIES = CATEGORIES[3:]
-IMAGE_SUFFIXES = (".png", ".jpg", ".jpeg", ".webp")
-OUTPUT_SUFFIXES = {
-    "head_key_chain": "head_keychain",
-    "cake_roll": "cake_roll",
-    "backpack": "backpack",
-    "plush": "plush",
-    "dataset_QSitFigures": "SitFigures",
-    "dataset_figurine": "figurine",
-}
+from vlm.scripts._sn7_artifacts import (
+    CATEGORIES,
+    CATEGORY_OUTPUT_SUFFIXES as OUTPUT_SUFFIXES,
+    FULL_BODY_CATEGORIES,
+    HEAD_ONLY_CATEGORIES,
+    IMAGE_SUFFIXES,
+    find_generated_output,
+)
+from vlm.scripts._validation import validate_path_component
+
+
+DEFAULT_DATASET = SN7_DATASET_ROOT
 OUTPUT_COLUMNS = (
     "sample_id",
     "primary_category",
@@ -73,22 +70,7 @@ def discover_generated(dataset_dir: Path) -> dict[str, str]:
                 continue
             sample_id = validate_path_component(sample_dir.name, "sample ID")
             output_suffix = OUTPUT_SUFFIXES[category]
-            candidates = [
-                sample_dir / f"{sample_id}_{output_suffix}{extension}"
-                for extension in IMAGE_SUFFIXES
-            ]
-            valid_output = False
-            for candidate in candidates:
-                if not candidate.is_file() or candidate.stat().st_size <= 0:
-                    continue
-                try:
-                    with Image.open(candidate) as image:
-                        image.verify()
-                except Exception:
-                    continue
-                valid_output = True
-                break
-            if not valid_output:
+            if find_generated_output(sample_dir, sample_id, output_suffix) is None:
                 continue
             previous = generated.setdefault(sample_id, category)
             if previous != category:
@@ -135,33 +117,33 @@ def apply_balanced_assignment(rows: list[dict[str, Any]]) -> None:
 
 def read_manifest(dataset_dir: Path) -> list[dict[str, Any]]:
     """Read and validate the portable SN-7 manifest."""
-    manifest_path = dataset_dir / "manifest.csv"
+    resolved_dataset = dataset_dir.resolve()
+    manifest_path = (
+        CONSOLIDATED_MANIFEST.resolve()
+        if resolved_dataset == DEFAULT_DATASET.resolve()
+        else resolved_dataset / "manifest.csv"
+    )
     if not manifest_path.is_file():
         raise FileNotFoundError(manifest_path)
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
-    with manifest_path.open("r", encoding="utf-8-sig", newline="") as handle:
-        for raw in csv.DictReader(handle):
-            sample_id = validate_path_component(
-                raw.get("sample_id") or raw.get("post_id") or "", "sample ID"
-            )
-            if sample_id in seen:
-                raise ValueError(f"Duplicate sample ID in manifest: {sample_id}")
-            seen.add(sample_id)
-            image_path = resolve_manifest_path(
-                dataset_dir, raw.get("image_path", ""), "image_path"
-            )
-            if not image_path.is_file():
-                raise FileNotFoundError(image_path)
-            rows.append(
-                {
-                    "sample_id": sample_id,
-                    "primary_category": "",
-                    "already_generated_category": "",
-                    "assignment_source": "",
-                    "image_path": image_path.relative_to(dataset_dir.resolve()).as_posix(),
-                }
-            )
+    for raw in read_manifest_rows(manifest_path, dataset_id=SN7_DATASET_ID):
+        sample_id = manifest_sample_id(raw)
+        if sample_id in seen:
+            raise ValueError(f"Duplicate sample ID in manifest: {sample_id}")
+        seen.add(sample_id)
+        image_path = resolve_manifest_image(manifest_path, raw)
+        if not image_path.is_file():
+            raise FileNotFoundError(image_path)
+        rows.append(
+            {
+                "sample_id": sample_id,
+                "primary_category": "",
+                "already_generated_category": "",
+                "assignment_source": "",
+                "image_path": image_path.relative_to(resolved_dataset).as_posix(),
+            }
+        )
     return rows
 
 
@@ -190,6 +172,19 @@ def main() -> None:
     apply_balanced_assignment(rows)
     rows.sort(key=lambda row: (CATEGORIES.index(str(row["primary_category"])), str(row["sample_id"])))
     write_csv(output_dir / "merchandise_category_assignments.csv", rows, OUTPUT_COLUMNS)
+    if dataset_dir == DEFAULT_DATASET.resolve():
+        update_dataset_fields(
+            CONSOLIDATED_MANIFEST,
+            SN7_DATASET_ID,
+            {
+                str(row["sample_id"]): {
+                    "primary_category": str(row["primary_category"]),
+                    "assignment_source": str(row["assignment_source"]),
+                }
+                for row in rows
+            },
+            MANIFEST_COLUMNS,
+        )
 
     counts = Counter(str(row["primary_category"]) for row in rows)
     pending_counts: dict[str, int] = {}

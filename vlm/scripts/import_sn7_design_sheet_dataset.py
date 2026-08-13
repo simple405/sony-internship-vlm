@@ -13,6 +13,14 @@ from pathlib import Path
 
 from PIL import Image
 
+from vlm.scripts._dataset_manifest import (
+    CONSOLIDATED_MANIFEST,
+    MANIFEST_COLUMNS,
+    SN7_DATASET_ROOT,
+    SN7_DATASET_ID,
+    replace_dataset_rows,
+    update_dataset_fields,
+)
 from vlm.scripts._validation import validate_path_component
 
 
@@ -31,12 +39,13 @@ CATEGORIES = (
 )
 DIRECT_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 SUPPORTED_SUFFIXES = DIRECT_SUFFIXES | {".gif"}
+DEFAULT_OUTPUT_ROOT = SN7_DATASET_ROOT
 
 
 def parse_args() -> argparse.Namespace:
     """Parse SN-7 import arguments."""
     parser = argparse.ArgumentParser(description="Import the SN-7 10610-image design-sheet dataset.")
-    parser.add_argument("--output-root", type=Path, default=Path("vlm/data/design_sheet_10610"))
+    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     return parser.parse_args()
 
 
@@ -139,8 +148,27 @@ def main() -> None:
                 )
 
     rows.sort(key=lambda row: row["sample_id"])
-    manifest_fields = list(rows[0]) if rows else ["post_id", "sample_id", "image_path"]
-    write_csv(output_root / "manifest.csv", rows, manifest_fields)
+    if output_root.resolve() == DEFAULT_OUTPUT_ROOT.resolve():
+        consolidated_rows = [
+            {
+                **row,
+                "dataset_id": SN7_DATASET_ID,
+                "image_path": (Path(output_root.name) / row["image_path"]).as_posix(),
+                "data_status": "available",
+                "atomic_rules_used": "false",
+                "atomic_rules_status": "not_started",
+            }
+            for row in rows
+        ]
+        replace_dataset_rows(
+            CONSOLIDATED_MANIFEST,
+            SN7_DATASET_ID,
+            consolidated_rows,
+            MANIFEST_COLUMNS,
+        )
+    else:
+        manifest_fields = list(rows[0]) if rows else ["post_id", "sample_id", "image_path"]
+        write_csv(output_root / "manifest.csv", rows, manifest_fields)
     with (output_root / "metadata.jsonl").open("w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -170,6 +198,19 @@ def main() -> None:
         assignments,
         ["sample_id", "primary_category", "assignment_source", "image_path"],
     )
+    if output_root.resolve() == DEFAULT_OUTPUT_ROOT.resolve():
+        update_dataset_fields(
+            CONSOLIDATED_MANIFEST,
+            SN7_DATASET_ID,
+            {
+                row["sample_id"]: {
+                    "primary_category": row["primary_category"],
+                    "assignment_source": row["assignment_source"],
+                }
+                for row in assignments
+            },
+            MANIFEST_COLUMNS,
+        )
     counts = Counter(row["primary_category"] for row in assignments)
     for category in CATEGORIES:
         ids = [row["sample_id"] for row in assignments if row["primary_category"] == category]

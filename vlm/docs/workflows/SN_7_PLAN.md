@@ -14,10 +14,11 @@ vlm/data/角色分解                    2485
 
 ## 数据契约
 
-统一根目录为 `vlm/data/design_sheet_10610/`：
+统一汇总清单为 `vlm/data/sn7_data_generation/manifest.csv`，通过
+`dataset_id=design_sheet_10610` 筛选本批次；图片和产物根目录为
+`vlm/data/sn7_data_generation/`：
 
 ```text
-manifest.csv
 image/<sample_id>.<ext>
 atomic_rules/<sample_id>/atomic_rules.json
 generated/<category>/<sample_id>/
@@ -26,6 +27,9 @@ deliverables/<category>/<sample_id>/
 ```
 
 manifest 的 `image_path` 必须相对数据集根目录。`sample_id` 使用 `cs_`、`ta_`、`cd_` 来源前缀，防止三个源之间重名。
+汇总 manifest 的 `image_path` 必须相对 `vlm/data/`。因此当前 SN-7 图片以
+`sn7_data_generation/image/<sample_id>.<ext>` 记录。分类字段和 atomic
+执行状态直接写在该表；`atomic_rules_status=error` 时同时保留错误类型、原因和拒绝分类。
 
 最终每个 `deliverables` 样本必须包含：
 
@@ -52,6 +56,7 @@ multiview_design.png
 ```powershell
 .\.venv\Scripts\python.exe -m vlm.scripts.import_sn7_design_sheet_dataset
 .\.venv\Scripts\python.exe -m vlm.scripts.data.assign_merchandise_categories
+.\.venv\Scripts\python.exe -m vlm.scripts.consolidate_data_manifests --remove-merged-files
 ```
 
 先对少量样本提取 atomic rules；人工确认 JSON 的 `id/location/value` 和观察者视角 left/right 后，再用 `--limit 0` 全量执行：

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from vlm.scripts._paths import VLM_ROOT
+from vlm.scripts._preservation import publish_staged_directory
 from vlm.scripts.generate.generate_paired_front_view import (
     DEFAULT_OUTPUT_ROOT as GENERATION_ROOT,
 )
@@ -25,14 +26,6 @@ from vlm.scripts._validation import validate_path_component
 DEFAULT_REVIEW_ROOT = VLM_ROOT / "tmp" / "paired_front_view_review_v1"
 REVIEW_VERSION = "paired_front_view_review_v1"
 HUMAN_SAMPLE_FILES = ("qc.csv",)
-NOISY_SAMPLE_FILES = (
-    "prediction.json",
-    "review_prompt.txt",
-    "request_preview.json",
-    "raw_response.txt",
-    "status.json",
-    "sync_manifest.json",
-)
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -49,23 +42,6 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     temp.replace(path)
-
-
-def _replace_directory(staged: Path, destination: Path) -> None:
-    """Replace a generated directory with rollback if the final rename fails."""
-    backup = destination.with_name(destination.name + ".previous")
-    if backup.exists():
-        shutil.rmtree(backup)
-    if destination.exists():
-        destination.replace(backup)
-    try:
-        staged.replace(destination)
-    except Exception:
-        if backup.exists() and not destination.exists():
-            backup.replace(destination)
-        raise
-    if backup.exists():
-        shutil.rmtree(backup)
 
 
 def discover_review_ids(review_root: Path) -> list[str]:
@@ -103,25 +79,24 @@ def sync_one(
         raise FileNotFoundError(f"Reviewer artifacts not found: {missing_sources}")
 
     destination = sample_dir / "_review" / REVIEW_VERSION
-    destination.mkdir(parents=True, exist_ok=True)
+    destination.parent.mkdir(parents=True, exist_ok=True)
 
     for source in required_sources:
         target = destination / source.name
         if target.exists() and not overwrite:
             raise FileExistsError(f"Refusing to overwrite: {target}")
-    for source in required_sources:
-        target = destination / source.name
-        temp = target.with_suffix(target.suffix + ".tmp")
-        shutil.copy2(source, temp)
-        temp.replace(target)
-
-    # Older syncs mirrored every machine artifact into each sample.  Keep the
-    # per-sample folder readable by removing those stale noisy files while
-    # preserving the human-facing CSV.
-    for filename in NOISY_SAMPLE_FILES:
-        stale = destination / filename
-        if stale.is_file():
-            stale.unlink()
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{REVIEW_VERSION}.", dir=destination.parent)
+    )
+    published = False
+    try:
+        for source in required_sources:
+            shutil.copy2(source, staging / source.name)
+        publish_staged_directory(staging, destination)
+        published = True
+    finally:
+        if not published and staging.exists():
+            shutil.rmtree(staging)
 
     copied = list(HUMAN_SAMPLE_FILES)
     manifest = {
@@ -297,7 +272,7 @@ def build_central_review_summary(
         "failures": failures,
     }
     _write_json_atomic(central_dir / "sync_summary.json", summary)
-    _replace_directory(central_dir, central_destination)
+    publish_staged_directory(central_dir, central_destination)
     return summary
 
 

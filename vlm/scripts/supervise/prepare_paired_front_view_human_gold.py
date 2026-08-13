@@ -23,7 +23,8 @@ if __package__ in (None, ""):
 
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
-from vlm.scripts._paths import VLM_ROOT
+from vlm.scripts._paths import DATA_ROOT, TMP_DIR, VLM_ROOT
+from vlm.scripts._preservation import publish_staged_directory
 from vlm.scripts.generate.generate_paired_front_view import (
     DEFAULT_OUTPUT_ROOT as GENERATION_ROOT,
 )
@@ -93,6 +94,32 @@ PACKAGE_OUTPUT_FILES = (
     "README.md",
     "batch_summary.json",
 )
+
+
+def validate_output_root(output_root: Path) -> Path:
+    """Return a safe human-gold package root without touching existing assets."""
+    resolved = output_root.resolve()
+    protected = {
+        VLM_ROOT.resolve(),
+        DATA_ROOT.resolve(),
+        TMP_DIR.resolve(),
+    }
+    if resolved in protected:
+        raise ValueError(f"Refusing to publish a human-gold package to protected container: {resolved}")
+    if DATA_ROOT.resolve() in resolved.parents:
+        raise ValueError(f"Human-gold output must not be inside vlm/data: {resolved}")
+    return resolved
+
+
+def existing_package_paths(output_root: Path) -> list[Path]:
+    """Return existing files/directories that would make publishing unsafe."""
+    if not output_root.exists():
+        return []
+    package_paths = [output_root / name for name in PACKAGE_OUTPUT_FILES if (output_root / name).exists()]
+    if package_paths:
+        return package_paths
+    entries = [path for path in output_root.iterdir() if path.name != "validation_summary.json"]
+    return entries
 
 
 def _read_json(path: Path) -> Any:
@@ -412,7 +439,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Explicitly replace an existing generated work package.",
+        help="Publish a new work package and archive the existing package.",
     )
     return parser.parse_args()
 
@@ -420,8 +447,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     """Create or validate the paired front-view human-gold package."""
     args = parse_args()
-    args.output_root.mkdir(parents=True, exist_ok=True)
+    args.output_root = validate_output_root(args.output_root)
     if args.validate:
+        args.output_root.mkdir(parents=True, exist_ok=True)
         problems: list[str] = []
         pending: dict[str, int] = {}
         for name, columns, is_extra in (
@@ -447,15 +475,12 @@ def main() -> None:
             raise SystemExit(1)
         return
 
-    existing = [
-        args.output_root / name
-        for name in PACKAGE_OUTPUT_FILES
-        if (args.output_root / name).exists()
-    ]
+    existing = existing_package_paths(args.output_root)
     if existing and not args.overwrite:
         raise SystemExit(
             "Human-gold work package already exists; refusing to overwrite possible "
-            "manual annotations. Pass --overwrite only after preserving those edits."
+            "manual annotations. Pass --overwrite to archive the current package "
+            "before publishing a replacement."
         )
 
     records, missing = load_review_queue(
@@ -493,10 +518,7 @@ def main() -> None:
         write_contact_sheet(records, staging / "source_vs_generated_queue.jpg")
         write_instructions(staging / "README.md")
         write_json(staging / "batch_summary.json", summary)
-        args.output_root.mkdir(parents=True, exist_ok=True)
-        for name in PACKAGE_OUTPUT_FILES:
-            (staging / name).replace(args.output_root / name)
-        (args.output_root / "validation_summary.json").unlink(missing_ok=True)
+        publish_staged_directory(staging, args.output_root)
     finally:
         if staging.exists():
             shutil.rmtree(staging)

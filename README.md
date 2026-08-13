@@ -23,6 +23,6 @@ python -m venv .venv
 - 可执行脚本：`vlm/scripts/README.md`
 - SN-7：`vlm/docs/workflows/SN_7_PLAN.md`
 - SN-6：`vlm/docs/workflows/process.md`
-- 交接状态：`vlm/docs/HANDOFF.md`
+- 交接状态：`handoff/LATEST.md`
 
 所有命令都从仓库根目录执行。CI 会在 Windows + Python 3.11 上编译脚本并运行测试。

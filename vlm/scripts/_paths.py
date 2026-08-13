@@ -37,7 +37,7 @@ VLM_ROOT = PROJECT_ROOT / "vlm"
 
 # Data directories
 DATA_ROOT = VLM_ROOT / "data"
-DATASET_ROOT = DATA_ROOT / "design_sheet_10610"
+DATASET_ROOT = DATA_ROOT / "sn7_data_generation"
 GENERATED_ROOT = DATASET_ROOT / "generated"
 ATOMIC_RULES_ROOT = DATASET_ROOT / "atomic_rules"
 IMAGE_ROOT = DATASET_ROOT / "image"

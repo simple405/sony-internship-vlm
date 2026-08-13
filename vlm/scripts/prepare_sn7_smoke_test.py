@@ -12,11 +12,13 @@ import csv
 import hashlib
 import json
 import shutil
+import tempfile
 from pathlib import Path
 
 from PIL import Image
 
 from vlm.scripts._paths import DATA_ROOT
+from vlm.scripts._preservation import publish_staged_directory
 from vlm.scripts._validation import require_within, validate_path_component
 
 
@@ -40,7 +42,11 @@ def parse_args() -> argparse.Namespace:
     """Parse SN-7 smoke-test preparation arguments."""
     parser = argparse.ArgumentParser(description="Prepare the isolated SN-7 12-image smoke-test dataset.")
     parser.add_argument("--output-root", type=Path, default=Path("vlm/data/design_sheet_10610_smoke12"))
-    parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Publish a new smoke dataset and archive the existing output.",
+    )
     return parser.parse_args()
 
 
@@ -68,77 +74,97 @@ def readable_images(source: Path) -> list[Path]:
     return paths
 
 
+def prepare_smoke_dataset(args: argparse.Namespace) -> dict[str, object]:
+    """Build and publish the deterministic 12-image SN-7 smoke dataset."""
+    output_root = require_within(DATA_ROOT, args.output_root, "output root")
+    if output_root.exists() and not args.overwrite:
+        raise SystemExit(
+            f"Output root already exists: {output_root}. Pass --overwrite to "
+            "archive it and publish a replacement."
+        )
+    output_root.parent.mkdir(parents=True, exist_ok=True)
+    staging = Path(
+        tempfile.mkdtemp(prefix=f".{output_root.name}.", dir=output_root.parent)
+    )
+    published = False
+    try:
+        image_root = staging / "image"
+        image_root.mkdir(parents=True)
+        available = {name: readable_images(path) for name, path in SOURCES.items()}
+        offsets = {name: 0 for name in SOURCES}
+        manifest_rows: list[dict[str, str]] = []
+        assignment_rows: list[dict[str, str]] = []
+        for category, source_name in CATEGORY_SOURCES.items():
+            selections = available[source_name][offsets[source_name] : offsets[source_name] + 2]
+            offsets[source_name] += 2
+            if len(selections) != 2:
+                raise RuntimeError(f"Could not select two readable images from {SOURCES[source_name]}")
+            for source_path in selections:
+                sample_id = validate_path_component(
+                    f"{source_name}_{source_path.stem}", "sample ID"
+                )
+                target = image_root / f"{sample_id}{source_path.suffix.lower()}"
+                shutil.copy2(source_path, target)
+                with Image.open(target) as image:
+                    width, height = image.size
+                manifest_rows.append(
+                    {
+                        "post_id": sample_id,
+                        "image_path": target.relative_to(staging).as_posix(),
+                        "source_dataset": source_name,
+                        "source_path": f"{source_name}/{source_path.name}",
+                        "original_file_name": source_path.name,
+                        "sha256": sha256(target),
+                        "width": str(width),
+                        "height": str(height),
+                        "extension": target.suffix.lower(),
+                    }
+                )
+                assignment_rows.append(
+                    {
+                        "sample_id": sample_id,
+                        "primary_category": category,
+                        "candidate_categories": category,
+                        "assignment_source": "smoke_test_fixed",
+                        "review_required": "false",
+                        "image_path": target.relative_to(staging).as_posix(),
+                        "crawl_label": "",
+                        "reason": "two_per_category_smoke_test",
+                        "key_tags": "",
+                        "primary_score": "",
+                    }
+                )
+
+        manifest_path = staging / "manifest.csv"
+        with manifest_path.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(manifest_rows[0]))
+            writer.writeheader()
+            writer.writerows(manifest_rows)
+        assignment_path = staging / "category_assignment.csv"
+        with assignment_path.open("w", encoding="utf-8-sig", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(assignment_rows[0]))
+            writer.writeheader()
+            writer.writerows(assignment_rows)
+        (staging / "selection.json").write_text(
+            json.dumps({"sample_count": len(manifest_rows), "samples": manifest_rows}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        publish_staged_directory(staging, output_root)
+        published = True
+        return {
+            "status": "prepared",
+            "output_root": str(output_root),
+            "sample_count": len(manifest_rows),
+        }
+    finally:
+        if not published and staging.exists():
+            shutil.rmtree(staging)
+
+
 def main() -> None:
     """Build the deterministic 12-image SN-7 smoke dataset."""
-    args = parse_args()
-    output_root = require_within(DATA_ROOT, args.output_root, "output root")
-    image_root = output_root / "image"
-    if output_root.exists() and not args.overwrite:
-        raise SystemExit(f"Output root already exists: {output_root}. Pass --overwrite only after reviewing it.")
-    if output_root.exists():
-        shutil.rmtree(output_root)
-    image_root.mkdir(parents=True)
-
-    available = {name: readable_images(path) for name, path in SOURCES.items()}
-    offsets = {name: 0 for name in SOURCES}
-    manifest_rows: list[dict[str, str]] = []
-    assignment_rows: list[dict[str, str]] = []
-    for category, source_name in CATEGORY_SOURCES.items():
-        selections = available[source_name][offsets[source_name] : offsets[source_name] + 2]
-        offsets[source_name] += 2
-        if len(selections) != 2:
-            raise RuntimeError(f"Could not select two readable images from {SOURCES[source_name]}")
-        for source_path in selections:
-            sample_id = validate_path_component(
-                f"{source_name}_{source_path.stem}", "sample ID"
-            )
-            target = image_root / f"{sample_id}{source_path.suffix.lower()}"
-            shutil.copy2(source_path, target)
-            with Image.open(target) as image:
-                width, height = image.size
-            manifest_rows.append(
-                {
-                    "post_id": sample_id,
-                    "image_path": target.relative_to(output_root).as_posix(),
-                    "source_dataset": source_name,
-                    "source_path": f"{source_name}/{source_path.name}",
-                    "original_file_name": source_path.name,
-                    "sha256": sha256(target),
-                    "width": str(width),
-                    "height": str(height),
-                    "extension": target.suffix.lower(),
-                }
-            )
-            assignment_rows.append(
-                {
-                    "sample_id": sample_id,
-                    "primary_category": category,
-                    "candidate_categories": category,
-                    "assignment_source": "smoke_test_fixed",
-                    "review_required": "false",
-                    "image_path": target.relative_to(output_root).as_posix(),
-                    "crawl_label": "",
-                    "reason": "two_per_category_smoke_test",
-                    "key_tags": "",
-                    "primary_score": "",
-                }
-            )
-
-    manifest_path = output_root / "manifest.csv"
-    with manifest_path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(manifest_rows[0]))
-        writer.writeheader()
-        writer.writerows(manifest_rows)
-    assignment_path = output_root / "category_assignment.csv"
-    with assignment_path.open("w", encoding="utf-8-sig", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(assignment_rows[0]))
-        writer.writeheader()
-        writer.writerows(assignment_rows)
-    (output_root / "selection.json").write_text(
-        json.dumps({"sample_count": len(manifest_rows), "samples": manifest_rows}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    print(json.dumps({"status": "prepared", "output_root": str(output_root), "sample_count": len(manifest_rows)}, ensure_ascii=False))
+    summary = prepare_smoke_dataset(parse_args())
+    print(json.dumps(summary, ensure_ascii=False))
 
 
 if __name__ == "__main__":

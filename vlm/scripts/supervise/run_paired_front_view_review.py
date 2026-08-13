@@ -30,6 +30,7 @@ import requests
 if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parents[3]))
 
+from vlm.scripts._http import direct_http_session
 from vlm.scripts._paths import SUPERVISION_PROMPTS_DIR, VLM_ROOT, load_api_env
 from vlm.scripts.generate.generate_paired_front_view import (
     DEFAULT_OUTPUT_ROOT as PILOT_GENERATION_ROOT,
@@ -423,32 +424,33 @@ def call_qwen_review(
     }
     payload["response_format"] = {"type": "json_object"}
     last_error: Exception | None = None
-    for attempt in range(max_retries + 1):
-        try:
-            response = requests.post(
-                base_url.rstrip("/") + "/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                },
-                data=json.dumps(payload, ensure_ascii=False),
-                timeout=timeout,
-                allow_redirects=False,
-            )
-            if response.status_code in {400, 401, 403}:
+    with direct_http_session() as session:
+        for attempt in range(max_retries + 1):
+            try:
+                response = session.post(
+                    base_url.rstrip("/") + "/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    data=json.dumps(payload, ensure_ascii=False),
+                    timeout=timeout,
+                    allow_redirects=False,
+                )
+                if response.status_code in {400, 401, 403}:
+                    response.raise_for_status()
                 response.raise_for_status()
-            response.raise_for_status()
-            result = response.json()
-            break
-        except requests.RequestException as exc:
-            last_error = exc
-            status_code = getattr(getattr(exc, "response", None), "status_code", 0)
-            retryable = status_code == 429 or status_code >= 500 or status_code == 0
-            if not retryable or attempt >= max_retries:
-                raise
-            time.sleep(min(30.0, 2.0**attempt))
-    else:
-        raise RuntimeError(f"Qwen request failed after retries: {last_error}")
+                result = response.json()
+                break
+            except requests.RequestException as exc:
+                last_error = exc
+                status_code = getattr(getattr(exc, "response", None), "status_code", 0)
+                retryable = status_code == 429 or status_code >= 500 or status_code == 0
+                if not retryable or attempt >= max_retries:
+                    raise
+                time.sleep(min(30.0, 2.0**attempt))
+        else:
+            raise RuntimeError(f"Qwen request failed after retries: {last_error}")
     try:
         message = result["choices"][0]["message"]
         content = message.get("content", "")

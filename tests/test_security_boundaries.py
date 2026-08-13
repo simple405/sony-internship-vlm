@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from contextlib import nullcontext
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -149,9 +150,11 @@ def test_download_size_limit_removes_partial_file(monkeypatch, tmp_path: Path):
             (2, 1, 6, "", ("93.184.216.34", 443)),
         ],
     )
+    session = MagicMock()
+    session.get.return_value = response
     monkeypatch.setattr(
-        "vlm.scripts.generate.runninghub_client.requests.get",
-        MagicMock(return_value=response),
+        "vlm.scripts.generate.runninghub_client.direct_http_session",
+        lambda: nullcontext(session),
     )
     output = tmp_path / "out.png"
     with pytest.raises(RuntimeError, match="exceeds"):
@@ -173,9 +176,11 @@ def test_download_rejects_non_raster_image_content_type(
             (2, 1, 6, "", ("93.184.216.34", 443)),
         ],
     )
+    session = MagicMock()
+    session.get.return_value = response
     monkeypatch.setattr(
-        "vlm.scripts.generate.runninghub_client.requests.get",
-        MagicMock(return_value=response),
+        "vlm.scripts.generate.runninghub_client.direct_http_session",
+        lambda: nullcontext(session),
     )
     output = tmp_path / "out.png"
 

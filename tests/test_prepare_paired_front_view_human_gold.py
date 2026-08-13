@@ -106,3 +106,37 @@ def test_main_refuses_to_overwrite_existing_human_annotations(
         human_gold.main()
 
     assert annotations.read_text(encoding="utf-8") == "manual-edit"
+
+
+def test_main_refuses_existing_non_package_output_dir(monkeypatch, tmp_path: Path):
+    output_root = tmp_path / "human_gold"
+    output_root.mkdir()
+    sentinel = output_root / "unrelated.txt"
+    sentinel.write_text("do-not-move", encoding="utf-8")
+    args = Namespace(
+        output_root=output_root,
+        validate=False,
+        overwrite=False,
+    )
+    monkeypatch.setattr(human_gold, "parse_args", lambda: args)
+
+    with pytest.raises(SystemExit, match="refusing to overwrite"):
+        human_gold.main()
+
+    assert sentinel.read_text(encoding="utf-8") == "do-not-move"
+
+
+def test_main_rejects_data_output_root_before_publish(monkeypatch, tmp_path: Path):
+    data_root = tmp_path / "data"
+    monkeypatch.setattr(human_gold, "DATA_ROOT", data_root)
+    monkeypatch.setattr(human_gold, "TMP_DIR", tmp_path / "tmp")
+    monkeypatch.setattr(human_gold, "VLM_ROOT", tmp_path / "vlm")
+    args = Namespace(
+        output_root=data_root / "human_gold",
+        validate=False,
+        overwrite=True,
+    )
+    monkeypatch.setattr(human_gold, "parse_args", lambda: args)
+
+    with pytest.raises(ValueError, match="must not be inside vlm/data"):
+        human_gold.main()
